@@ -1,7 +1,11 @@
-"""Download Gloomhaven (1st edition) scenario data from Gloomhaven Secretariat.
+"""Download Gloomhaven (1st edition) scenario and event data from Gloomhaven Secretariat.
 
-Keeps only what the tracker needs (names, unlocks, blocks, requirements,
-rewards and achievement names) and writes it to data/gloomhaven-scenarios.json.
+Keeps only what the tracker needs and writes two files:
+- data/gloomhaven-scenarios.json: names, unlocks, blocks, requirements,
+  rewards and achievement names.
+- data/gloomhaven-events.json: the starting city and road decks, and for each
+  event option whether the card is removed or returned, which cards it adds
+  and which scenarios it unlocks. No event text is copied.
 
 Source: https://github.com/Lurkars/gloomhavensecretariat (AGPL-3.0)
 
@@ -16,7 +20,9 @@ from pathlib import Path
 
 REPO = "Lurkars/gloomhavensecretariat"
 RAW = f"https://raw.githubusercontent.com/{REPO}/main/data/gh"
-OUTPUT = Path(__file__).resolve().parent.parent / "data" / "gloomhaven-scenarios.json"
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+OUTPUT = DATA_DIR / "gloomhaven-scenarios.json"
+EVENTS_OUTPUT = DATA_DIR / "gloomhaven-events.json"
 
 # Fields copied from each scenario file. Map layouts and monsters are left out.
 FIELDS = ["name", "unlocks", "blocks", "requires", "requirements", "rewards", "links"]
@@ -50,6 +56,52 @@ def normalize_requirements(requirements, labels):
             for alternative in requirements]
 
 
+def summarize_outcome(option, outcome):
+    """What happens to the decks (and scenarios) for one outcome of an event option."""
+    result = {}
+    if outcome.get("condition"):
+        result["condition"] = {"type": outcome["condition"].get("type"),
+                               "values": outcome["condition"].get("values", [])}
+    # The flag can sit on the outcome or on the whole option.
+    if outcome.get("removeFromDeck") or option.get("removeFromDeck"):
+        result["card"] = "removed"
+    elif outcome.get("returnToDeck") or option.get("returnToDeck"):
+        result["card"] = "returned"
+
+    for effect in outcome.get("effects", []):
+        conditional = bool(effect.get("condition"))
+        if effect.get("type") == "event":
+            deck, number = effect["values"][:2]
+            result.setdefault("mayAdd" if conditional else "adds", []).append([deck, int(number)])
+        elif effect.get("type") == "unlockScenario":
+            for number in effect.get("values", []):
+                result.setdefault("mayUnlock" if conditional else "unlocks", []).append(int(number))
+    return result
+
+
+def build_events():
+    campaign = fetch(f"{RAW}/campaign.json")
+    events = {"city": {}, "road": {}}
+    for card in fetch(f"{RAW}/events.json"):
+        options = {}
+        for option in card.get("options", []):
+            outcomes = option.get("outcomes") or [{}]
+            options[option["label"]] = [summarize_outcome(option, o) for o in outcomes]
+        events[card["type"]][str(int(card["cardId"]))] = options
+    return {
+        "source": f"https://github.com/{REPO}",
+        "license": "AGPL-3.0",
+        "retrieved": date.today().isoformat(),
+        "startingDecks": {deck: [int(n) for n in cards] for deck, cards in campaign["events"].items()},
+        "events": events,
+    }
+
+
+def write_json(path, data):
+    path.parent.mkdir(exist_ok=True)
+    path.write_text(json.dumps(data, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
+
+
 def main():
     labels = fetch(f"{RAW}/label/en.json")
 
@@ -73,9 +125,13 @@ def main():
         "scenarios": scenarios,
     }
 
-    OUTPUT.parent.mkdir(exist_ok=True)
-    OUTPUT.write_text(json.dumps(output, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
+    write_json(OUTPUT, output)
     print(f"Wrote {len(scenarios)} scenarios to {OUTPUT}")
+
+    events = build_events()
+    write_json(EVENTS_OUTPUT, events)
+    counts = ", ".join(f"{len(cards)} {deck}" for deck, cards in events["events"].items())
+    print(f"Wrote {counts} events to {EVENTS_OUTPUT}")
 
 
 if __name__ == "__main__":

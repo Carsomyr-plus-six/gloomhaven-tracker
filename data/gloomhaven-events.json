@@ -1,0 +1,3075 @@
+{
+ "source": "https://github.com/Lurkars/gloomhavensecretariat",
+ "license": "AGPL-3.0",
+ "retrieved": "2026-11-15",
+ "startingDecks": {
+  "city": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   14,
+   15,
+   16,
+   17,
+   18,
+   19,
+   20,
+   21,
+   22,
+   23,
+   24,
+   25,
+   26,
+   27,
+   28,
+   29,
+   30
+  ],
+  "road": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   14,
+   15,
+   16,
+   17,
+   18,
+   19,
+   20,
+   21,
+   22,
+   23,
+   24,
+   25,
+   26,
+   27,
+   28,
+   29,
+   30
+  ]
+ },
+ "events": {
+  "city": {
+   "1": {
+    "A": [
+     {
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "returned"
+     }
+    ]
+   },
+   "2": {
+    "A": [
+     {
+      "condition": {
+       "type": "payCollectiveGold",
+       "values": [
+        10
+       ]
+      },
+      "card": "returned"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "returned"
+     }
+    ]
+   },
+   "3": {
+    "A": [
+     {
+      "condition": {
+       "type": "payCollectiveGold",
+       "values": [
+        10
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "returned"
+     }
+    ]
+   },
+   "4": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "5": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "6": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "7": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "8": {
+    "A": [
+     {
+      "condition": {
+       "type": "payCollectiveGoldConditional",
+       "values": [
+        {
+         "type": "payCollectiveGoldReputationLT",
+         "values": [
+          20,
+          10
+         ]
+        },
+        {
+         "type": "payCollectiveGoldReputationGT",
+         "values": [
+          15,
+          9
+         ]
+        }
+       ]
+      },
+      "card": "removed",
+      "unlocks": [
+       93
+      ]
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "9": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "10": {
+    "A": [
+     {
+      "condition": {
+       "type": "reputationGT",
+       "values": [
+        -5
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "11": {
+    "A": [
+     {
+      "condition": {
+       "type": "payCollectiveGold",
+       "values": [
+        5
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "12": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "13": {
+    "A": [
+     {
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "returned"
+     }
+    ]
+   },
+   "14": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "15": {
+    "A": [
+     {
+      "condition": {
+       "type": "reputationGT",
+       "values": [
+        5
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {},
+     {
+      "condition": {
+       "type": "payCollectiveGold",
+       "values": [
+        15
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ]
+   },
+   "16": {
+    "A": [
+     {
+      "condition": {
+       "type": "payCollectiveGold",
+       "values": [
+        10
+       ]
+      },
+      "card": "removed",
+      "adds": [
+       [
+        "city",
+        70
+       ]
+      ]
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "17": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed",
+      "unlocks": [
+       81
+      ]
+     }
+    ]
+   },
+   "18": {
+    "A": [
+     {
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "returned"
+     }
+    ]
+   },
+   "19": {
+    "A": [
+     {
+      "condition": {
+       "type": "reputationGT",
+       "values": [
+        9
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "reputationLT",
+       "values": [
+        10
+       ]
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "condition": {
+       "type": "reputationLT",
+       "values": [
+        -4
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ]
+   },
+   "20": {
+    "A": [
+     {
+      "condition": {
+       "type": "reputationGT",
+       "values": [
+        9
+       ]
+      },
+      "card": "returned"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "21": {
+    "A": [
+     {
+      "condition": {
+       "type": "reputationGT",
+       "values": [
+        7
+       ]
+      },
+      "card": "removed",
+      "adds": [
+       [
+        "road",
+        65
+       ]
+      ]
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed",
+      "adds": [
+       [
+        "road",
+        65
+       ]
+      ]
+     }
+    ]
+   },
+   "22": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "returned"
+     }
+    ]
+   },
+   "23": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "24": {
+    "A": [
+     {
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "returned"
+     }
+    ]
+   },
+   "25": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "brute",
+        "cragheart",
+        "lightning"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "26": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "tinkerer"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "scoundrel",
+        "mindthief",
+        "eclipse"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ]
+   },
+   "27": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "spellweaver",
+        "angry-face",
+        "music-note"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed",
+      "adds": [
+       [
+        "city",
+        60
+       ]
+      ]
+     }
+    ]
+   },
+   "28": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "scoundrel",
+        "mindthief",
+        "eclipse"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "29": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "cragheart",
+        "triangles"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "scoundrel",
+        "saw",
+        "music-note"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "returned"
+     }
+    ]
+   },
+   "30": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "mindthief"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "31": {
+    "A": [
+     {
+      "card": "removed",
+      "unlocks": [
+       83
+      ]
+     }
+    ],
+    "B": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "sun"
+       ]
+      }
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ]
+   },
+   "32": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "three-spears"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "33": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "circles",
+        "eclipse"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "34": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "eclipse"
+       ]
+      },
+      "card": "removed",
+      "unlocks": [
+       78
+      ]
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "35": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "squidface"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ]
+   },
+   "36": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "lightning"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "lightning"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ]
+   },
+   "37": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "music-note"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "three-spears",
+        "spellweaver",
+        "tinkerer",
+        "triangles",
+        "circles"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ]
+   },
+   "38": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "spellweaver",
+        "angry-face"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "spellweaver",
+        "angry-face"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ]
+   },
+   "39": {
+    "A": [
+     {
+      "card": "removed",
+      "mayAdd": [
+       [
+        "city",
+        65
+       ]
+      ]
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "40": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "tinkerer",
+        "saw",
+        "sun"
+       ]
+      }
+     },
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "spellweaver",
+        "triangles",
+        "circles"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "41": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "two-mini"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "payCollectiveGold",
+       "values": [
+        25
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "42": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "43": {
+    "A": [
+     {
+      "condition": {
+       "type": "payCollectiveGold",
+       "values": [
+        5
+       ]
+      },
+      "card": "removed",
+      "adds": [
+       [
+        "city",
+        61
+       ]
+      ]
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      }
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "44": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "spellweaver",
+        "triangles",
+        "circles"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "45": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed",
+      "adds": [
+       [
+        "city",
+        62
+       ]
+      ]
+     }
+    ]
+   },
+   "46": {
+    "A": [
+     {
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "47": {
+    "A": [
+     {
+      "card": "removed",
+      "unlocks": [
+       87
+      ]
+     }
+    ],
+    "B": [
+     {
+      "card": "removed",
+      "adds": [
+       [
+        "city",
+        63
+       ]
+      ]
+     }
+    ]
+   },
+   "48": {
+    "A": [
+     {
+      "condition": {
+       "type": "payCollectiveGold",
+       "values": [
+        5
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "49": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "scoundrel",
+        "saw",
+        "music-note"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ]
+   },
+   "50": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "51": {
+    "A": [
+     {
+      "card": "removed",
+      "adds": [
+       [
+        "city",
+        64
+       ]
+      ]
+     }
+    ],
+    "B": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "scoundrel",
+        "saw",
+        "music-note"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ]
+   },
+   "52": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "53": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "54": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "scoundrel",
+        "mindthief",
+        "eclipse"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ]
+   },
+   "55": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "56": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed",
+      "adds": [
+       [
+        "city",
+        66
+       ]
+      ]
+     }
+    ]
+   },
+   "57": {
+    "A": [
+     {
+      "condition": {
+       "type": "payCollectiveGold",
+       "values": [
+        10
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "58": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed",
+      "unlocks": [
+       91
+      ]
+     }
+    ]
+   },
+   "59": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "60": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "spellweaver",
+        "angry-face",
+        "music-note"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "61": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "62": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "63": {
+    "A": [
+     {
+      "card": "removed",
+      "unlocks": [
+       86
+      ]
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "64": {
+    "A": [
+     {
+      "card": "removed",
+      "unlocks": [
+       89
+      ]
+     }
+    ],
+    "B": [
+     {
+      "card": "removed",
+      "adds": [
+       [
+        "road",
+        64
+       ]
+      ]
+     }
+    ]
+   },
+   "65": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "66": {
+    "A": [
+     {
+      "condition": {
+       "type": "payCollectiveGold",
+       "values": [
+        40
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      }
+     }
+    ],
+    "B": [
+     {
+      "card": "removed",
+      "adds": [
+       [
+        "city",
+        67
+       ]
+      ]
+     }
+    ]
+   },
+   "67": {
+    "A": [
+     {
+      "condition": {
+       "type": "payCollectiveGold",
+       "values": [
+        60
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      }
+     }
+    ],
+    "B": [
+     {
+      "card": "removed",
+      "unlocks": [
+       92
+      ]
+     }
+    ]
+   },
+   "68": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "circles",
+        "eclipse"
+       ]
+      },
+      "card": "removed",
+      "unlocks": [
+       88
+      ]
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed",
+      "unlocks": [
+       88
+      ]
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "69": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "70": {
+    "A": [
+     {
+      "condition": {
+       "type": "reputationGT",
+       "values": [
+        9
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "71": {
+    "A": [
+     {
+      "card": "removed",
+      "adds": [
+       [
+        "city",
+        72
+       ]
+      ]
+     }
+    ],
+    "B": [
+     {
+      "card": "returned"
+     }
+    ]
+   },
+   "72": {
+    "A": [
+     {
+      "card": "removed",
+      "unlocks": [
+       79
+      ]
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "73": {
+    "A": [
+     {
+      "card": "removed",
+      "unlocks": [
+       84
+      ]
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "74": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "75": {
+    "A": [
+     {
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "76": {
+    "A": [
+     {
+      "condition": {
+       "type": "reputationGT",
+       "values": [
+        14
+       ]
+      },
+      "card": "removed",
+      "unlocks": [
+       74
+      ]
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "returned"
+     }
+    ]
+   },
+   "77": {
+    "A": [
+     {
+      "condition": {
+       "type": "reputationLT",
+       "values": [
+        -14
+       ]
+      },
+      "card": "removed",
+      "unlocks": [
+       75
+      ]
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "returned"
+     }
+    ]
+   },
+   "78": {
+    "A": [
+     {
+      "card": "removed",
+      "unlocks": [
+       94
+      ]
+     }
+    ],
+    "B": [
+     {}
+    ]
+   },
+   "79": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "80": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "scoundrel",
+        "saw",
+        "music-note"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "81": {
+    "A": [
+     {
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "returned"
+     }
+    ]
+   }
+  },
+  "road": {
+   "1": {
+    "A": [
+     {
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "returned"
+     }
+    ]
+   },
+   "2": {
+    "A": [
+     {
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "returned"
+     }
+    ]
+   },
+   "3": {
+    "A": [
+     {
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "returned"
+     }
+    ]
+   },
+   "4": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "5": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "6": {
+    "A": [
+     {
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "returned"
+     }
+    ]
+   },
+   "7": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "8": {
+    "A": [
+     {
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "9": {
+    "A": [
+     {
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "returned"
+     }
+    ]
+   },
+   "10": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed",
+      "adds": [
+       [
+        "city",
+        71
+       ]
+      ]
+     }
+    ]
+   },
+   "11": {
+    "A": [
+     {
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "cragheart",
+        "spellweaver",
+        "triangles",
+        "circles"
+       ]
+      },
+      "card": "removed",
+      "adds": [
+       [
+        "city",
+        73
+       ]
+      ]
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "returned"
+     }
+    ]
+   },
+   "12": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "13": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "14": {
+    "A": [
+     {
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "returned"
+     }
+    ]
+   },
+   "15": {
+    "A": [
+     {
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "returned"
+     }
+    ]
+   },
+   "16": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "17": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "18": {
+    "A": [
+     {
+      "condition": {
+       "type": "reputationLT",
+       "values": [
+        -4
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "19": {
+    "A": [
+     {
+      "condition": {
+       "type": "reputationLT",
+       "values": [
+        -4
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "20": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "21": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "22": {
+    "A": [
+     {
+      "card": "removed",
+      "adds": [
+       [
+        "city",
+        74
+       ]
+      ]
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "23": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "24": {
+    "A": [
+     {
+      "card": "removed",
+      "unlocks": [
+       82
+      ]
+     }
+    ],
+    "B": [
+     {
+      "card": "removed",
+      "unlocks": [
+       82
+      ]
+     }
+    ]
+   },
+   "25": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "brute",
+        "lightning"
+       ]
+      },
+      "card": "returned"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "26": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "tinkerer",
+        "three-spears"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "27": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "spellweaver",
+        "triangles",
+        "circles"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "returned"
+     }
+    ]
+   },
+   "28": {
+    "A": [
+     {
+      "condition": {
+       "type": "payCollectiveItem",
+       "values": [
+        13
+       ]
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "29": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "cragheart"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "returned"
+     }
+    ]
+   },
+   "30": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "mindthief",
+        "two-mini"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "31": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "brute",
+        "tinkerer",
+        "three-spears"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "32": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "three-spears"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "33": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "eclipse",
+        "circles"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "34": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "scoundrel",
+        "mindthief",
+        "eclipse"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "brute",
+        "lightning"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ]
+   },
+   "35": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "squidface"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "condition": {
+       "type": "payGold",
+       "values": [
+        5
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      }
+     }
+    ]
+   },
+   "36": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "lightning",
+        "two-mini",
+        "angry-face"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "returned"
+     }
+    ]
+   },
+   "37": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "music-note"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "38": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "lightning",
+        "two-mini",
+        "angry-face"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "39": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "saw"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "40": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "spellweaver",
+        "triangles",
+        "circles"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "41": {
+    "A": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "two-mini"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "42": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed",
+      "adds": [
+       [
+        "road",
+        60
+       ]
+      ]
+     }
+    ]
+   },
+   "43": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "44": {
+    "A": [
+     {
+      "card": "removed",
+      "unlocks": [
+       90
+      ]
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "45": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "46": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "returned"
+     }
+    ]
+   },
+   "47": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "48": {
+    "A": [
+     {
+      "card": "removed",
+      "adds": [
+       [
+        "road",
+        61
+       ]
+      ]
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "49": {
+    "A": [
+     {
+      "card": "removed",
+      "unlocks": [
+       80
+      ]
+     }
+    ],
+    "B": [
+     {
+      "card": "removed",
+      "unlocks": [
+       80
+      ]
+     }
+    ]
+   },
+   "50": {
+    "A": [
+     {
+      "card": "removed",
+      "adds": [
+       [
+        "city",
+        68
+       ]
+      ]
+     }
+    ],
+    "B": [
+     {}
+    ]
+   },
+   "51": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "52": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "53": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "54": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "condition": {
+       "type": "character",
+       "values": [
+        "lightning",
+        "two-mini",
+        "angry-face"
+       ]
+      },
+      "card": "removed"
+     },
+     {
+      "condition": {
+       "type": "otherwise",
+       "values": []
+      },
+      "card": "removed",
+      "adds": [
+       [
+        "city",
+        69
+       ]
+      ]
+     }
+    ]
+   },
+   "55": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "56": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "57": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed",
+      "adds": [
+       [
+        "road",
+        63
+       ]
+      ]
+     }
+    ]
+   },
+   "58": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "59": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "60": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "61": {
+    "A": [
+     {
+      "card": "removed",
+      "adds": [
+       [
+        "road",
+        62
+       ]
+      ]
+     }
+    ],
+    "B": [
+     {
+      "card": "removed",
+      "unlocks": [
+       85
+      ]
+     }
+    ]
+   },
+   "62": {
+    "A": [
+     {
+      "card": "removed",
+      "unlocks": [
+       85
+      ]
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "63": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "64": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "65": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "66": {
+    "A": [
+     {
+      "card": "removed"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "67": {
+    "A": [
+     {
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "removed"
+     }
+    ]
+   },
+   "68": {
+    "A": [
+     {
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "returned"
+     }
+    ]
+   },
+   "69": {
+    "A": [
+     {
+      "card": "returned"
+     }
+    ],
+    "B": [
+     {
+      "card": "returned"
+     }
+    ]
+   }
+  }
+ }
+}
