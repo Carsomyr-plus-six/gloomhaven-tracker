@@ -4,18 +4,20 @@
   "updated": null,
   "party": {
     "name": "Craig's List",
-    "reputation": 0,
+    "reputation": 2,
     "location": "",
     "achievements": [
       { "name": "First Steps", "scenario": 1 },
       { "name": "Jekserah's Plans", "scenario": 3 }
     ],
-    "notes": "Unclaimed: a random side scenario from treasure 07 (scenario #1)."
+    "notes": "Unclaimed: a random side scenario from treasure 07 (scenario #1).\nUnclaimed: a random side scenario from treasure 51 (scenario #8)."
   },
   "city": {
     "prosperityCheckmarks": 2,
     "donations": 0,
-    "globalAchievements": [],
+    "globalAchievements": [
+      { "name": "The Merchant Flees", "scenario": 8 }
+    ],
     "unlockedClasses": ["Brute", "Tinkerer", "Spellweaver", "Scoundrel", "Cragheart", "Mindthief"],
     "itemDesigns": [
       { "name": "Horned Helm", "scenario": 3, "notes": "From treasure 65" },
@@ -76,18 +78,43 @@
       "notes": ""
     },
     {
-      "number": 8,
-      "name": "Gloomhaven Warehouse",
+      "number": 7,
+      "name": "Vibrant Grotto",
       "status": "available",
-      "unlockedBy": 3,
+      "unlockedBy": 8,
       "completed": null,
       "notes": ""
+    },
+    {
+      "number": 8,
+      "name": "Gloomhaven Warehouse",
+      "status": "completed",
+      "unlockedBy": 3,
+      "completed": null,
+      "treasures": ["51"],
+      "notes": "Rewards: global achievement The Merchant Flees, +2 reputation.\nTreasure 51 gave a random side scenario, which we never drew."
     },
     {
       "number": 9,
       "name": "Diamond Mine",
       "status": "available",
       "unlockedBy": 3,
+      "completed": null,
+      "notes": ""
+    },
+    {
+      "number": 13,
+      "name": "Temple of the Seer",
+      "status": "available",
+      "unlockedBy": 8,
+      "completed": null,
+      "notes": ""
+    },
+    {
+      "number": 14,
+      "name": "Frozen Hollow",
+      "status": "available",
+      "unlockedBy": 8,
       "completed": null,
       "notes": ""
     }
