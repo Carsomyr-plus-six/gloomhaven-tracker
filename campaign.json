@@ -192,10 +192,10 @@
         "Add three MUDDLE cards",
         "Ignore negative scenario effects"
       ],
-      "items": [],
+      "items": ["Eagle-Eye Goggles", "Minor Stamina Potion"],
       "personalQuest": "2? (noted as II)",
       "retired": false,
-      "notes": ""
+      "notes": "Sheet has a note \"+10 global gold\", origin unknown.\nSheet lists 10 XP gains and 9 gold gains; six XP gains come before #4, which suggests failed attempts early on."
     },
     {
       "name": "Kaktus",
