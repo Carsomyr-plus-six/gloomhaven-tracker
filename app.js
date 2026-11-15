@@ -550,11 +550,17 @@ function renderEvents(data) {
     ev.history.length ? h("ul", { class: "drawn" }, ev.history.map(drawn)) : null,
     // Past events can't be answered on the page, so say where the answer goes.
     asks.size ? h("p", { class: "small muted how" },
-      'To answer, add "option": "A" or "B" to that event in the "events" list of campaign.json; the page works out the rest.') : null,
+      codeText('To answer, add `"option": "A"` or `"B"` to that event in the `"events"` list of `campaign.json`; the page works out the rest.')) : null,
   ];
 }
 
 // --- Campaign record ---------------------------------------------------------
+
+// Text with what to type into campaign.json between backticks: those parts
+// are set as code, so they stand apart from the sentence around them.
+function codeText(text) {
+  return text.split("`").map((part, i) => i % 2 ? h("code", {}, part) : part);
+}
 
 function recordRows(list) {
   if (!list.length) return h("p", { class: "small muted" }, "None yet.");
@@ -573,7 +579,7 @@ function renderRecord(data) {
     // The page can't record a draw itself, so say exactly what to write.
     (data.draws || []).map(d => nudge("question", `Draw ${d.what}`, [
       `From ${d.from}. Not drawn yet.`,
-      d.how ? h("span", { class: "how" }, `Once drawn, record it in campaign.json: ${d.how}.`) : null])),
+      d.how ? h("span", { class: "how" }, codeText(`Once drawn, record it in \`campaign.json\`: ${d.how}.`)) : null])),
     h("div", { class: "record" },
       card("Party achievements", recordRows(party.achievements)),
       card("Global achievements", recordRows(city.globalAchievements)),
@@ -969,7 +975,7 @@ function deriveCampaign(data, ref, evRef) {
       else if (g.kind === "randomDesign") {
         if (e.drew) addDesign(e.drew, label);
         else record.draws.push({ what: "a random item design", from: label,
-          how: `add "drew": "Item name" to ${label} in the "events" list` });
+          how: `add \`"drew": "Item name"\` to ${label} in the \`"events"\` list` });
       } else gainAchievement(g.kind, g.id, label);
     }
 
@@ -1024,12 +1030,12 @@ function deriveCampaign(data, ref, evRef) {
         if (part.type === "randomScenario") {
           if (drew != null) unlocks.push({ number: Number(drew), source: from });
           else record.draws.push({ what: "a random side scenario", from: `${from}, looted in ${where}`,
-            how: `in scenario ${where}'s "treasures", write "${number}" as { "number": "${number}", "drew": 52 }, putting the number of the scenario you drew in place of 52` });
+            how: `in scenario ${where}'s \`"treasures"\`, write \`"${number}"\` as \`{ "number": "${number}", "drew": 52 }\`, putting the number of the scenario you drew in place of 52` });
         }
         if (part.type === "randomItemDesign") {
           if (drew != null) addDesign(drew, from);
           else record.draws.push({ what: "a random item design", from: `${from}, looted in ${where}`,
-            how: `in scenario ${where}'s "treasures", write "${number}" as { "number": "${number}", "drew": "Item name" }` });
+            how: `in scenario ${where}'s \`"treasures"\`, write \`"${number}"\` as \`{ "number": "${number}", "drew": "Item name" }\`` });
         }
       }
       const gives = parts.map(describeTreasurePart).join(", ") || "not in the treasure index";
@@ -1258,6 +1264,17 @@ function treeLayout(all) {
     return row;
   };
   for (const s of [...roots, ...all]) if (!seen.has(s.number)) place(s, 0);
+  // For the indented rows: at each depth from 1 down to the row's own, whether
+  // the line there carries on past this row, as a later sibling (of the row
+  // itself, or of the ancestor at that depth) still follows.
+  flat.forEach((f, i) => {
+    f.lines = [];
+    for (let k = 1; k <= f.depth; k++) {
+      let j = i + 1;
+      while (j < flat.length && flat[j].depth > k) j++;
+      f.lines.push(j < flat.length && flat[j].depth === k);
+    }
+  });
   return { flat, pos, rows: leaves, cols };
 }
 
@@ -1285,8 +1302,12 @@ function scenarioFacts(data, s) {
   return pairs.length ? h("dl", { class: "facts" }, pairs.map(([k, v]) => h("div", {}, h("dt", {}, k), h("dd", {}, v)))) : null;
 }
 
-// One scenario as a row that opens in place. depth indents it in the tree.
-function scenarioRow(data, s, depth = 0) {
+// How far each depth of the tree is indented, in pixels.
+const TREE_STEP = 14;
+
+// One scenario as a row that opens in place. depth indents it in the tree,
+// and lines (from treeLayout) draws the tree's lines down its left.
+function scenarioRow(data, s, depth = 0, lines = []) {
   const open = scenarioOpen === s.number;
   const blockedWhy = s.status === "blocked" && s.reasons.length ? s.reasons.join(" · ") : null;
   const meta = s.status === "completed"
@@ -1294,10 +1315,20 @@ function scenarioRow(data, s, depth = 0) {
     : s.status === "available"
       ? (s.unlockedBy != null ? `from #${s.unlockedBy}` : s.unlockedVia ? `from ${s.unlockedVia}` : "")
       : "";
-  const elbow = depth ? h("span", { class: "elbow", "aria-hidden": "true" }, svg("0 0 14 22", '<path d="M2 1v10h10"/>')) : null;
-  if (elbow) elbow.style.width = `${depth * 14}px`;
+  // A line runs the full height of the row at each depth that carries on,
+  // so siblings far apart are visibly joined; the row's own branch turns
+  // off it to the hexagon, and ends there if nothing else follows.
+  const elbow = depth ? h("span", { class: `elbow${lines[depth - 1] ? "" : " last"}`, "aria-hidden": "true" }) : null;
+  if (elbow) elbow.style.width = `${depth * TREE_STEP}px`;
+  const rails = lines.map((on, k) => {
+    if (!on) return null;
+    const rail = h("i", { class: "tree-rail", "aria-hidden": "true" });
+    rail.style.left = `${(k + 1) * TREE_STEP - 2}px`;
+    return rail;
+  });
 
-  return h("article", { class: `row${open ? " open" : ""}`, id: `scenario-${s.number}`, "data-scenario": s.number },
+  const row = h("article", { class: `row${open ? " open" : ""}${depth ? " in-tree" : ""}`, id: `scenario-${s.number}`, "data-scenario": s.number },
+    rails,
     h("button", {
         type: "button", class: "row-head", "data-key": `row-${s.number}`, "aria-expanded": String(open),
         onclick: () => { scenarioOpen = open ? null : s.number; scenarioPicked = s.number; render(data, "scenarios"); },
@@ -1314,6 +1345,9 @@ function scenarioRow(data, s, depth = 0) {
       scenarioFacts(data, s),
       s.results?.length ? resultsList(s.results) : null,
       notes(s.notes)) : null);
+  // An opened row's details start clear of the tree's lines.
+  if (depth) row.style.setProperty("--indent", `${depth * TREE_STEP}px`);
+  return row;
 }
 
 // The unlock map for wide screens: scenarios laid out left to right, with the
@@ -1407,7 +1441,7 @@ function renderScenarios(data) {
         counts.completed ? h("span", {}, h("span", { class: "ink-completed" }, icon("check")), `${counts.completed} completed`) : null,
         counts.blocked ? h("span", {}, h("span", { class: "ink-blocked" }, icon("lock")), `${counts.blocked} blocked`) : null),
       unlockMap(data, all, layout),
-      h("div", { class: "scenario-list tree-rows" }, layout.flat.map(({ s, depth }) => scenarioRow(data, s, depth))),
+      h("div", { class: "scenario-list tree-rows" }, layout.flat.map(({ s, depth, lines }) => scenarioRow(data, s, depth, lines))),
     ];
   }
 
@@ -1505,6 +1539,16 @@ function closestPerk(text, perks) {
     if (shared > score) { best = p; score = shared; }
   }
   return score >= 0.3 ? best : null;
+}
+
+// A perk's boxes as on the character sheet: the ticked ones filled, the
+// rest empty. A lone ticked box says nothing a screen reader needs.
+function perkBoxes(ticked, empty) {
+  const total = ticked + empty;
+  const box = on => h("i", { class: on ? "perk-box" : "perk-box unticked" });
+  return h("span", total > 1 ? { class: "perk-boxes", role: "img", "aria-label": `${ticked} of ${total} boxes ticked` }
+                             : { class: "perk-boxes", "aria-hidden": "true" },
+    Array.from({ length: total }, (_, i) => box(i < ticked)));
 }
 
 // The perks a character has taken, matched to the class's list, and the ones
@@ -1615,18 +1659,18 @@ function renderCharacters(data) {
         st.unspent ? nudge("plus", `${plural(st.unspent, "perk")} to choose`, null, "perk-nudge") : null,
         perks.length
           ? h("ul", { class: "perks" }, perks.map(p => h("li", { class: p.note && !p.quiet ? "unsure" : null },
-              // A filled box, as ticked on the sheet; the game's checkmark is
+              // Its boxes, as ticked on the sheet; the game's checkmark is
               // kept for battle goals, so the card shows only one kind of tick.
-              p.note && !p.quiet ? icon("question") : h("i", { class: "perk-box", "aria-hidden": "true" }),
-              h("span", {}, perkText(p.text), p.note ? h("span", { class: "note" }, p.note) : null),
-              p.count > 1 ? h("span", { class: "times" }, `×${p.count}`) : null)))
+              p.note && !p.quiet ? icon("question") : perkBoxes(p.count, p.match ? p.match.count - p.count : 0),
+              h("span", { class: "perk-text" }, perkText(p.text), p.note ? h("span", { class: "note" }, p.note) : null),
+              p.note && !p.quiet && p.count > 1 ? h("span", { class: "times" }, `×${p.count}`) : null)))
           : h("span", { class: "small muted" }, st.earned ? "None taken yet."
               // Only a level 1 character with under 3 checkmarks has none earned.
               : `None yet: the first comes at level 2, or with ${plural(3 - c.checkmarks % 3, "more battle-goal checkmark")}.`),
         st.unspent && check.open.length ? h("details", { class: "open-perks", open: true },
           h("summary", {}, `Perks still open on the ${c.class} sheet`),
           h("ul", {}, check.open.map(p => h("li", {},
-            h("span", {}, perkText(p.text)), p.left > 1 ? h("span", { class: "times" }, `${p.left} boxes`) : null)))) : null),
+            perkBoxes(p.count - p.left, p.left), h("span", {}, perkText(p.text)))))) : null),
       c.items.length ? h("div", { class: "block" },
         h("div", { class: "block-head" }, h("span", { class: "label" }, "Items"), h("span", {}, `${c.items.length} carried`)),
         itemProblems.map(text => nudge("question", "Too many items", text)),
@@ -2155,18 +2199,22 @@ function renderRecorder(data) {
   };
   const first = applyDraft(rawCampaign, d, data);
 
+  // Every part of the form is a heading over its fields, the same way.
   return h("div", { class: "recorder" },
-    topBar(first),
+    // On a strip of page background, so nothing scrolling under it shows round it.
+    h("div", { class: "rec-pin" }, topBar(first)),
     h("datalist", { id: "rec-available" }, available.map(s => h("option", { value: s.number }, `#${s.number} ${s.name || ""}`))),
-    h("fieldset", { class: "card rec-block" },
-      h("legend", {}, "The evening"),
-      h("div", { class: "rec-row" },
-        field("Date", text("rec-date", d, "date", { type: "date" })),
-        field("Title (optional)", text("rec-title", d, "title", { placeholder: "Only if there's no date" }), "wide")),
-      h("div", { class: "filters", role: "group", "aria-label": "Who played" }, active.map(c =>
-        h("button", { type: "button", "data-key": `rec-who-${c.name}`, "aria-pressed": String(d.party.includes(c.name)),
-                      onclick: () => { d.party = d.party.includes(c.name) ? d.party.filter(n => n !== c.name) : [...d.party, c.name]; rerender(); } },
-          c.name)))),
+    h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "The evening"),
+      h("div", { class: "card rec-block" },
+        h("div", { class: "rec-row" },
+          field("Date", text("rec-date", d, "date", { type: "date" })),
+          field("Title (optional)", text("rec-title", d, "title", { placeholder: "Only if there's no date" }), "wide")),
+        h("div", { class: "field" },
+          h("span", { id: "rec-who-label" }, "Who played"),
+          h("div", { class: "filters", role: "group", "aria-labelledby": "rec-who-label" }, active.map(c =>
+            h("button", { type: "button", "data-key": `rec-who-${c.name}`, "aria-pressed": String(d.party.includes(c.name)),
+                          onclick: () => { d.party = d.party.includes(c.name) ? d.party.filter(n => n !== c.name) : [...d.party, c.name]; rerender(); } },
+              c.name)))))),
     h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Scenarios"),
       d.scenarios.map(scenarioBlock),
       addButton("add-scenario", "Add a scenario", () => d.scenarios.push(newScenario()), () => `sc-${d.scenarios.length - 1}-n`)),
@@ -2189,9 +2237,9 @@ function renderRecorder(data) {
             h("input", { type: "checkbox", "data-key": "rec-envelope-b", checked: Boolean(d.envelopeB), onchange: set(d, "envelopeB", true) }),
             "We opened Envelope B")
         : null),
-    h("fieldset", { class: "card rec-block" },
-      h("legend", {}, "Notes"),
-      h("textarea", { "data-key": "rec-notes", rows: 3, "aria-label": "Notes", oninput: set(d, "notes") }, d.notes)),
+    h("div", { class: "rec-section" }, h("h3", { class: "subtitle", id: "rec-notes-label" }, "Notes"),
+      h("div", { class: "card rec-block" },
+        h("textarea", { "data-key": "rec-notes", rows: 3, "aria-labelledby": "rec-notes-label", oninput: set(d, "notes") }, d.notes))),
     summary(first));
 }
 
