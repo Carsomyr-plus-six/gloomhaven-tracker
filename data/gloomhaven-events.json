@@ -68,17 +68,61 @@
    30
   ]
  },
+ "classes": {
+  "brute": "Brute",
+  "cragheart": "Cragheart",
+  "mindthief": "Mindthief",
+  "scoundrel": "Scoundrel",
+  "spellweaver": "Spellweaver",
+  "tinkerer": "Tinkerer",
+  "angry-face": "Doomstalker",
+  "circles": "Summoner",
+  "eclipse": "Nightshroud",
+  "lightning": "Berserker",
+  "music-note": "Soothsinger",
+  "saw": "Sawbones",
+  "squidface": "Plagueherald",
+  "sun": "Sunkeeper",
+  "three-spears": "Quartermaster",
+  "triangles": "Elementalist",
+  "two-mini": "Beast Tyrant"
+ },
  "events": {
   "city": {
    "1": {
     "A": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "experience",
+        "amount": 10
+       },
+       {
+        "type": "choose",
+        "of": [
+         {
+          "type": "gold",
+          "amount": -5
+         },
+         {
+          "type": "reputation",
+          "amount": -1
+         }
+        ]
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ]
    },
@@ -116,7 +160,17 @@
         10
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "itemCollective"
+       },
+       {
+        "type": "globalAchievement",
+        "id": "ancient-technology"
+       }
+      ]
      },
      {
       "condition": {
@@ -140,43 +194,157 @@
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "loseBattleGoal"
+       },
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ]
    },
    "5": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "loseBattleGoal"
+       },
+       {
+        "type": "reputation",
+        "amount": 1
+       },
+       {
+        "type": "prosperity",
+        "amount": 1
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": 5
+       },
+       {
+        "type": "gold",
+        "amount": 5,
+        "condition": {
+         "type": "reputationLT",
+         "values": [
+          -4
+         ]
+        }
+       }
+      ]
      }
     ]
    },
    "6": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "experience",
+        "amount": 5
+       },
+       {
+        "type": "prosperity",
+        "amount": 1
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "randomItemDesign"
+       },
+       {
+        "type": "reputation",
+        "amount": -1,
+        "condition": {
+         "type": "reputationGT",
+         "values": [
+          4
+         ]
+        }
+       }
+      ]
      }
     ]
    },
    "7": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": 5
+       },
+       {
+        "type": "reputation",
+        "amount": -1,
+        "condition": {
+         "type": "reputationGT",
+         "values": [
+          9
+         ]
+        }
+       },
+       {
+        "type": "reputation",
+        "amount": 1,
+        "condition": {
+         "type": "reputationLT",
+         "values": [
+          -4
+         ]
+        }
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1,
+        "condition": {
+         "type": "reputationGT",
+         "values": [
+          4
+         ]
+        }
+       },
+       {
+        "type": "reputation",
+        "amount": -1,
+        "condition": {
+         "type": "reputationLT",
+         "values": [
+          -9
+         ]
+        }
+       }
+      ]
      }
     ]
    },
@@ -203,8 +371,15 @@
        ]
       },
       "card": "removed",
-      "unlocks": [
-       93
+      "effects": [
+       {
+        "type": "unlockScenario",
+        "number": 93
+       },
+       {
+        "type": "partyAchievement",
+        "id": "a-map-to-treasure"
+       }
       ]
      },
      {
@@ -224,12 +399,34 @@
    "9": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": 10
+       },
+       {
+        "type": "gold",
+        "amount": 5,
+        "condition": {
+         "type": "reputationLT",
+         "values": [
+          -9
+         ]
+        }
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": 1
+       }
+      ]
      }
     ]
    },
@@ -242,19 +439,37 @@
         -5
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": -5
+       }
+      ]
      },
      {
       "condition": {
        "type": "otherwise",
        "values": []
       },
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": 5
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ]
    },
@@ -267,38 +482,102 @@
         5
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "randomItemDesign"
+       },
+       {
+        "type": "reputation",
+        "amount": -1,
+        "condition": {
+         "type": "reputationGT",
+         "values": [
+          9
+         ]
+        }
+       }
+      ]
      },
      {
       "condition": {
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -1
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1,
+        "condition": {
+         "type": "reputationLT",
+         "values": [
+          -4
+         ]
+        }
+       }
+      ]
      }
     ]
    },
    "12": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -1
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "loseBattleGoal"
+       },
+       {
+        "type": "gold",
+        "amount": 10
+       },
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ]
    },
    "13": {
     "A": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       },
+       {
+        "type": "gold",
+        "amount": -3
+       }
+      ]
      }
     ],
     "B": [
@@ -310,12 +589,24 @@
    "14": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "experience",
+        "amount": 10
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 2
+       }
+      ]
      }
     ]
    },
@@ -335,7 +626,13 @@
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -2
+       }
+      ]
      }
     ],
     "B": [
@@ -354,7 +651,13 @@
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "loseBattleGoal"
+       }
+      ]
      }
     ]
    },
@@ -368,11 +671,12 @@
        ]
       },
       "card": "removed",
-      "adds": [
-       [
-        "city",
-        70
-       ]
+      "effects": [
+       {
+        "type": "addEvent",
+        "deck": "city",
+        "number": 70
+       }
       ]
      },
      {
@@ -392,14 +696,23 @@
    "17": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "collectiveGold",
+        "amount": 10
+       }
+      ]
      }
     ],
     "B": [
      {
       "card": "removed",
-      "unlocks": [
-       81
+      "effects": [
+       {
+        "type": "unlockScenario",
+        "number": 81
+       }
       ]
      }
     ]
@@ -407,12 +720,24 @@
    "18": {
     "A": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -1
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": 2
+       }
+      ]
      }
     ]
    },
@@ -425,7 +750,13 @@
         9
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 2
+       }
+      ]
      },
      {
       "condition": {
@@ -445,14 +776,30 @@
         -4
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "collectiveGold",
+        "amount": -5
+       },
+       {
+        "type": "reputation",
+        "amount": -1
+       }
+      ]
      },
      {
       "condition": {
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "collectiveGold",
+        "amount": -5
+       }
+      ]
      }
     ]
    },
@@ -465,19 +812,41 @@
         9
        ]
       },
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "collectiveGold",
+        "amount": 10
+       }
+      ]
      },
      {
       "condition": {
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "experience",
+        "amount": 5
+       },
+       {
+        "type": "collectiveGold",
+        "amount": 10
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": -1
+       }
+      ]
      }
     ]
    },
@@ -491,11 +860,16 @@
        ]
       },
       "card": "removed",
-      "adds": [
-       [
-        "road",
-        65
-       ]
+      "effects": [
+       {
+        "type": "collectiveGold",
+        "amount": 5
+       },
+       {
+        "type": "addEvent",
+        "deck": "road",
+        "number": 65
+       }
       ]
      },
      {
@@ -509,11 +883,12 @@
     "B": [
      {
       "card": "removed",
-      "adds": [
-       [
-        "road",
-        65
-       ]
+      "effects": [
+       {
+        "type": "addEvent",
+        "deck": "road",
+        "number": 65
+       }
       ]
      }
     ]
@@ -521,36 +896,72 @@
    "22": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 2
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "other",
+        "what": "battleGoal"
+       }
+      ]
      }
     ]
    },
    "23": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       }
+      ]
      }
     ]
    },
    "24": {
     "A": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "experience",
+        "amount": 10
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": 1
+       }
+      ]
      }
     ]
    },
@@ -565,14 +976,26 @@
         "lightning"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "collectiveGold",
+        "amount": 5
+       }
+      ]
      },
      {
       "condition": {
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "collectiveGold",
+        "amount": -10
+       }
+      ]
      }
     ],
     "B": [
@@ -590,7 +1013,13 @@
         "tinkerer"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 2
+       }
+      ]
      },
      {
       "condition": {
@@ -610,14 +1039,26 @@
         "eclipse"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "collectiveGold",
+        "amount": 10
+       }
+      ]
      },
      {
       "condition": {
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -1
+       }
+      ]
      }
     ]
    },
@@ -632,24 +1073,37 @@
         "music-note"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": 1
+       }
+      ]
      },
      {
       "condition": {
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -1
+       }
+      ]
      }
     ],
     "B": [
      {
       "card": "removed",
-      "adds": [
-       [
-        "city",
-        60
-       ]
+      "effects": [
+       {
+        "type": "addEvent",
+        "deck": "city",
+        "number": 60
+       }
       ]
      }
     ]
@@ -665,14 +1119,26 @@
         "eclipse"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": 10
+       }
+      ]
      },
      {
       "condition": {
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -3
+       }
+      ]
      }
     ],
     "B": [
@@ -691,7 +1157,13 @@
         "triangles"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": 1
+       }
+      ]
      },
      {
       "condition": {
@@ -711,7 +1183,13 @@
         "music-note"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": 1
+       }
+      ]
      },
      {
       "condition": {
@@ -731,19 +1209,41 @@
         "mindthief"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": 5
+       },
+       {
+        "type": "other",
+        "what": "itemCollective"
+       }
+      ]
      },
      {
       "condition": {
        "type": "otherwise",
        "values": []
       },
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": -5
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -1
+       }
+      ]
      }
     ]
    },
@@ -751,8 +1251,19 @@
     "A": [
      {
       "card": "removed",
-      "unlocks": [
-       83
+      "effects": [
+       {
+        "type": "collectiveGold",
+        "amount": 20
+       },
+       {
+        "type": "unlockScenario",
+        "number": 83
+       },
+       {
+        "type": "partyAchievement",
+        "id": "bad-business"
+       }
       ]
      }
     ],
@@ -763,14 +1274,26 @@
        "values": [
         "sun"
        ]
-      }
+      },
+      "effects": [
+       {
+        "type": "asOption",
+        "option": "A"
+       }
+      ]
      },
      {
       "condition": {
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": -10
+       }
+      ]
      }
     ]
    },
@@ -783,19 +1306,41 @@
         "three-spears"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "collectiveGold",
+        "amount": 15
+       },
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      },
      {
       "condition": {
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "collectiveGold",
+        "amount": 15
+       }
+      ]
      }
     ]
    },
@@ -809,7 +1354,13 @@
         "eclipse"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 2
+       }
+      ]
      },
      {
       "condition": {
@@ -835,8 +1386,11 @@
        ]
       },
       "card": "removed",
-      "unlocks": [
-       78
+      "effects": [
+       {
+        "type": "unlockScenario",
+        "number": 78
+       }
       ]
      },
      {
@@ -849,14 +1403,26 @@
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ]
    },
    "35": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "collectiveGold",
+        "amount": 1
+       }
+      ]
      }
     ],
     "B": [
@@ -867,7 +1433,13 @@
         "squidface"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": 1
+       }
+      ]
      },
      {
       "condition": {
@@ -887,14 +1459,30 @@
         "lightning"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "experience",
+        "amount": 5
+       },
+       {
+        "type": "reputation",
+        "amount": -2
+       }
+      ]
      },
      {
       "condition": {
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -1
+       }
+      ]
      }
     ],
     "B": [
@@ -905,14 +1493,26 @@
         "lightning"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "collectiveGold",
+        "amount": -10
+       }
+      ]
      },
      {
       "condition": {
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ]
    },
@@ -925,14 +1525,26 @@
         "music-note"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": 1
+       }
+      ]
      },
      {
       "condition": {
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -1
+       }
+      ]
      }
     ],
     "B": [
@@ -947,7 +1559,13 @@
         "circles"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": 1
+       }
+      ]
      },
      {
       "condition": {
@@ -968,14 +1586,30 @@
         "angry-face"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": 1
+       },
+       {
+        "type": "reputation",
+        "amount": -1
+       }
+      ]
      },
      {
       "condition": {
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": 1
+       }
+      ]
      }
     ],
     "B": [
@@ -987,7 +1621,13 @@
         "angry-face"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -1
+       }
+      ]
      },
      {
       "condition": {
@@ -1002,11 +1642,22 @@
     "A": [
      {
       "card": "removed",
-      "mayAdd": [
-       [
-        "city",
-        65
-       ]
+      "effects": [
+       {
+        "type": "addEvent",
+        "deck": "city",
+        "number": 65,
+        "condition": {
+         "type": "character",
+         "values": [
+          "scoundrel",
+          "mindthief",
+          "eclipse",
+          "saw",
+          "music-note"
+         ]
+        }
+       }
       ]
      }
     ],
@@ -1026,7 +1677,13 @@
         "saw",
         "sun"
        ]
-      }
+      },
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 2
+       }
+      ]
      },
      {
       "condition": {
@@ -1037,7 +1694,13 @@
         "circles"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": 1
+       }
+      ]
      },
      {
       "condition": {
@@ -1049,7 +1712,17 @@
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "itemCollective"
+       },
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ]
    },
@@ -1062,7 +1735,13 @@
         "two-mini"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "itemCollective"
+       }
+      ]
      },
      {
       "condition": {
@@ -1071,7 +1750,13 @@
         25
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "itemCollective"
+       }
+      ]
      },
      {
       "condition": {
@@ -1090,12 +1775,28 @@
    "42": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": 1
+       },
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -1
+       }
+      ]
      }
     ]
    },
@@ -1109,23 +1810,36 @@
        ]
       },
       "card": "removed",
-      "adds": [
-       [
-        "city",
-        61
-       ]
+      "effects": [
+       {
+        "type": "addEvent",
+        "deck": "city",
+        "number": 61
+       }
       ]
      },
      {
       "condition": {
        "type": "otherwise",
        "values": []
-      }
+      },
+      "effects": [
+       {
+        "type": "asOption",
+        "option": "B"
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "itemCollective"
+       }
+      ]
      }
     ]
    },
@@ -1140,36 +1854,65 @@
         "circles"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1
+       },
+       {
+        "type": "collectiveGold",
+        "amount": 10
+       }
+      ]
      },
      {
       "condition": {
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -1
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ]
    },
    "45": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ],
     "B": [
      {
       "card": "removed",
-      "adds": [
-       [
-        "city",
-        62
-       ]
+      "effects": [
+       {
+        "type": "addEvent",
+        "deck": "city",
+        "number": 62
+       }
       ]
      }
     ]
@@ -1177,7 +1920,17 @@
    "46": {
     "A": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1
+       },
+       {
+        "type": "gold",
+        "amount": -5
+       }
+      ]
      }
     ],
     "B": [
@@ -1190,19 +1943,31 @@
     "A": [
      {
       "card": "removed",
-      "unlocks": [
-       87
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -1
+       },
+       {
+        "type": "unlockScenario",
+        "number": 87
+       },
+       {
+        "type": "partyAchievement",
+        "id": "the-poisons-source"
+       }
       ]
      }
     ],
     "B": [
      {
       "card": "removed",
-      "adds": [
-       [
-        "city",
-        63
-       ]
+      "effects": [
+       {
+        "type": "addEvent",
+        "deck": "city",
+        "number": 63
+       }
       ]
      }
     ]
@@ -1216,7 +1981,13 @@
         5
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "partyAchievement",
+        "id": "sun-blessed"
+       }
+      ]
      },
      {
       "condition": {
@@ -1228,14 +1999,26 @@
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "collectiveGold",
+        "amount": 3
+       }
+      ]
      }
     ]
    },
    "49": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": 1
+       }
+      ]
      }
     ],
     "B": [
@@ -1248,7 +2031,17 @@
         "music-note"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "collectiveGold",
+        "amount": 15
+       },
+       {
+        "type": "asOption",
+        "option": "A"
+       }
+      ]
      },
      {
       "condition": {
@@ -1262,12 +2055,28 @@
    "50": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "experience",
+        "amount": 5
+       },
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": 10
+       }
+      ]
      }
     ]
    },
@@ -1275,11 +2084,16 @@
     "A": [
      {
       "card": "removed",
-      "adds": [
-       [
-        "city",
-        64
-       ]
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1
+       },
+       {
+        "type": "addEvent",
+        "deck": "city",
+        "number": 64
+       }
       ]
      }
     ],
@@ -1300,26 +2114,54 @@
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -1
+       }
+      ]
      }
     ]
    },
    "52": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -2
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": 1
+       }
+      ]
      }
     ]
    },
    "53": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -1
+       },
+       {
+        "type": "other",
+        "what": "itemCollective"
+       }
+      ]
      }
     ],
     "B": [
@@ -1331,7 +2173,13 @@
    "54": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ],
     "B": [
@@ -1344,7 +2192,13 @@
         "eclipse"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "collectiveGold",
+        "amount": 20
+       }
+      ]
      },
      {
       "condition": {
@@ -1358,29 +2212,48 @@
    "55": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": 1
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ]
    },
    "56": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": 1
+       }
+      ]
      }
     ],
     "B": [
      {
       "card": "removed",
-      "adds": [
-       [
-        "city",
-        66
-       ]
+      "effects": [
+       {
+        "type": "addEvent",
+        "deck": "city",
+        "number": 66
+       }
       ]
      }
     ]
@@ -1394,7 +2267,13 @@
         10
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "itemDesign"
+       }
+      ]
      },
      {
       "condition": {
@@ -1406,21 +2285,36 @@
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "collectiveGold",
+        "amount": 3
+       }
+      ]
      }
     ]
    },
    "58": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ],
     "B": [
      {
       "card": "removed",
-      "unlocks": [
-       91
+      "effects": [
+       {
+        "type": "unlockScenario",
+        "number": 91
+       }
       ]
      }
     ]
@@ -1428,12 +2322,24 @@
    "59": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -1
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": -1
+       }
+      ]
      }
     ]
    },
@@ -1448,7 +2354,13 @@
         "music-note"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      },
      {
       "condition": {
@@ -1460,31 +2372,65 @@
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": 5
+       },
+       {
+        "type": "prosperity",
+        "amount": -1
+       }
+      ]
      }
     ]
    },
    "61": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "itemCollective"
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "collectiveGold",
+        "amount": 30
+       }
+      ]
      }
     ]
    },
    "62": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "itemCollective"
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 3
+       }
+      ]
      }
     ]
    },
@@ -1492,14 +2438,27 @@
     "A": [
      {
       "card": "removed",
-      "unlocks": [
-       86
+      "effects": [
+       {
+        "type": "unlockScenario",
+        "number": 86
+       }
       ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": -1
+       },
+       {
+        "type": "reputation",
+        "amount": -1
+       }
+      ]
      }
     ]
    },
@@ -1507,19 +2466,27 @@
     "A": [
      {
       "card": "removed",
-      "unlocks": [
-       89
+      "effects": [
+       {
+        "type": "unlockScenario",
+        "number": 89
+       },
+       {
+        "type": "partyAchievement",
+        "id": "sin-ra"
+       }
       ]
      }
     ],
     "B": [
      {
       "card": "removed",
-      "adds": [
-       [
-        "road",
-        64
-       ]
+      "effects": [
+       {
+        "type": "addEvent",
+        "deck": "road",
+        "number": 64
+       }
       ]
      }
     ]
@@ -1527,12 +2494,38 @@
    "65": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 2
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": 1
+       },
+       {
+        "type": "reputation",
+        "amount": 2
+       },
+       {
+        "type": "reputation",
+        "amount": 1,
+        "condition": {
+         "type": "character",
+         "values": [
+          "saw"
+         ]
+        }
+       }
+      ]
      }
     ]
    },
@@ -1545,23 +2538,36 @@
         40
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "itemCollective"
+       }
+      ]
      },
      {
       "condition": {
        "type": "otherwise",
        "values": []
-      }
+      },
+      "effects": [
+       {
+        "type": "asOption",
+        "option": "B"
+       }
+      ]
      }
     ],
     "B": [
      {
       "card": "removed",
-      "adds": [
-       [
-        "city",
-        67
-       ]
+      "effects": [
+       {
+        "type": "addEvent",
+        "deck": "city",
+        "number": 67
+       }
       ]
      }
     ]
@@ -1581,14 +2587,27 @@
       "condition": {
        "type": "otherwise",
        "values": []
-      }
+      },
+      "effects": [
+       {
+        "type": "asOption",
+        "option": "B"
+       }
+      ]
      }
     ],
     "B": [
      {
       "card": "removed",
-      "unlocks": [
-       92
+      "effects": [
+       {
+        "type": "unlockScenario",
+        "number": 92
+       },
+       {
+        "type": "partyAchievement",
+        "id": "debt-collection"
+       }
       ]
      }
     ]
@@ -1604,8 +2623,15 @@
        ]
       },
       "card": "removed",
-      "unlocks": [
-       88
+      "effects": [
+       {
+        "type": "unlockScenario",
+        "number": 88
+       },
+       {
+        "type": "partyAchievement",
+        "id": "water-staff"
+       }
       ]
      },
      {
@@ -1614,8 +2640,19 @@
        "values": []
       },
       "card": "removed",
-      "unlocks": [
-       88
+      "effects": [
+       {
+        "type": "collectiveGold",
+        "amount": -15
+       },
+       {
+        "type": "unlockScenario",
+        "number": 88
+       },
+       {
+        "type": "partyAchievement",
+        "id": "water-staff"
+       }
       ]
      }
     ],
@@ -1628,12 +2665,24 @@
    "69": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -1
+       }
+      ]
      }
     ]
    },
@@ -1646,14 +2695,26 @@
         9
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": 1
+       }
+      ]
      },
      {
       "condition": {
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -1
+       }
+      ]
      }
     ],
     "B": [
@@ -1666,17 +2727,24 @@
     "A": [
      {
       "card": "removed",
-      "adds": [
-       [
-        "city",
-        72
-       ]
+      "effects": [
+       {
+        "type": "addEvent",
+        "deck": "city",
+        "number": 72
+       }
       ]
      }
     ],
     "B": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "other",
+        "what": "loseBattleGoal"
+       }
+      ]
      }
     ]
    },
@@ -1684,8 +2752,15 @@
     "A": [
      {
       "card": "removed",
-      "unlocks": [
-       79
+      "effects": [
+       {
+        "type": "unlockScenario",
+        "number": 79
+       },
+       {
+        "type": "partyAchievement",
+        "id": "fishs-aid"
+       }
       ]
      }
     ],
@@ -1699,38 +2774,83 @@
     "A": [
      {
       "card": "removed",
-      "unlocks": [
-       84
+      "effects": [
+       {
+        "type": "collectiveGold",
+        "amount": -5
+       },
+       {
+        "type": "unlockScenario",
+        "number": 84
+       },
+       {
+        "type": "partyAchievement",
+        "id": "tremors"
+       }
       ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": -1
+       }
+      ]
      }
     ]
    },
    "74": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       },
+       {
+        "type": "experience",
+        "amount": 2
+       }
+      ]
      }
     ]
    },
    "75": {
     "A": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -1
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -2
+       }
+      ]
      }
     ]
    },
@@ -1744,8 +2864,15 @@
        ]
       },
       "card": "removed",
-      "unlocks": [
-       74
+      "effects": [
+       {
+        "type": "unlockScenario",
+        "number": 74
+       },
+       {
+        "type": "partyAchievement",
+        "id": "high-sea-escort"
+       }
       ]
      },
      {
@@ -1772,8 +2899,15 @@
        ]
       },
       "card": "removed",
-      "unlocks": [
-       75
+      "effects": [
+       {
+        "type": "unlockScenario",
+        "number": 75
+       },
+       {
+        "type": "partyAchievement",
+        "id": "grave-job"
+       }
       ]
      },
      {
@@ -1794,24 +2928,50 @@
     "A": [
      {
       "card": "removed",
-      "unlocks": [
-       94
+      "effects": [
+       {
+        "type": "unlockScenario",
+        "number": 94
+       }
       ]
      }
     ],
     "B": [
-     {}
+     {
+      "effects": [
+       {
+        "type": "collectiveGold",
+        "amount": 5
+       },
+       {
+        "type": "asOption",
+        "option": "A"
+       }
+      ]
+     }
     ]
    },
    "79": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": -1
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -1
+       }
+      ]
      }
     ]
    },
@@ -1833,24 +2993,48 @@
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -1
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -2
+       }
+      ]
      }
     ]
    },
    "81": {
     "A": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 2
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -2
+       }
+      ]
      }
     ]
    }
@@ -1859,19 +3043,37 @@
    "1": {
     "A": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      }
     ]
    },
    "2": {
     "A": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       }
+      ]
      }
     ],
     "B": [
@@ -1883,7 +3085,13 @@
    "3": {
     "A": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       }
+      ]
      }
     ],
     "B": [
@@ -1895,43 +3103,107 @@
    "4": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": 2
+       },
+       {
+        "type": "gold",
+        "amount": 1,
+        "condition": {
+         "type": "reputationGT",
+         "values": [
+          9
+         ]
+        }
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": 10
+       },
+       {
+        "type": "reputation",
+        "amount": -2
+       }
+      ]
      }
     ]
    },
    "5": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "itemCollective"
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       },
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ]
    },
    "6": {
     "A": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "other",
+        "what": "loseBattleGoal"
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       }
+      ]
      }
     ]
    },
    "7": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "experience",
+        "amount": 5
+       },
+       {
+        "type": "other",
+        "what": "loseBattleGoal"
+       }
+      ]
      }
     ],
     "B": [
@@ -1943,41 +3215,76 @@
    "8": {
     "A": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": -5
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      }
     ]
    },
    "9": {
     "A": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "other",
+        "what": "consumeCollectiveItem"
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -1
+       }
+      ]
      }
     ]
    },
    "10": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      }
     ],
     "B": [
      {
       "card": "removed",
-      "adds": [
-       [
-        "city",
-        71
-       ]
+      "effects": [
+       {
+        "type": "addEvent",
+        "deck": "city",
+        "number": 71
+       },
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
       ]
      }
     ]
@@ -1985,7 +3292,13 @@
    "11": {
     "A": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      }
     ],
     "B": [
@@ -2000,11 +3313,12 @@
        ]
       },
       "card": "removed",
-      "adds": [
-       [
-        "city",
-        73
-       ]
+      "effects": [
+       {
+        "type": "addEvent",
+        "deck": "city",
+        "number": 73
+       }
       ]
      },
      {
@@ -2012,7 +3326,13 @@
        "type": "otherwise",
        "values": []
       },
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      }
     ]
    },
@@ -2024,26 +3344,54 @@
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioSingleMinus1"
+       },
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ]
    },
    "13": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": 2
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       }
+      ]
      }
     ]
    },
    "14": {
     "A": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       }
+      ]
      }
     ],
     "B": [
@@ -2055,7 +3403,17 @@
    "15": {
     "A": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       },
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      }
     ],
     "B": [
@@ -2067,24 +3425,52 @@
    "16": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       },
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       }
+      ]
      }
     ]
    },
    "17": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "collectiveGold",
+        "amount": 5
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": 1
+       }
+      ]
      }
     ]
    },
@@ -2104,12 +3490,24 @@
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      }
     ]
    },
@@ -2129,36 +3527,94 @@
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -2
+       },
+       {
+        "type": "other",
+        "what": "itemCollective",
+        "condition": {
+         "type": "reputationLT",
+         "values": [
+          -9
+         ]
+        }
+       }
+      ]
      }
     ]
    },
    "20": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       },
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "experience",
+        "amount": 3
+       }
+      ]
      }
     ]
    },
    "21": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       },
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       },
+       {
+        "type": "other",
+        "what": "loseBattleGoal"
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "discard"
+       }
+      ]
      }
     ]
    },
@@ -2166,17 +3622,28 @@
     "A": [
      {
       "card": "removed",
-      "adds": [
-       [
-        "city",
-        74
-       ]
+      "effects": [
+       {
+        "type": "addEvent",
+        "deck": "city",
+        "number": 74
+       }
       ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "experience",
+        "amount": 2
+       },
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       }
+      ]
      }
     ]
    },
@@ -2188,7 +3655,17 @@
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": 2
+       },
+       {
+        "type": "reputation",
+        "amount": -1
+       }
+      ]
      }
     ]
    },
@@ -2196,16 +3673,30 @@
     "A": [
      {
       "card": "removed",
-      "unlocks": [
-       82
+      "effects": [
+       {
+        "type": "collectiveGold",
+        "amount": 10
+       },
+       {
+        "type": "other",
+        "what": "discard"
+       },
+       {
+        "type": "unlockScenario",
+        "number": 82
+       }
       ]
      }
     ],
     "B": [
      {
       "card": "removed",
-      "unlocks": [
-       82
+      "effects": [
+       {
+        "type": "unlockScenario",
+        "number": 82
+       }
       ]
      }
     ]
@@ -2227,12 +3718,24 @@
        "type": "otherwise",
        "values": []
       },
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": -5
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      }
     ]
    },
@@ -2246,7 +3749,17 @@
         "three-spears"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       },
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      },
      {
       "condition": {
@@ -2258,7 +3771,17 @@
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "collectiveGold",
+        "amount": 10
+       },
+       {
+        "type": "reputation",
+        "amount": -1
+       }
+      ]
      }
     ]
    },
@@ -2280,12 +3803,24 @@
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "discard"
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      }
     ]
    },
@@ -2298,7 +3833,25 @@
         13
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "collectiveGold",
+        "amount": 10
+       },
+       {
+        "type": "collectiveGold",
+        "amount": 10,
+        "condition": {
+         "type": "character",
+         "values": [
+          "scoundrel",
+          "saw",
+          "music-note"
+         ]
+        }
+       }
+      ]
      }
     ],
     "B": [
@@ -2323,12 +3876,24 @@
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "discard"
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       }
+      ]
      }
     ]
    },
@@ -2349,12 +3914,28 @@
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "consumeItem"
+       },
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": 2
+       }
+      ]
      }
     ]
    },
@@ -2369,19 +3950,53 @@
         "three-spears"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 2
+       },
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       },
+       {
+        "type": "gold",
+        "amount": 5
+       }
+      ]
      },
      {
       "condition": {
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       },
+       {
+        "type": "gold",
+        "amount": 5
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       },
+       {
+        "type": "gold",
+        "amount": 5
+       }
+      ]
      }
     ]
    },
@@ -2394,19 +4009,41 @@
         "three-spears"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      },
      {
       "condition": {
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": -5
+       },
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": -1
+       }
+      ]
      }
     ]
    },
@@ -2427,12 +4064,28 @@
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       },
+       {
+        "type": "other",
+        "what": "discardOne"
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      }
     ]
    },
@@ -2454,7 +4107,13 @@
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      }
     ],
     "B": [
@@ -2473,7 +4132,13 @@
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "discard"
+       }
+      ]
      }
     ]
    },
@@ -2486,14 +4151,30 @@
         "squidface"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      },
      {
       "condition": {
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       },
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      }
     ],
     "B": [
@@ -2510,7 +4191,13 @@
       "condition": {
        "type": "otherwise",
        "values": []
-      }
+      },
+      "effects": [
+       {
+        "type": "asOption",
+        "option": "A"
+       }
+      ]
      }
     ]
    },
@@ -2532,12 +4219,28 @@
        "type": "otherwise",
        "values": []
       },
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       },
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "other",
+        "what": "discardOne"
+       }
+      ]
      }
     ]
    },
@@ -2557,12 +4260,24 @@
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "discard"
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       }
+      ]
      }
     ]
    },
@@ -2577,14 +4292,30 @@
         "angry-face"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": 1
+       }
+      ]
      },
      {
       "condition": {
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "loseBattleGoal"
+       },
+       {
+        "type": "other",
+        "what": "discardOne"
+       }
+      ]
      }
     ],
     "B": [
@@ -2602,14 +4333,34 @@
         "saw"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      },
      {
       "condition": {
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       },
+       {
+        "type": "collectiveGold",
+        "amount": -10
+       },
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ],
     "B": [
@@ -2636,12 +4387,28 @@
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       },
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "discard"
+       }
+      ]
      }
     ]
    },
@@ -2661,29 +4428,52 @@
        "type": "otherwise",
        "values": []
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       },
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      }
     ]
    },
    "42": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "discard"
+       }
+      ]
      }
     ],
     "B": [
      {
       "card": "removed",
-      "adds": [
-       [
-        "road",
-        60
-       ]
+      "effects": [
+       {
+        "type": "addEvent",
+        "deck": "road",
+        "number": 60
+       }
       ]
      }
     ]
@@ -2691,7 +4481,17 @@
    "43": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioSingleMinus1"
+       },
+       {
+        "type": "collectiveGold",
+        "amount": 10
+       }
+      ]
      }
     ],
     "B": [
@@ -2704,8 +4504,11 @@
     "A": [
      {
       "card": "removed",
-      "unlocks": [
-       90
+      "effects": [
+       {
+        "type": "unlockScenario",
+        "number": 90
+       }
       ]
      }
     ],
@@ -2718,7 +4521,17 @@
    "45": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       },
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      }
     ],
     "B": [
@@ -2747,7 +4560,17 @@
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       },
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      }
     ]
    },
@@ -2755,17 +4578,32 @@
     "A": [
      {
       "card": "removed",
-      "adds": [
-       [
-        "road",
-        61
-       ]
+      "effects": [
+       {
+        "type": "addEvent",
+        "deck": "road",
+        "number": 61
+       }
       ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       },
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       },
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      }
     ]
    },
@@ -2773,16 +4611,30 @@
     "A": [
      {
       "card": "removed",
-      "unlocks": [
-       80
+      "effects": [
+       {
+        "type": "unlockScenario",
+        "number": 80
+       }
       ]
      }
     ],
     "B": [
      {
       "card": "removed",
-      "unlocks": [
-       80
+      "effects": [
+       {
+        "type": "unlockScenario",
+        "number": 80
+       },
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       },
+       {
+        "type": "gold",
+        "amount": 5
+       }
       ]
      }
     ]
@@ -2791,22 +4643,40 @@
     "A": [
      {
       "card": "removed",
-      "adds": [
-       [
-        "city",
-        68
-       ]
+      "effects": [
+       {
+        "type": "addEvent",
+        "deck": "city",
+        "number": 68
+       }
       ]
      }
     ],
     "B": [
-     {}
+     {
+      "effects": [
+       {
+        "type": "other",
+        "what": "discard"
+       },
+       {
+        "type": "asOption",
+        "option": "A"
+       }
+      ]
+     }
     ]
    },
    "51": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "itemCollective"
+       }
+      ]
      }
     ],
     "B": [
@@ -2823,26 +4693,66 @@
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       },
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       },
+       {
+        "type": "collectiveGold",
+        "amount": 10
+       }
+      ]
      }
     ]
    },
    "53": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "consumeItem"
+       },
+       {
+        "type": "other",
+        "what": "itemCollective"
+       }
+      ]
      }
     ]
    },
    "54": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1
+       },
+       {
+        "type": "other",
+        "what": "discard"
+       }
+      ]
      }
     ],
     "B": [
@@ -2855,7 +4765,13 @@
         "angry-face"
        ]
       },
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      },
      {
       "condition": {
@@ -2863,11 +4779,12 @@
        "values": []
       },
       "card": "removed",
-      "adds": [
-       [
-        "city",
-        69
-       ]
+      "effects": [
+       {
+        "type": "addEvent",
+        "deck": "city",
+        "number": 69
+       }
       ]
      }
     ]
@@ -2880,19 +4797,37 @@
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       }
+      ]
      }
     ]
    },
    "56": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": 3
+       }
+      ]
      }
     ]
    },
@@ -2905,11 +4840,16 @@
     "B": [
      {
       "card": "removed",
-      "adds": [
-       [
-        "road",
-        63
-       ]
+      "effects": [
+       {
+        "type": "other",
+        "what": "discard"
+       },
+       {
+        "type": "addEvent",
+        "deck": "road",
+        "number": 63
+       }
       ]
      }
     ]
@@ -2922,31 +4862,69 @@
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "discard"
+       }
+      ]
      }
     ]
    },
    "59": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       },
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "discard"
+       },
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       }
+      ]
      }
     ]
    },
    "60": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 1
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "itemCollective"
+       }
+      ]
      }
     ]
    },
@@ -2954,19 +4932,23 @@
     "A": [
      {
       "card": "removed",
-      "adds": [
-       [
-        "road",
-        62
-       ]
+      "effects": [
+       {
+        "type": "addEvent",
+        "deck": "road",
+        "number": 62
+       }
       ]
      }
     ],
     "B": [
      {
       "card": "removed",
-      "unlocks": [
-       85
+      "effects": [
+       {
+        "type": "unlockScenario",
+        "number": 85
+       }
       ]
      }
     ]
@@ -2975,14 +4957,31 @@
     "A": [
      {
       "card": "removed",
-      "unlocks": [
-       85
+      "effects": [
+       {
+        "type": "unlockScenario",
+        "number": 85
+       }
       ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       },
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       },
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      }
     ]
    },
@@ -2994,79 +4993,185 @@
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "itemCollective"
+       }
+      ]
      }
     ]
    },
    "64": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "loseBattleGoal"
+       },
+       {
+        "type": "other",
+        "what": "discard"
+       },
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "other",
+        "what": "loseBattleGoal"
+       },
+       {
+        "type": "other",
+        "what": "discard"
+       },
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      }
     ]
    },
    "65": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 2
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": 3
+       }
+      ]
      }
     ]
    },
    "66": {
     "A": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": 25
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": 25
+       },
+       {
+        "type": "other",
+        "what": "scenarioCondition"
+       },
+       {
+        "type": "other",
+        "what": "scenarioDamage"
+       }
+      ]
      }
     ]
    },
    "67": {
     "A": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "prosperity",
+        "amount": 1
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "removed"
+      "card": "removed",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": 20
+       }
+      ]
      }
     ]
    },
    "68": {
     "A": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "gold",
+        "amount": 10
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "reputation",
+        "amount": 2
+       }
+      ]
      }
     ]
    },
    "69": {
     "A": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "experience",
+        "amount": 5
+       }
+      ]
      }
     ],
     "B": [
      {
-      "card": "returned"
+      "card": "returned",
+      "effects": [
+       {
+        "type": "other",
+        "what": "loseBattleGoal"
+       },
+       {
+        "type": "prosperity",
+        "amount": 1
+       }
+      ]
      }
     ]
    }
