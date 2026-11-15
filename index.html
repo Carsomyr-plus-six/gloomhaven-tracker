@@ -2,30 +2,60 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0d1211">
   <title>Gloomhaven Campaign</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="styles.css">
   <script src="app.js" defer></script>
 </head>
 <body>
-  <header class="site-header">
-    <h1 id="title">Gloomhaven Campaign</h1>
-    <nav class="tabs" aria-label="Sections">
-      <a href="#overview" data-tab="overview">Overview</a>
-      <a href="#scenarios" data-tab="scenarios">Scenarios</a>
-      <a href="#characters" data-tab="characters">Characters</a>
-      <a href="#sessions" data-tab="sessions">Sessions</a>
-    </nav>
+  <!-- A top bar on wide screens; a thumb-reach tab bar at the bottom on phones. -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#overview">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span id="title">Gloomhaven Campaign</span>
+      </a>
+      <nav class="tabs" aria-label="Sections">
+        <a href="#overview" data-tab="overview">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.500-3.200 7.800-8 9-4.800-1.200-8-4.500-8-9V6l8-3z"/></svg>
+          <span>Overview</span>
+        </a>
+        <a href="#scenarios" data-tab="scenarios">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 4L3 6.500v13.500l6-2.500 6 2.500 6-2.500V4l-6 2.500L9 4z"/><path d="M9 4v13.500"/><path d="M15 6.500V20"/></svg>
+          <span>Scenarios</span>
+        </a>
+        <a href="#characters" data-tab="characters">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.200-3.600 4.300-5.500 8-5.500s6.800 1.900 8 5.500"/></svg>
+          <span>Characters</span>
+        </a>
+        <a href="#sessions" data-tab="sessions">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4z"/><path d="M5 17a3 3 0 0 1 3-3h11"/></svg>
+          <span>Sessions</span>
+        </a>
+        <a href="#events" class="wide-only"><span>Event decks</span></a>
+        <a href="#record" class="wide-only"><span>Campaign record</span></a>
+      </nav>
+    </div>
   </header>
 
+  <!-- On phones only the panels of the current tab show; on wide screens all of
+       them do, as one page. data-tab says which tab a panel belongs to. -->
   <main>
     <p id="status" class="status">Loading campaign…</p>
-    <section id="overview" class="panel" hidden></section>
-    <section id="scenarios" class="panel" hidden></section>
-    <section id="characters" class="panel" hidden></section>
-    <section id="sessions" class="panel" hidden></section>
+    <section id="overview" class="panel" data-tab="overview" hidden></section>
+    <section id="characters" class="panel" data-tab="characters" hidden></section>
+    <section id="scenarios" class="panel" data-tab="scenarios" hidden></section>
+    <div class="pair">
+      <section id="sessions" class="panel" data-tab="sessions" hidden></section>
+      <section id="events" class="panel" data-tab="overview" hidden></section>
+    </div>
+    <section id="record" class="panel" data-tab="overview" hidden></section>
+    <footer class="site-footer" id="footer" data-tab="overview"></footer>
   </main>
-
-  <footer class="site-footer" id="footer"></footer>
 </body>
 </html>
