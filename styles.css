@@ -137,8 +137,6 @@ button { font: inherit; color: inherit; }
 .hex.blocked { --ring: var(--line-strong); --fill: var(--under); --ink: var(--muted); }
 .hex.level { --ring: var(--verdigris); --fill: var(--under); --ink: var(--fg); }
 .hex.quiet { --ring: var(--line-strong); --fill: var(--under); --ink: var(--fg-3); }
-/* A level to reach, or the normal one on the scenario level ladder. */
-.hex.goal { --ring: var(--brass-edge); --fill: var(--brass-bg); --ink: var(--brass); }
 /* Sessions: a failed attempt, and a casual replay of one already completed
    (quieter than the first clear, which keeps the full verdigris ring). */
 .hex.failed { --ring: var(--ember-line); --fill: var(--under); --ink: var(--ember); }
@@ -314,19 +312,22 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
   gap: 28px 48px;
   align-items: end;
 }
-.hero-head { grid-area: head; position: relative; display: flex; flex-direction: column; gap: 8px; }
+/* Room on the right for the honeycomb band, so the name never runs under it. */
+.hero-head { grid-area: head; position: relative; display: flex; flex-direction: column; justify-content: center; gap: 8px;
+  min-height: 96px; padding-right: 300px; }
 .eyebrow { position: relative; }
 /* The title, not the news: sized so the evening's information fits above the fold. */
 .party-name { position: relative; font: 700 clamp(44px, 5.2vw, 76px) / 0.95 var(--display); letter-spacing: 0.01em; overflow-wrap: break-word; hyphens: auto; }
 /* A long party name gets a smaller size, so it takes two or three lines, not five. */
 .party-name.long { font-size: clamp(36px, 4vw, 56px); }
-/* A few hexes at the far end of the party name's row, fading towards it. */
+/* A band of hexes at the far end of the party name's row, inside it (so the
+   top bar never cuts it), fading towards the name. */
 .hero-decor {
-  position: absolute; bottom: -8px; right: 0; width: 182px; height: 132px;
-  fill: none; stroke: var(--line-soft); stroke-width: 1;
-  -webkit-mask-image: linear-gradient(to left, #000 45%, transparent); mask-image: linear-gradient(to left, #000 45%, transparent);
+  position: absolute; top: 50%; right: 0; width: 290px; height: 94px; transform: translateY(-50%);
+  fill: none; stroke: var(--line); stroke-width: 1.2;
+  -webkit-mask-image: linear-gradient(to left, #000 35%, transparent); mask-image: linear-gradient(to left, #000 35%, transparent);
 }
-.hero-decor .lit { fill: rgba(226, 176, 74, 0.1); stroke: var(--brass-line); }
+.hero-decor .lit { fill: var(--brass-bg); stroke: var(--brass-edge); }
 
 /* The evening in four steps, then recording it. */
 .tonight { grid-area: tonight; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; gap: 8px; margin-top: -8px; }
@@ -403,12 +404,19 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 /* The difficulty, across the tile in equal parts. */
 .level-tile .segmented { align-self: stretch; }
 .level-tile .segmented button { flex: 1 1 0; min-width: 0; padding: 0 4px; font-size: var(--t-sm); }
-/* Scenario levels 0 to 7, spread across the tile. */
-.ladder { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
-.ladder .hex { --w: 28px; }
-/* Tonight's level: the tile's figure. */
-.ladder .hex.now { --w: 46px; }
-.ladder .hex.quiet { --ring: var(--line); --ink: var(--muted); }
+/* Tonight's level, the tile's figure, with how it was reached beside it;
+   what it means at the table underneath. */
+.level-now { display: flex; align-items: center; gap: 14px; }
+.level-now .hex { --w: 56px; }
+.level-why { font-size: var(--t-sm); color: var(--fg-3); }
+/* Each difficulty with the level it gives. */
+.level-tile .segmented button { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; line-height: 1.15; }
+.seg-level { font-size: var(--t-xs); font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.level-tile .segmented button[aria-pressed="true"] .seg-level { color: var(--brass); }
+/* "+ 1 inactive": quiet, under what it adds to. */
+.inactive-toggle { align-self: flex-start; min-height: 32px; padding: 3px 12px; font-size: var(--t-xs); font-weight: 600; }
+.party-head .inactive-toggle, .section-head .inactive-toggle { min-height: 28px; margin-left: 8px; }
+.char-switch .inactive-toggle { flex: none; align-self: center; margin-left: 8px; }
 /* What the level means at the table, ruled like a reference card. */
 .level-stats {
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px;
@@ -1044,7 +1052,8 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .tonight { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 0; }
   .tonight-step { min-height: 56px; }
   .tonight-record { grid-column: 1 / -1; min-height: 44px; }
-  .hero-decor { top: -46px; bottom: auto; right: -54px; width: 182px; height: 132px; stroke-width: 1.5; -webkit-mask-image: none; mask-image: none; }
+  .hero-head { min-height: 0; padding-right: 0; }
+  .hero-decor { display: none; }
   .hero-side { display: contents; }
   .ready { align-self: stretch; order: 1; }
   .tiles { order: 2; }
