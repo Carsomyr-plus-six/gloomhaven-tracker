@@ -339,8 +339,55 @@ function renderOverview(data) {
                   from(s) ? h("span", { class: "ready-from" }, from(s)) : null))))
           : empty("Nothing is unlocked to play right now.")),
       h("div", { class: "tiles" }, reputationTile(party, data.ledger), prosperityTile(city, data.ledger), levelTile(data))),
+    todoList(data),
     partyList(data),
   ];
+}
+
+// Everything waiting on the party before the next scenario, gathered from
+// the sections that work it out. Each entry links to where it's handled.
+function todoItems(data) {
+  const items = [];
+  const add = (text, href, onclick) => items.push({ text, href, onclick });
+  const order = characterOrder(data);
+
+  if (draft) add("A recorded session hasn't been saved: download it from Sessions and commit it.", "#sessions");
+
+  for (const c of order.filter(c => !c.retired)) {
+    const st = characterStats(c);
+    const go = () => pickCharacter(data, order.indexOf(c));
+    if (st.unspent) add(`${c.name} has ${plural(st.unspent, "perk")} to choose.`, "#characters", go);
+    for (const r of perkCheck(c).rows.filter(r => r.note && !r.quiet)) add(`${c.name}: "${r.written}". ${r.note}`, "#characters", go);
+    for (const problem of itemCheck(c, st.level)) add(`${c.name}: ${problem}`, "#characters", go);
+  }
+
+  for (const d of data.draws || []) add(`Draw ${d.what} (${d.from}).`, "#record");
+
+  // Events with no option recorded go together; other questions one by one.
+  const questions = data.eventState?.questions || [];
+  const noOption = questions.filter(q => /: which option did you choose/.test(q)).map(q => q.split(":")[0]);
+  if (noOption.length) {
+    add(`${noOption.join(", ")}: ${noOption.length === 1 ? "no option recorded" : "no options recorded"}, so reputation${data.shop?.pricesUnsure ? " and shop prices" : ""} can't be settled.`, "#events");
+  }
+  for (const q of questions.filter(q => !/: which option did you choose/.test(q))) add(q.replace(/^(Ledger|Record): /, ""), "#events");
+
+  for (const q of data.shop?.questions || []) add(q, "#shop");
+
+  if (!data.city.envelopeB && data.city.donations >= ENVELOPE_B_DONATIONS) add("Donations have reached 100 gold: Envelope B can be opened.", "#overview");
+  return items;
+}
+
+function todoList(data) {
+  const items = todoItems(data);
+  return h("div", { class: "card todo" },
+    h("div", { class: "block-head" },
+      h("h2", { class: "label" }, "Before you play"),
+      h("span", {}, items.length ? plural(items.length, "thing") + " to see to" : "All clear")),
+    items.length
+      ? h("ul", { class: "rows" }, items.map(item => h("li", {},
+          h("span", {}, item.text),
+          h("a", { class: "todo-go", href: item.href, onclick: item.onclick || null }, "Open"))))
+      : h("p", { class: "small muted" }, "Nothing to sort out before the next scenario."));
 }
 
 // The party at a glance, on phones. Each row opens that character's sheet.
