@@ -345,7 +345,9 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 .ready-name { font: 700 var(--d-sm)/1.05 var(--display); }
 .ready-from { font-size: var(--t-sm); color: var(--fg-3); }
 
-.tiles { grid-area: tiles; align-self: start; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 16px; }
+/* Reputation and prosperity side by side, the matching pair they are, and
+   the scenario level across both. */
+.tiles { grid-area: tiles; align-self: start; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .tile { display: flex; flex-direction: column; gap: 12px; }
 .tile-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .tile-top .figure { font-size: var(--d-lg); line-height: 1; }
@@ -602,7 +604,8 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .ink-blocked { color: var(--ember); }
 
 /* The list: one row per scenario, opening in place. */
-.scenario-list { display: flex; flex-direction: column; gap: 4px; max-width: 880px; }
+/* Narrow enough that a row's arrow sits near its name. */
+.scenario-list { display: flex; flex-direction: column; gap: 4px; max-width: 680px; }
 .row { border: 1px solid transparent; border-radius: var(--r-lg); scroll-margin-top: 96px; }
 .row.open { --under: var(--surface); background: var(--surface); border-color: var(--line); }
 .row-head {
@@ -663,7 +666,13 @@ dialog.who > .btn { width: 100%; justify-content: center; }
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
 }
-.map-scroll { overflow-x: auto; padding: 28px; }
+/* The edges fade over the padding, so the fade only covers a scenario when
+   the tree runs past the edge: a sign there's more to scroll to. */
+.map-scroll {
+  overflow-x: auto; padding: 28px;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+}
 .map-canvas { position: relative; margin: 0 auto; }
 .map-canvas > i { position: absolute; background: var(--line-strong); }
 .node {
@@ -737,7 +746,9 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 /* Label, card and fate line up with the first line of the text, not its middle. */
 .drawn > li { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line-soft); font-size: var(--t-md); }
 .drawn strong { flex: none; width: 76px; font-weight: 600; }
-.drawn > li > span:nth-child(2) { flex: 1; min-width: 0; color: var(--fg-3); }
+/* What was recorded in full colour; notes and gaps (.small.muted) beneath it, quiet. */
+.drawn > li > span:nth-child(2) { flex: 1; min-width: 0; color: var(--fg); }
+.drawn .small.muted { margin-top: 1px; }
 .fate { flex: none; display: inline-flex; align-items: center; font-size: var(--t-sm); font-weight: 600; color: var(--muted); }
 .drawn .fate { height: calc(var(--t-md) * 1.45); }
 /* A question about that event, asked on its row. */
@@ -804,7 +815,8 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .rec-summary li { position: relative; }
 .rec-summary li::before { content: ""; position: absolute; left: -15px; top: 0.5em; width: 7px; height: 8px; background: var(--fg-3); clip-path: var(--hexagon); }
 
-.shop { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px; align-items: start; }
+/* Cards in a row share a height, so the grid reads as tidy blocks. */
+.shop { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px; align-items: stretch; }
 .shop .card { display: flex; flex-direction: column; gap: 6px; }
 .shop .price { flex: none; font-weight: 600; color: var(--brass); }
 .shop .sold-out strong, .shop .sold-out .price { color: var(--muted); }
@@ -929,7 +941,7 @@ dialog.who > .btn { width: 100%; justify-content: center; }
   .party-xp { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-size: var(--t-sm); color: var(--fg-3); }
   .party-xp .close { font-weight: 600; color: var(--brass); }
   .party-xp .meter { width: 84px; height: 4px; }
-  .party-xp small { font-size: var(--t-xs); color: var(--muted); }
+  .party-xp small { font-size: var(--t-xs); font-weight: 600; color: var(--brass); }
 
   /* Characters: one sheet at a time, picked from the row of hexes. */
   #characters .section-head, .subhead { display: none; }

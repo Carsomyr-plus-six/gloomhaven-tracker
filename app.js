@@ -705,8 +705,11 @@ function renderEvents(data) {
     ].filter(Boolean).join(" · ");
     return h("li", {},
       h("strong", {}, e.label),
-      h("span", {}, detail || (e.notes ? null : e.unknown ? "Option not known" : "Option not recorded"),
-        e.notes ? h("div", { class: detail ? "small muted" : null }, e.notes) : null,
+      // What was recorded at full strength; notes, and what's missing, quietly,
+      // so a list of unrecorded draws doesn't shout its gaps.
+      h("span", {}, detail || null,
+        !detail && !e.notes ? h("div", { class: "small muted" }, e.unknown ? "Option not known" : "Option not recorded") : null,
+        e.notes ? h("div", { class: "small muted" }, e.notes) : null,
         (asks.get(e) || []).map(text => h("div", { class: "ask" }, icon("question"), text))),
       h("span", { class: `fate ${e.fate || (e.unknown ? "unknown" : "open")}` },
         // The icons printed on event cards say it; the word is for screen readers and hover.
