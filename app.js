@@ -610,6 +610,14 @@ function recordBuy(data, name, item) {
   showInRecorder(data, `buy-${i}-i`);
 }
 
+// "Sell" in the Shop: a sale in the draft, shown in the recorder.
+function recordSell(data, name, item) {
+  if (!draft) draft = newDraft(data);
+  let i = draft.sells.findIndex(b => b.character === name && b.item === item);
+  if (i < 0) { draft.sells.push({ character: name, item }); i = draft.sells.length - 1; }
+  showInRecorder(data, `sell-${i}-i`);
+}
+
 // "Record it" on a scenario you can play: the scenario in the draft, at
 // tonight's level, ready for what each character gained.
 function recordScenario(data, number) {
@@ -1843,6 +1851,7 @@ try { me = localStorage.getItem(ME_KEY); } catch {}
 
 function chooseMe(data, name) {
   me = name;
+  shopFor = undefined;   // the Shop follows this phone's character again
   try { localStorage.setItem(ME_KEY, name); } catch {}
   const index = characterOrder(data).findIndex(c => c.name === name);
   if (index >= 0) characterIndex = index;
@@ -2104,39 +2113,60 @@ function deriveShop(data, items, ledger) {
   return { level, modifier, stock, questions, coming, pricesUnsure: modifiers.size > 1, range };
 }
 
+// Whose shopping the Shop shows: until someone is picked, this phone's
+// character; then a name, or "" for no one.
+let shopFor;
+let shopFilter = "all";   // "all", or "can": only what the shopper can buy
+
 function renderShop(data) {
   const shop = data.shop;
   if (!shop) return null;
   const copies = n => `${n} ${n === 1 ? "copy" : "copies"}`;
 
-  // With this phone's character picked: their gold, the room they have, and
-  // on each item whether they could take it.
-  const mine = data.characters.find(c => !c.retired && c.name === me);
-  // What's in the draft for them counts too: bought, it takes its slot and
-  // its gold, so the Shop doesn't offer a second body item, say.
-  const drafts = mine ? (draft?.buys || []).filter(b => b.character === mine.name && b.item) : [];
-  const room = mine ? slotUse({ ...mine, items: [...mine.items, ...drafts.map(b => b.item)] }, characterStats(mine).level) : null;
-  const spent = drafts.reduce((sum, b) => sum + (shop.stock.find(i => i.name === b.item)?.price || 0), 0);
+  // Whoever is shopping (this phone's character to start with, or anyone
+  // picked above the list): their gold, their room, and on each item whether
+  // they could take it, with Buy, or Sell on what they carry.
+  const active = characterOrder(data).filter(c => !c.retired);
+  const shopper = active.find(c => c.name === (shopFor === undefined ? me : shopFor));
+  // The draft counts: what it buys takes slots, gold and copies; what it
+  // sells frees them.
+  const buys = (draft?.buys || []).filter(b => b.character && b.item);
+  const sells = (draft?.sells || []).filter(x => x.character && x.item);
+  const mineBuys = shopper ? buys.filter(b => b.character === shopper.name) : [];
+  const mineSells = shopper ? sells.filter(x => x.character === shopper.name) : [];
+  const owned = shopper ? [...shopper.items.filter(i => !mineSells.some(x => x.item === i)), ...mineBuys.map(b => b.item)] : [];
+  const room = shopper ? slotUse({ ...shopper, items: owned }, characterStats(shopper).level) : null;
+  const priceOf = name => shop.stock.find(i => i.name === name);
+  const spent = mineBuys.reduce((sum, b) => sum + (priceOf(b.item)?.price || 0), 0)
+              - mineSells.reduce((sum, x) => sum + (priceOf(x.item)?.sells || 0), 0);
+  const gold = shopper ? shopper.gold - spent : 0;
+  const left = item => item.left - buys.filter(b => b.item === item.name).length + sells.filter(x => x.item === item.name).length;
   const full = item => { const [k, n] = slotNeed(item.slot); return room && k in room.used && room.used[k] + n > room.limits[k]; };
-  const dear = item => mine && item.price > mine.gold - spent;
+  const dear = item => shopper && item.price > gold;
+  const has = item => shopper?.items.includes(item.name);
+  const bought = item => mineBuys.some(b => b.item === item.name);
+  const sold = item => mineSells.some(x => x.item === item.name);
+  const canBuy = item => shopper && !has(item) && !bought(item) && left(item) > 0 && !dear(item) && !full(item);
 
-  // "Buy", for this phone's character, on what they can afford and carry:
-  // it goes into the draft, as "Record it" does for a perk.
-  const drafted = item => mine && draft?.buys?.some(b => b.character === mine.name && b.item === item.name);
-  const buy = item => !mine || !rawCampaign ? null
-    : drafted(item) ? h("span", { class: "in-draft" }, "In the draft")
-    : !item.left || dear(item) || full(item) ? null
-    : h("button", { type: "button", class: "buy", "data-key": `buy-${item.id}`, "aria-label": `Buy ${item.name} for ${mine.name}`,
-        onclick: () => recordBuy(data, mine.name, item.name) }, "Buy");
-  const row = item => h("li", { class: item.left ? (dear(item) ? "too-dear" : null) : "sold-out" },
+  // On the right: the price, and under it what the shopper can do. It goes
+  // into the draft, as "Record it" does for a perk.
+  const action = item => !shopper || !rawCampaign ? null
+    : has(item) ? (sold(item) ? h("span", { class: "in-draft" }, "Sold in the draft")
+        : h("button", { type: "button", class: "buy sell", "data-key": `sell-${item.id}`, "aria-label": `Sell ${item.name} for ${item.sells} gold`,
+            onclick: () => recordSell(data, shopper.name, item.name) }, `Sell for ${item.sells}`))
+    : bought(item) ? h("span", { class: "in-draft" }, "In the draft")
+    : canBuy(item) ? h("button", { type: "button", class: "buy", "data-key": `buy-${item.id}`, "aria-label": `Buy ${item.name} for ${shopper.name}`,
+        onclick: () => recordBuy(data, shopper.name, item.name) }, "Buy")
+    : null;
+  const row = item => h("li", { class: has(item) ? "owned" : left(item) <= 0 && !bought(item) ? "sold-out" : dear(item) && !bought(item) ? "too-dear" : null },
     h("span", {},
       h("strong", {}, item.name, item.design ? h("span", { class: "tag" }, "design") : null),
       h("span", { class: "sub" }, copyPips(item), [
-        item.left && full(item) && !drafted(item) ? fullText(mine, item.slot) : null,
-        item.held.length ? `sells for ${item.sells}` : null,
+        shopper && !has(item) && !bought(item) && left(item) > 0 && full(item) ? fullText(shopper, item.slot) : null,
+        // What it sells for: on the shopper's own items that's their Sell button.
+        !shopper && item.held.length ? `sells for ${item.sells}` : null,
       ].filter(Boolean).join(" · "))),
-    // The price, with Buy under it, so prices stay in one column.
-    h("span", { class: "price-col" }, h("span", { class: "price num" }, `${item.price} gold`), buy(item)));
+    h("span", { class: "price-col" }, h("span", { class: "price num" }, `${item.price} gold`), action(item)));
 
   // One mark per copy of the item: empty while it's in the shop, the
   // holder's class icon once someone carries it.
@@ -2148,14 +2178,29 @@ function renderShop(data) {
       Array.from({ length: item.left }, () => h("i")));
   };
 
-  const groups = SLOTS.map(([slot, label]) => [slot, label, shop.stock.filter(i => i.slot === slot)]).filter(([, , list]) => list.length);
+  // "Can buy" leaves what the shopper could buy, and what they already
+  // have in the draft.
+  const showing = item => shopFilter !== "can" || !shopper || canBuy(item) || bought(item);
+  const groups = SLOTS.map(([slot, label]) => [slot, label, shop.stock.filter(i => i.slot === slot && showing(i))]).filter(([, , list]) => list.length);
   const priceNote = shop.modifier === 0 ? "normal prices" : `${signed(shop.modifier)} gold per item`;
+  const pick = name => () => { shopFor = shopper?.name === name ? "" : name; render(data, "shop"); };
 
   return [
     sectionHead("Shop", `Prosperity ${shop.level} · ${priceNote}`),
-    mine ? h("p", { class: "shop-me" }, h("span", {}, `${mine.name} has `, h("strong", {}, `${mine.gold} gold`)), slotStrip(mine, characterStats(mine).level)) : null,
+    active.length ? h("div", { class: "shop-for" },
+      h("span", { class: "label", id: "shop-for-label" }, "Shopping for"),
+      h("div", { class: "filters", role: "group", "aria-labelledby": "shop-for-label" }, active.map(c =>
+        h("button", { type: "button", "data-key": `shop-for-${c.name}`, "aria-pressed": String(shopper?.name === c.name), onclick: pick(c.name) },
+          classIcon(c.class), c.name)))) : null,
+    shopper ? h("div", { class: "shop-me" },
+      h("span", {}, `${shopper.name} has `, h("strong", {}, `${shopper.gold} gold`), spent ? `, ${gold} after the draft` : null),
+      slotStrip({ ...shopper, items: owned }, characterStats(shopper).level),
+      h("div", { class: "segmented", role: "group", "aria-label": "Show" }, [["all", "Everything"], ["can", "Can buy"]].map(([key, label]) =>
+        h("button", { type: "button", "data-key": `shop-show-${key}`, "aria-pressed": String(shopFilter === key),
+          onclick: () => { shopFilter = key; render(data, "shop"); } }, label)))) : null,
     shop.pricesUnsure ? pricesNote(shop, data.ledger?.reputation) : null,
     shop.questions.map(q => nudge("question", "Check an item", q)),
+    groups.length ? null : empty(`Nothing ${shopper?.name} can buy right now.`),
     h("div", { class: "shop" }, groups.map(([slot, label, list]) =>
       h("div", { class: "card" },
         h("h3", { class: "label" }, gameIcon(`slot-${slot}`), label),
@@ -2533,10 +2578,21 @@ function applyDraft(raw, d, data) {
   const priceOf = name => data.shop?.stock.find(i => i.name === name)?.price;
   for (const b of d.buys.filter(b => b.character && b.item)) {
     const c = who(b.character);
+    if (c.items.includes(b.item)) warnings.push(`${b.character} already has ${b.item}: a character can own only one of each item.`);
     const price = priceOf(b.item) ?? 0;
     c.gold = (c.gold || 0) - price;
     c.items.push(b.item);
     log.push(`${b.character} buys ${b.item} for ${price} gold`);
+  }
+  // No more copies bought than the shop has, counting any sold back tonight.
+  const bought = new Map();
+  for (const b of d.buys.filter(b => b.character && b.item)) bought.set(b.item, (bought.get(b.item) || 0) + 1);
+  for (const [name, n] of bought) {
+    const left = data.shop?.stock.find(i => i.name === name)?.left;
+    const back = d.sells.filter(x => x.character && x.item === name).length;
+    if (left != null && n > left + back) {
+      warnings.push(`${name}: the draft buys ${n}, but ${left ? `only ${left} ${left === 1 ? "is" : "are"}` : "none are"} left in the shop.`);
+    }
   }
   for (const sale of d.sells.filter(x => x.character && x.item)) {
     const c = who(sale.character);
@@ -2684,8 +2740,6 @@ function renderRecorder(data) {
   const partyOptions = [["", "Who?"], ...party.map(c => [c.name, c.name])];
   // Perks are taken in town, by anyone still adventuring.
   const activeOptions = [["", "Who?"], ...[...active, ...newcomers].map(c => [c.name, c.name])];
-  // A newcomer can buy their first items in the same visit to town.
-  const buyOptions = [...partyOptions, ...newcomers.filter(c => !party.includes(c)).map(c => [c.name, c.name])];
   const available = data.scenarios.filter(s => s.status === "available").sort((a, b) => a.number - b.number);
 
   // A scenario's name (with its rewards, on a success) under its number.
@@ -2769,12 +2823,13 @@ function renderRecorder(data) {
   };
 
   const buyBlock = (b, i) => h("div", { class: "rec-row" },
-    field("Who", select(`buy-${i}-c`, b, "character", buyOptions)),
+    // Anyone in town can shop, playing tonight or not; newcomers too.
+    field("Who", select(`buy-${i}-c`, b, "character", activeOptions)),
     field("Item", select(`buy-${i}-i`, b, "item", [["", "Pick an item"],
       ...(data.shop?.stock || []).filter(x => x.left > 0).map(x => [x.name, `${x.name} · ${x.price} gold`])], false)),
     remove(d.buys, i, "purchase", "add-buy"));
   const sellBlock = (b, i) => h("div", { class: "rec-row" },
-    field("Who", select(`sell-${i}-c`, b, "character", partyOptions)),
+    field("Who", select(`sell-${i}-c`, b, "character", activeOptions)),
     field("Item", select(`sell-${i}-i`, b, "item", [["", "Pick an item"],
       ...(data.characters.find(c => c.name === b.character)?.items || []).map(x => [x, x])], false)),
     remove(d.sells, i, "sale", "add-sell"));

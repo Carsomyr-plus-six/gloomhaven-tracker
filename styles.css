@@ -848,16 +848,31 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .shop .buy:hover { border-color: var(--brass); }
 .shop .buy::after { content: ""; position: absolute; inset: -10px -8px; }
 .shop .in-draft { font-size: var(--t-xs); font-weight: 600; color: var(--fg-3); }
+/* Sell, on the shopper's own items: quieter than Buy. */
+.shop .buy.sell { border-color: var(--line-strong); background: var(--surface-2); color: var(--fg-2); }
+.shop .buy.sell:hover { border-color: var(--fg-3); }
+/* An item the shopper carries: its name reads as theirs. */
+.shop .owned strong { color: var(--fg); }
 .shop .sold-out strong, .shop .sold-out .price { color: var(--muted); }
 /* This phone's character can't afford it. */
 .shop .too-dear .price { color: var(--muted); }
-.shop-me { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; margin: 4px 0; font-size: var(--t-base); color: var(--fg-2); }
+/* Who is shopping: a row of character chips. */
+.shop-for { display: flex; flex-direction: column; gap: 8px; }
+.shop-for .filters button .gicon { margin: 0; color: inherit; }
+.shop-me { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 4px 0; font-size: var(--t-base); color: var(--fg-2); }
+.shop-me > .slots { margin-left: auto; }
+.shop-me .segmented { flex-basis: 100%; align-self: flex-start; }
+/* Wide screens: gold and slots together, the filter at the far end. */
+@media (min-width: 900px) {
+  .shop-me > .slots { margin-left: 0; }
+  .shop-me .segmented { flex-basis: auto; margin-left: auto; }
+}
 .shop-me strong { font-weight: 700; color: var(--brass); }
 /* One mark per copy: empty in the shop, the holder's class icon once carried. */
 .copies { display: inline-flex; gap: 3px; margin-right: 8px; vertical-align: -3px; }
-.copies > i { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: var(--r-xs); border: 1.5px solid var(--line-strong); }
+.copies > i { display: inline-flex; align-items: center; justify-content: center; width: 12px; height: 17px; border-radius: 2px; border: 1.5px solid var(--line-strong); }
 .copies > i.held { border-color: transparent; background: var(--surface-3); }
-.copies .gicon { width: 11px; height: 11px; margin: 0; color: var(--fg-2); }
+.copies .gicon { width: 10px; height: 10px; margin: 0; color: var(--fg-2); }
 .shop .tag { white-space: nowrap; margin-left: 8px; padding: 1px 8px; border-radius: var(--r-pill); background: var(--surface-2); font-size: var(--t-xs); font-weight: 600; color: var(--fg-3); }
 /* The Enhancer: the form on the left, the cost and how it adds up on the right. */
 .enhancer-wrap { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
