@@ -527,6 +527,40 @@ main {
 .rows .sub { display: block; font-size: 13px; color: var(--muted); }
 .rows .where { flex: none; font-size: 13px; color: var(--muted); }
 
+/* Recording a session. */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--surface);
+  font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.btn .icon { font-size: 16px; }
+.btn.primary { background: var(--brass); border-color: var(--brass); color: var(--brass-ink); }
+.btn.quiet { border-color: transparent; background: none; color: var(--muted); }
+.recorder { display: flex; flex-direction: column; gap: 20px; }
+.rec-section { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.rec-section > .card { align-self: stretch; }
+.rec-block { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 18px 20px; min-width: 0; }
+.rec-block legend { float: left; width: 100%; margin-bottom: 4px; font-size: 13px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--brass); }
+.rec-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 12px; }
+.rec-who { flex: 0 0 100%; font-size: 14px; }
+.rec-note { align-self: center; }
+.rec-results { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
+.rec-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.rec-check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 600; }
+.rec-check input { width: 20px; height: 20px; accent-color: var(--brass); }
+.subtitle { font: 700 22px/1.1 var(--display); }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field > span { font-size: 12px; font-weight: 600; color: var(--muted); }
+.field.short { width: 92px; }
+.field.wide { flex: 1 1 220px; }
+.field input, .field select, .rec-block textarea {
+  min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--bg); color: var(--fg); font: inherit; font-size: 15px;
+}
+.field input:focus, .field select:focus, .rec-block textarea:focus { outline: 2px solid var(--brass); outline-offset: 1px; }
+.rec-block textarea { width: 100%; resize: vertical; }
+.rec-summary ul { list-style: disc; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+
 .shop { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px; align-items: start; }
 .shop .card { display: flex; flex-direction: column; gap: 6px; padding: 18px 20px; }
 .shop .price { flex: none; font-weight: 600; color: var(--brass); }
@@ -585,7 +619,7 @@ main {
   .tile-foot { flex-direction: column; }
   .tile-foot strong { font-size: 14px; }
   .tile-foot span { font-size: 12px; }
-  .level-tile .filters { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
+  .level-tile .filters, .recorder .filters { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
 
   .party { display: flex; flex-direction: column; gap: 4px; }
   .party-head { display: flex; align-items: baseline; justify-content: space-between; }

@@ -1,5 +1,5 @@
-// Gloomhaven campaign tracker: reads campaign.json and shows it.
-// Read-only for now; editing and saving come in a later branch.
+// Gloomhaven campaign tracker: reads campaign.json and shows it, and builds
+// an updated campaign.json from a session recorded on the page.
 
 // --- Rules (Gloomhaven 1st edition) -------------------------------------
 
@@ -53,6 +53,23 @@ function scenarioStats(level) {
     trap: 2 + level,
     xp: 4 + 2 * level,
   };
+}
+
+// The Sanctuary of the Great Oak: a donation is 10 gold, once per player per
+// visit to the city, for two blessings in that player's next scenario. When
+// the city's donations reach 100 gold in all, Envelope B may be opened.
+const DONATION = 10;
+const ENVELOPE_B_DONATIONS = 100;
+
+// Once Envelope B is open, donations also count towards prosperity. Counted
+// as Gloomhaven Secretariat does, in donations of 10 gold: opening the
+// envelope gives a checkmark; past the first 10 donations, every 5 more give
+// a checkmark, up to 40 donations; past 40, every 10 more give one.
+// (Spoiler: this is what Envelope B says. The page shows none of it until
+// campaign.json says the envelope is open.)
+function donationCheckmarks(gold) {
+  const n = Math.floor(gold / DONATION);
+  return Math.floor(Math.min(Math.max(n - 10, 0), 30) / 5) + Math.floor(Math.max(n - 40, 0) / 10);
 }
 
 // A new character may start at any level up to the prosperity level, with
@@ -226,7 +243,11 @@ function prosperityTile(city, ledger) {
       Array.from({ length: toNext.next - from }, (_, i) => h("span", { class: i < city.prosperityCheckmarks - from ? "on" : null }))) : null,
     h("div", { class: "tile-foot" },
       h("strong", {}, toNext ? `${toNext.remaining} more to level ${level + 1}` : "Maximum level"),
-      h("span", {}, `${plural(city.prosperityCheckmarks, "checkmark")} · ${city.donations} gold donated`)),
+      h("span", {}, `${plural(city.prosperityCheckmarks, "checkmark")} · ${city.donations} gold donated`),
+      h("span", {}, city.envelopeB ? "Envelope B is open"
+        : city.donations >= ENVELOPE_B_DONATIONS
+          ? "Donations have reached 100 gold: Envelope B can be opened"
+          : `${ENVELOPE_B_DONATIONS - city.donations} more gold donated opens Envelope B`)),
     ledgerFoot(ledger?.prosperity, ""));
 }
 
@@ -883,6 +904,11 @@ function deriveCampaign(data, ref, evRef) {
   const step = item => item.event ? doEvent(item.event) : doAdjustment(item.adjustment);
   played.forEach((s, i) => { before[i].forEach(step); doScenario(s); });
   after.forEach(step);
+  if (data.city.envelopeB) {
+    gain("prosperity", exact(1), "Envelope B opened");
+    gain("prosperity", exact(donationCheckmarks(data.city.donations)), "Sanctuary donations");
+  }
+
   // Every retirement adds a checkmark to prosperity, and the class's
   // retirement events to the decks (unless one was since drawn and removed).
   for (const c of data.characters.filter(c => c.retired)) {
@@ -1531,6 +1557,377 @@ function renderShop(data) {
   ];
 }
 
+// --- Recording a session ------------------------------------------------------------
+// The site is static, so nothing is saved on a server. The form below builds
+// an updated campaign.json from what happened at the table; you download or
+// copy it and put it in the repository. The draft is kept in this browser
+// until then, so a reload at the table loses nothing.
+
+let rawCampaign = null;   // campaign.json exactly as loaded
+let scenarioRef = null;   // data/gloomhaven-scenarios.json
+let draft = null;
+const DRAFT_KEY = "sessionDraft";
+
+function today() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function loadDraft() {
+  try { return JSON.parse(localStorage.getItem(DRAFT_KEY)) || null; } catch { return null; }
+}
+function saveDraft() {
+  try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch {}
+}
+function dropDraft() {
+  draft = null;
+  try { localStorage.removeItem(DRAFT_KEY); } catch {}
+}
+
+function newDraft(data) {
+  return { date: today(), title: "", party: [...defaultLevelParty(data)], notes: "",
+           scenarios: [], events: [], buys: [], sells: [], perks: [], donations: [] };
+}
+const newScenario = () => ({ number: "", result: "success", treasures: [], results: {} });
+const newEvent = () => ({ deck: "city", number: "", option: "", scenario: "", paid: "" });
+
+const num = v => { const n = parseInt(v, 10); return Number.isFinite(n) ? n : 0; };
+
+// The draft applied to a copy of campaign.json. Returns the new file, a list
+// of what changes, and anything that looks wrong.
+function applyDraft(raw, d, data) {
+  const out = JSON.parse(JSON.stringify(raw));
+  out.scenarios ||= [];
+  out.sessions ||= [];
+  out.events ||= [];
+  out.characters ||= [];
+  const log = [];
+  const warnings = [];
+  for (const c of out.characters) { c.items ||= []; c.perks ||= []; }
+  const who = name => out.characters.find(c => c.name === name);
+  const gainFor = new Map();   // name -> { xp, gold, checkmarks }
+  const gain = (name, key, amount) => {
+    if (!amount) return;
+    const g = gainFor.get(name) || { xp: 0, gold: 0, checkmarks: 0 };
+    g[key] += amount;
+    gainFor.set(name, g);
+  };
+  const party = d.party.filter(name => who(name));
+  const played = d.scenarios.filter(s => num(s.number));
+
+  if (!party.length) warnings.push("No one is marked as playing.");
+  out.updated = d.date || today();
+
+  // Events, in the order drawn.
+  for (const e of d.events.filter(e => num(e.number))) {
+    const entry = { deck: e.deck, number: num(e.number) };
+    if (e.option) entry.option = e.option;
+    if (num(e.scenario)) entry.scenario = num(e.scenario);
+    else entry.characters = [...party];
+    if (e.paid === "yes") entry.paid = true;
+    if (e.paid === "no") entry.paid = false;
+    if (!classRef?.events?.[e.deck]?.[String(entry.number)]) warnings.push(`${eventLabel(e.deck, entry.number)} isn't in the event data.`);
+    if (!e.option) warnings.push(`${eventLabel(e.deck, entry.number)}: no option chosen.`);
+    out.events.push(entry);
+    log.push(`${eventLabel(e.deck, entry.number)} drawn${e.option ? `, option ${e.option}` : ""}${entry.scenario ? `, before #${entry.scenario}` : ""}`);
+  }
+
+  // Scenarios, in the order played.
+  for (const s of played) {
+    const n = num(s.number);
+    const info = scenarioRef?.scenarios?.[String(n)];
+    const known = data.scenarios.find(x => x.number === n);
+    const label = `#${n}${info?.name ? ` ${info.name}` : ""}`;
+    if (!info) warnings.push(`#${n} isn't a scenario.`);
+    else if (!known) warnings.push(`${label} isn't unlocked.`);
+    else if (known.status === "completed" && s.result === "success") warnings.push(`${label} is already completed.`);
+    else if (known.status === "blocked" && s.result === "success") warnings.push(`${label} is blocked.`);
+
+    // Battle goals only count when the scenario succeeds.
+    const results = party.map(name => {
+      const r = s.results[name] || {};
+      return { character: name, xp: num(r.xp), gold: num(r.gold), checkmarks: s.result === "success" ? num(r.checkmarks) : 0 };
+    });
+    for (const r of results) { gain(r.character, "xp", r.xp); gain(r.character, "gold", r.gold); gain(r.character, "checkmarks", r.checkmarks); }
+
+    if (s.result !== "success") { log.push(`${label}: failed`); continue; }
+
+    // Completed: the scenario moves to the end of the list, which is the order played.
+    const old = out.scenarios.find(x => x.number === n) || {};
+    out.scenarios = out.scenarios.filter(x => x.number !== n);
+    const treasures = s.treasures.filter(t => t.number).map(t => t.character ? { number: t.number, character: t.character } : t.number);
+    const entry = { number: n };
+    if (old.name || info?.name) entry.name = old.name || info.name;
+    entry.status = "completed";
+    entry.completed = d.date || null;
+    if (old.unlockedBy != null) entry.unlockedBy = old.unlockedBy;
+    const allTreasures = [...(old.treasures || []), ...treasures];
+    if (allTreasures.length) entry.treasures = allTreasures;
+    const kept = results.filter(r => r.xp || r.gold || r.checkmarks)
+      .map(r => Object.fromEntries(Object.entries(r).filter(([k, v]) => k === "character" || v)));
+    if (kept.length) entry.results = kept;
+    entry.notes = old.notes || "";
+    out.scenarios.push(entry);
+    log.push(`${label} completed`);
+
+    // Rewards each character gets, and what treasures gave their looters.
+    const r = info?.rewards || {};
+    for (const name of party) { gain(name, "gold", r.gold || 0); gain(name, "xp", r.experience || 0); }
+    if (r.gold || r.experience) log.push(`${label} reward: ${[r.gold ? `${r.gold} gold` : null, r.experience ? `${r.experience} XP` : null].filter(Boolean).join(" and ")} each`);
+    if (r.collectiveGold) warnings.push(`${label} gives ${r.collectiveGold} gold to share: add it to the characters' gold by hand.`);
+    if (r.chooseLocation) warnings.push(`${label} lets you choose one of ${r.chooseLocation.map(x => `#${x}`).join(", ")}: note the choice.`);
+    for (const t of s.treasures.filter(t => t.number)) {
+      for (const part of treasureParts(scenarioRef, t.number)) {
+        if (!t.character) { if (["gold", "experience", "item"].includes(part.type)) warnings.push(`Treasure ${t.number}: who looted it?`); continue; }
+        if (part.type === "gold") gain(t.character, "gold", num(part.value));
+        if (part.type === "experience") gain(t.character, "xp", num(part.value));
+        if (part.type === "item") {
+          who(t.character)?.items.push(itemName(part.value));
+          log.push(`${t.character} takes ${itemName(part.value)} from treasure ${t.number}`);
+        }
+      }
+    }
+  }
+
+  // The session itself.
+  const session = { date: d.date || null };
+  if (d.title) session.title = d.title;
+  session.scenarios = played.map(s => ({ number: num(s.number), result: s.result }));
+  session.characters = [...party];
+  session.notes = d.notes || "";
+  out.sessions.push(session);
+
+  // XP, gold and checkmarks onto the character sheets.
+  for (const [name, g] of gainFor) {
+    const c = who(name);
+    c.xp = (c.xp || 0) + g.xp;
+    c.gold = (c.gold || 0) + g.gold;
+    c.checkmarks = (c.checkmarks || 0) + g.checkmarks;
+    log.push(`${name}: ${[g.xp ? `${signed(g.xp)} XP` : null, g.gold ? `${signed(g.gold)} gold` : null,
+                          g.checkmarks ? `${signed(g.checkmarks)} ${g.checkmarks === 1 ? "checkmark" : "checkmarks"}` : null].filter(Boolean).join(", ")}`);
+  }
+
+  // Shopping and perks, after the scenarios.
+  const priceOf = name => data.shop?.stock.find(i => i.name === name)?.price;
+  for (const b of d.buys.filter(b => b.character && b.item)) {
+    const c = who(b.character);
+    const price = priceOf(b.item) ?? 0;
+    c.gold = (c.gold || 0) - price;
+    c.items.push(b.item);
+    log.push(`${b.character} buys ${b.item} for ${price} gold`);
+  }
+  for (const sale of d.sells.filter(x => x.character && x.item)) {
+    const c = who(sale.character);
+    const i = c.items.indexOf(sale.item);
+    if (i < 0) { warnings.push(`${sale.character} doesn't carry ${sale.item}.`); continue; }
+    c.items.splice(i, 1);
+    const item = Object.values(itemsRef?.items || {}).find(x => x.name === sale.item);
+    const value = item ? Math.floor(item.cost / 2) : 0;
+    c.gold = (c.gold || 0) + value;
+    log.push(`${sale.character} sells ${sale.item} for ${value} gold`);
+  }
+  out.city ||= {};
+  const before = out.city.donations || 0;
+  const donors = (d.donations || []).filter(x => x.character);
+  for (const x of donors) {
+    const c = who(x.character);
+    c.gold = (c.gold || 0) - DONATION;
+    out.city.donations = (out.city.donations || 0) + DONATION;
+    log.push(`${x.character} donates ${DONATION} gold to the Sanctuary: two blessings in their next scenario`);
+  }
+  for (const name of new Set(donors.map(x => x.character))) {
+    if (donors.filter(x => x.character === name).length > 1) warnings.push(`${name} donates more than once: it's once per visit to the city.`);
+  }
+  if (before < ENVELOPE_B_DONATIONS && (out.city.donations || 0) >= ENVELOPE_B_DONATIONS && !d.envelopeB) {
+    log.push(`Donations reach ${out.city.donations} gold: Envelope B can be opened`);
+  }
+  if (d.envelopeB && !out.city.envelopeB) {
+    out.city.envelopeB = true;
+    log.push("Envelope B opened");
+  }
+  for (const p of d.perks.filter(p => p.character && p.perk)) {
+    who(p.character).perks.push(p.perk);
+    log.push(`${p.character} takes "${p.perk}"`);
+  }
+  for (const c of out.characters) if (c.gold < 0) warnings.push(`${c.name} would have ${c.gold} gold.`);
+
+  return { out, log, warnings };
+}
+
+// campaign.json written the way the file is laid out by hand: short lists of
+// plain values on one line; a list of entries (events, results) one entry
+// per line when every entry fits, otherwise each entry spread out.
+// mode: "auto", "inline" (one line) or "block" (spread out).
+function formatJson(value, indent = "", mode = "auto") {
+  const flat = v => v === null || typeof v !== "object";
+  const shallow = v => flat(v) || (Array.isArray(v) ? v.every(flat) : Object.values(v).every(x => flat(x) || (Array.isArray(x) && x.every(flat))));
+  const inline = v => flat(v) ? JSON.stringify(v)
+    : Array.isArray(v) ? `[${v.map(inline).join(", ")}]`
+    : Object.keys(v).length ? `{ ${Object.entries(v).map(([k, x]) => `${JSON.stringify(k)}: ${inline(x)}`).join(", ")} }` : "{}";
+  const canInline = (v, ind, inList) => ind.length >= 4 && (Array.isArray(v) ? v.every(shallow) : shallow(v))
+    && ind.length + inline(v).length <= (inList ? 240 : 130);
+  if (flat(value)) return JSON.stringify(value);
+  if (mode === "inline" || (mode === "auto" && canInline(value, indent, false))) return inline(value);
+  const inner = indent + "  ";
+  if (Array.isArray(value)) {
+    if (!value.length) return "[]";
+    const entries = value.filter(v => !flat(v));
+    const together = entries.length > 0 && entries.every(v => canInline(v, inner, true));
+    return `[\n${value.map(v => inner + formatJson(v, inner, together ? "inline" : "block")).join(",\n")}\n${indent}]`;
+  }
+  const entries = Object.entries(value);
+  if (!entries.length) return "{}";
+  return `{\n${entries.map(([k, v]) => `${inner}${JSON.stringify(k)}: ${formatJson(v, inner)}`).join(",\n")}\n${indent}}`;
+}
+
+function renderRecorder(data) {
+  const d = draft;
+  d.donations ||= [];
+  const rerender = () => { saveDraft(); render(data, "sessions"); };
+  const set = (obj, key, again = false) => e => {
+    obj[key] = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+    if (again) rerender(); else saveDraft();
+  };
+  const field = (label, control, extra = "") => h("label", { class: `field ${extra}`.trim() }, h("span", {}, label), control);
+  const text = (key, obj, prop, attrs = {}) => h("input", { "data-key": key, value: obj[prop] ?? "", oninput: set(obj, prop),
+                                                           onchange: () => rerender(), ...attrs });
+  const select = (key, obj, prop, options, again = true) => h("select", { "data-key": key, onchange: set(obj, prop, again) },
+    options.map(([value, label]) => h("option", { value, selected: String(obj[prop] ?? "") === String(value) }, label)));
+  const remove = (list, i, what) => h("button", { type: "button", class: "btn quiet", onclick: () => { list.splice(i, 1); rerender(); } }, `Remove ${what}`);
+  const addButton = (label, onclick) => h("button", { type: "button", class: "btn", onclick: () => { onclick(); rerender(); } }, icon("plus"), label);
+
+  const active = characterOrder(data).filter(c => !c.retired);
+  const party = active.filter(c => d.party.includes(c.name));
+  const partyOptions = [["", "Who?"], ...party.map(c => [c.name, c.name])];
+  const available = data.scenarios.filter(s => s.status === "available").sort((a, b) => a.number - b.number);
+
+  const scenarioBlock = (s, i) => {
+    const n = num(s.number);
+    const info = scenarioRef?.scenarios?.[String(n)];
+    const rewards = info ? describeRewards(scenarioRef, info.rewards, classRef) : [];
+    return h("fieldset", { class: "card rec-block" },
+      h("legend", {}, `Scenario ${i + 1}`),
+      h("div", { class: "rec-row" },
+        field("Number", text(`sc-${i}-n`, s, "number", { type: "number", min: 1, max: 95, list: "rec-available", inputmode: "numeric" }), "short"),
+        field("Result", select(`sc-${i}-r`, s, "result", [["success", "Success"], ["failure", "Failure"]]))),
+      n ? h("p", { class: "small muted" }, info ? `${info.name}${s.result === "success" && rewards.length ? ` · rewards: ${rewards.join(", ")}` : ""}` : "Not a scenario number.") : null,
+      party.length ? h("div", { class: "rec-results" },
+        h("span", { class: "label" }, "What each character gained there"),
+        party.map(c => {
+          s.results[c.name] ||= {};
+          const r = s.results[c.name];
+          return h("div", { class: "rec-row" },
+            h("strong", { class: "rec-who" }, c.name),
+            field("XP", text(`sc-${i}-${c.name}-xp`, r, "xp", { type: "number", min: 0, inputmode: "numeric" }), "short"),
+            field("Gold", text(`sc-${i}-${c.name}-gold`, r, "gold", { type: "number", min: 0, inputmode: "numeric" }), "short"),
+            s.result === "success"
+              ? field("Checkmarks", text(`sc-${i}-${c.name}-cm`, r, "checkmarks", { type: "number", min: 0, max: 3, inputmode: "numeric" }), "short")
+              : null);
+        })) : null,
+      s.result === "success" ? h("div", { class: "rec-results" },
+        h("span", { class: "label" }, "Treasures looted"),
+        s.treasures.map((t, j) => h("div", { class: "rec-row" },
+          field("Number", text(`sc-${i}-t${j}-n`, t, "number", { inputmode: "numeric", placeholder: "07" }), "short"),
+          field("Looted by", select(`sc-${i}-t${j}-c`, t, "character", partyOptions)),
+          t.number ? h("span", { class: "small muted rec-note" }, treasureParts(scenarioRef, t.number).map(describeTreasurePart).join(", ") || "Not in the treasure index") : null,
+          remove(s.treasures, j, "treasure"))),
+        addButton("Add a treasure", () => s.treasures.push({ number: "", character: "" }))) : null,
+      remove(d.scenarios, i, "scenario"));
+  };
+
+  const eventBlock = (e, i) => {
+    const options = classRef?.events?.[e.deck]?.[String(num(e.number))];
+    const pays = options && JSON.stringify(options).includes('"type":"pay');
+    return h("div", { class: "rec-row" },
+      field("Deck", select(`ev-${i}-d`, e, "deck", [["city", "City"], ["road", "Road"]])),
+      field("Number", text(`ev-${i}-n`, e, "number", { type: "number", min: 1, inputmode: "numeric" }), "short"),
+      field("Option", select(`ev-${i}-o`, e, "option", [["", "–"], ["A", "A"], ["B", "B"]])),
+      field("Before", select(`ev-${i}-s`, e, "scenario",
+        [["", "In town / between"], ...d.scenarios.filter(s => num(s.number)).map(s => [num(s.number), `#${num(s.number)}`])])),
+      pays ? field("Paid?", select(`ev-${i}-p`, e, "paid", [["", "Not sure"], ["yes", "Yes"], ["no", "No"]])) : null,
+      remove(d.events, i, "event"));
+  };
+
+  const buyBlock = (b, i) => h("div", { class: "rec-row" },
+    field("Who", select(`buy-${i}-c`, b, "character", partyOptions)),
+    field("Item", select(`buy-${i}-i`, b, "item", [["", "Pick an item"],
+      ...(data.shop?.stock || []).filter(x => x.left > 0).map(x => [x.name, `${x.name} · ${x.price} gold`])], false)),
+    remove(d.buys, i, "purchase"));
+  const sellBlock = (b, i) => h("div", { class: "rec-row" },
+    field("Who", select(`sell-${i}-c`, b, "character", partyOptions)),
+    field("Item", select(`sell-${i}-i`, b, "item", [["", "Pick an item"],
+      ...(data.characters.find(c => c.name === b.character)?.items || []).map(x => [x, x])], false)),
+    remove(d.sells, i, "sale"));
+  const perkBlock = (p, i) => {
+    const c = data.characters.find(x => x.name === p.character);
+    return h("div", { class: "rec-row" },
+      field("Who", select(`perk-${i}-c`, p, "character", partyOptions)),
+      field("Perk", select(`perk-${i}-p`, p, "perk", [["", "Pick a perk"], ...(c ? perkCheck(c).open.map(x => [x.text, x.text]) : [])], false), "wide"),
+      remove(d.perks, i, "perk"));
+  };
+
+  const { out, log, warnings } = applyDraft(rawCampaign, d, data);
+  const json = formatJson(out) + "\n";
+  const download = () => {
+    const url = URL.createObjectURL(new Blob([json], { type: "application/json" }));
+    const a = h("a", { href: url, download: "campaign.json" });
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  const copy = async e => {
+    const button = e.currentTarget;
+    try { await navigator.clipboard.writeText(json); button.textContent = "Copied"; }
+    catch { button.textContent = "Couldn't copy"; }
+  };
+
+  return h("div", { class: "recorder" },
+    h("datalist", { id: "rec-available" }, available.map(s => h("option", { value: s.number }, `#${s.number} ${s.name || ""}`))),
+    h("fieldset", { class: "card rec-block" },
+      h("legend", {}, "The evening"),
+      h("div", { class: "rec-row" },
+        field("Date", text("rec-date", d, "date", { type: "date" })),
+        field("Title (optional)", text("rec-title", d, "title", { placeholder: "Only if there's no date" }), "wide")),
+      h("div", { class: "filters", role: "group", "aria-label": "Who played" }, active.map(c =>
+        h("button", { type: "button", "data-key": `rec-who-${c.name}`, "aria-pressed": String(d.party.includes(c.name)),
+                      onclick: () => { d.party = d.party.includes(c.name) ? d.party.filter(n => n !== c.name) : [...d.party, c.name]; rerender(); } },
+          c.name)))),
+    h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Scenarios"),
+      d.scenarios.map(scenarioBlock), addButton("Add a scenario", () => d.scenarios.push(newScenario()))),
+    h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Events drawn"),
+      d.events.length ? h("div", { class: "card rec-block" }, d.events.map(eventBlock)) : null,
+      addButton("Add an event", () => d.events.push(newEvent()))),
+    h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Shop, perks and the Sanctuary"),
+      d.buys.length || d.sells.length || d.perks.length || d.donations.length
+        ? h("div", { class: "card rec-block" }, d.buys.map(buyBlock), d.sells.map(sellBlock), d.perks.map(perkBlock),
+            d.donations.map((x, i) => h("div", { class: "rec-row" },
+              field(`Donates ${DONATION} gold`, select(`don-${i}-c`, x, "character", partyOptions)),
+              remove(d.donations, i, "donation")))) : null,
+      h("div", { class: "rec-buttons" },
+        addButton("Buy an item", () => d.buys.push({ character: "", item: "" })),
+        addButton("Sell an item", () => d.sells.push({ character: "", item: "" })),
+        addButton("Take a perk", () => d.perks.push({ character: "", perk: "" })),
+        addButton("Donate to the Sanctuary", () => d.donations.push({ character: "" }))),
+      !rawCampaign.city?.envelopeB && (rawCampaign.city?.donations || 0) + DONATION * d.donations.filter(x => x.character).length >= ENVELOPE_B_DONATIONS
+        ? h("label", { class: "rec-check" },
+            h("input", { type: "checkbox", "data-key": "rec-envelope-b", checked: Boolean(d.envelopeB), onchange: set(d, "envelopeB", true) }),
+            "We opened Envelope B")
+        : null),
+    h("fieldset", { class: "card rec-block" },
+      h("legend", {}, "Notes"),
+      h("textarea", { "data-key": "rec-notes", rows: 3, oninput: set(d, "notes") }, d.notes)),
+    h("div", { class: "card rec-block rec-summary" },
+      h("h3", { class: "subtitle" }, "What changes"),
+      warnings.map(w => nudge("question", "Check", w)),
+      h("ul", {}, [`A session on ${formatDate(d.date) || "an undated evening"} with ${d.party.join(", ") || "no one"}`, ...log].map(line => h("li", {}, line))),
+      h("p", { class: "small muted" }, "Download the new campaign.json and put it in place of the old one in the repository. Nothing is saved anywhere else; this draft stays in this browser until you discard it."),
+      h("div", { class: "rec-buttons" },
+        h("button", { type: "button", class: "btn primary", onclick: download }, "Download campaign.json"),
+        h("button", { type: "button", class: "btn", onclick: copy }, "Copy to clipboard"),
+        h("button", { type: "button", class: "btn quiet", onclick: () => { if (confirm("Discard this draft?")) { dropDraft(); render(data, "sessions"); } } }, "Discard draft"))));
+}
+
 // --- Sessions -------------------------------------------------------------------
 
 // What each character gained over an evening: the results of the scenarios
@@ -1552,13 +1949,27 @@ function sessionHaul(data, session) {
   return [...totals.values()];
 }
 
+let recorderOpen = false;
+
 function renderSessions(data) {
-  if (!data.sessions.length) return [sectionHead("Sessions"), empty("No sessions recorded yet.")];
   const sorted = [...data.sessions].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
   const eventsBefore = number => (data.eventState?.history || []).filter(e => e.scenario === number).map(e => e.label);
+  const toggle = () => {
+    if (!draft) draft = newDraft(data);
+    recorderOpen = !recorderOpen;
+    saveDraft();
+    render(data, "sessions");
+  };
+  const head = h("div", { class: "section-head" },
+    h("h2", {}, "Sessions"),
+    rawCampaign ? h("button", { type: "button", class: `btn${recorderOpen ? "" : " primary"}`, "data-key": "rec-toggle", onclick: toggle },
+      recorderOpen ? "Close the form (keep the draft)" : draft ? "Go on recording" : "Record a session") : null);
 
   return [
-    sectionHead("Sessions", "Newest first"),
+    head,
+    recorderOpen && draft ? renderRecorder(data) : null,
+    sorted.length ? null : empty("No sessions recorded yet."),
+    sorted.length ? h("p", { class: "aside" }, "Newest first") : null,
     h("div", {}, sorted.map(s => {
       const haul = sessionHaul(data, s);
       const long = formatDate(s.date, { day: "numeric", month: "long", year: "numeric" });
@@ -1710,7 +2121,11 @@ async function start() {
     itemsRef = items;
     classRef = evRef;
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-    const data = withDefaults(await response.json());
+    const json = await response.json();
+    rawCampaign = JSON.parse(JSON.stringify(json));
+    scenarioRef = ref;
+    draft = loadDraft();
+    const data = withDefaults(json);
     const derived = deriveCampaign(data, ref, evRef);
     data.eventState = evRef ? derived : null;
     data.ledger = derived.totals;
