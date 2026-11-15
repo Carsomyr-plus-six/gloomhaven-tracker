@@ -10,15 +10,31 @@ It runs on GitHub Pages, so it works on phones and desktops without installing a
 
 | File | What it is |
 | --- | --- |
-| `campaign.json` | The campaign itself. This is the file you edit. |
+| `campaign.json` | The campaign itself. Edit it by hand, or record a session on the page and replace it with the file that gives you. |
 | `index.html` | The page skeleton: header, tabs, empty sections. |
 | `styles.css` | How it looks: one dark theme, with the phone layout at the bottom of the file. |
-| `app.js` | Reads `campaign.json` and fills in the page. Also works out levels, the scenario level for whoever is playing (with monster level, gold per coin, trap damage and bonus XP), reputation and prosperity, event outcomes and decks, achievements, item designs, unlocked classes, what treasures gave, the shop (stock, prices, who carries what), the unlock map, and which scenarios are unlocked or blocked. |
+| `app.js` | Reads `campaign.json` and fills in the page. Also works out levels, the scenario level for whoever is playing (with monster level, gold per coin, trap damage and bonus XP), reputation and prosperity, event outcomes and decks, achievements, item designs, unlocked classes, what treasures gave, the shop (stock, prices, who carries what), the unlock map, and which scenarios are unlocked or blocked. Builds an updated `campaign.json` from a recorded session. |
 | `data/gloomhaven-scenarios.json` | Reference data for all 95 scenarios: unlocks, blocks, requirements, rewards; and what each treasure tile gives. Generated, don't edit by hand. **Contains spoilers.** |
 | `data/gloomhaven-events.json` | Reference data for city and road events: starting decks, and each option's outcomes: the condition, what happens to the card, and the effects (reputation, prosperity, gold, XP, achievements, cards added, scenarios unlocked), plus each class's unlock and retirement events and its perks (worded as on the character sheet, with their boxes). No event text. Generated, **contains spoilers**. |
 | `data/gloomhaven-items.json` | Reference data for the 150 items: name, cost, copies, slot, and the prosperity that puts them in the shop. No item text. Generated, **contains spoilers**. |
 | `tools/update_scenario_data.py` | Regenerates the three reference files: `py tools/update_scenario_data.py` |
 | `examples/sample-campaign.json` | Made-up data for testing. View it at `?data=examples/sample-campaign.json`. |
+
+## Recording a session
+
+At the table, open **Sessions** and choose **Record a session**. Fill in:
+- the date and who played
+- each scenario attempted, with the result and what each character gained there (XP, gold, battle goal checkmarks)
+- the treasures looted and who looted them
+- the events drawn, with the option
+- items bought or sold, perks taken, and donations to the Sanctuary (10 gold each, once per player per visit)
+- whether you opened Envelope B, once donations reach 100 gold
+
+The page adds scenario rewards and treasure gold and XP to the characters itself, and lists every change, with anything that looks wrong, before you save.
+
+The site has nowhere to save, so **Download campaign.json** (or **Copy to clipboard**) gives you the updated file. Put it in place of `campaign.json` in the repository and commit it. Until then the draft stays in that browser, so a reload at the table loses nothing; **Discard draft** clears it.
+
+Some rewards still need a hand edit afterwards, and the page says so: gold to share between the party, and a choice of location.
 
 ## Running it locally
 
@@ -36,7 +52,7 @@ Then open http://127.0.0.1:8000/. Stop the server with Ctrl+C.
 
 **party**: `name`, `location`, `achievements`, `notes`.
 
-**city**: `donations` (total gold given to the Sanctuary), `globalAchievements`, `unlockedClasses` (a list of class names), `itemDesigns` (items added to the shop permanently).
+**city**: `donations` (total gold given to the Sanctuary; the Overview counts down to the 100 gold that opens Envelope B), `envelopeB` (`true` once you've opened Envelope B; from then on the page follows what it says about donations, as Gloomhaven Secretariat counts it), `globalAchievements`, `unlockedClasses` (a list of class names), `itemDesigns` (items added to the shop permanently).
 
 Achievements, item designs and unlocked classes are mostly worked out, so these lists are usually empty. The page takes them from scenario rewards, event outcomes and treasures; the starting classes are always unlocked; a new City Rule or Artifact replaces the old one; and lost party achievements are dropped. List something here only when nothing else records it, such as a class unlocked by a retirement. The Overview says when an entry is already worked out.
 
