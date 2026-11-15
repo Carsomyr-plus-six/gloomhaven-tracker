@@ -13,6 +13,8 @@ What it changes, as the licence asks us to say:
   icon shows on the dark background
 - in the single-colour icons (MASKS), turns white details into see-through
   cut-outs, so the page can use them as masks
+- makes pull by mirroring push (MIRROR): the pack has no pull icon, and the
+  game's pull is push with the arrow pointing back
 
 The output is CC BY-NC-SA 4.0 like the source; see icons/README.md.
 
@@ -52,7 +54,9 @@ ICONS = {
     "push": ("Status Effect Icons.pdf", 11),
     "pierce": ("Status Effect Icons.pdf", 12),
     "target": ("Status Effect Icons.pdf", 13),
-    "pull": ("Status Effect Icons.pdf", 14),
+    "pull": ("Status Effect Icons.pdf", 11),       # push, mirrored (MIRROR)
+    # The rolling modifier mark: the green diamond with a U-turn arrow
+    "rolling": ("Status Effect Icons.pdf", 14),
     "heal": ("General Icons.pdf", 8),
     "shield": ("General Icons.pdf", 10),
     "refresh": ("General Icons.pdf", 22),
@@ -95,6 +99,7 @@ MASKS = {name for name in ICONS if name == "checkmark" or name.startswith(("even
 TEXT_COLOR = "#ece6d8"   # --fg in styles.css
 RECOLOR = {"heal": {"#000000": TEXT_COLOR}, "shield": {"#000000": TEXT_COLOR},
            "refresh": {"#ffffff": TEXT_COLOR}}
+MIRROR = {"pull"}
 
 NUMBER = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)")
 TOKEN = re.compile(rb"\[|\]|/[^\s/\[\]()<>]+|[-+]?(?:\d+\.?\d*|\.\d+)|[A-Za-z\*'\"]+")
@@ -202,7 +207,7 @@ def number(n):
     return "0" if text in ("", "-0") else text
 
 
-def to_svg(page, recolor, holes=False):
+def to_svg(page, recolor, holes=False, mirror=False):
     """With holes, white shapes become see-through cut-outs in what was drawn
     before them, so the icon works as a mask: each run of white shapes masks
     everything painted so far."""
@@ -244,7 +249,9 @@ def to_svg(page, recolor, holes=False):
         out.append(f"<path {' '.join(attrs)}/>")
     cut()
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {number(side)} {number(side)}">'
-            + (f"<defs>{''.join(defs)}</defs>" if defs else "") + "".join(out) + "</svg>\n")
+            + (f"<defs>{''.join(defs)}</defs>" if defs else "")
+            + (f'<g transform="matrix(-1 0 0 1 {number(side)} 0)">' if mirror else "")
+            + "".join(out) + ("</g>" if mirror else "") + "</svg>\n")
 
 
 def open_pdf(source, name):
@@ -268,7 +275,7 @@ def main():
     readers = {}
     for name, (pdf, page) in ICONS.items():
         reader = readers.get(pdf) or readers.setdefault(pdf, open_pdf(source, pdf))
-        svg = to_svg(reader.pages[page - 1], RECOLOR.get(name, {}), holes=name in MASKS)
+        svg = to_svg(reader.pages[page - 1], RECOLOR.get(name, {}), holes=name in MASKS, mirror=name in MIRROR)
         (OUT_DIR / f"{name}.svg").write_text(svg, encoding="utf-8", newline="\n")
         print(f"icons/{name}.svg  {len(svg.encode()):>6} bytes  ({pdf}, page {page})")
 

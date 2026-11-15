@@ -1380,6 +1380,7 @@ const PERK_ICONS = {
   STUN: "stun", MUDDLE: "muddle", IMMOBILIZE: "immobilize", WOUND: "wound", POISON: "poison", CURSE: "curse",
   DISARM: "disarm", INVISIBLE: "invisible", PIERCE: "pierce", PUSH: "push", PULL: "pull",
   SHIELD: "shield", HEAL: "heal", REFRESH: "refresh",
+  rolling: "rolling",   // the only lower-case one, as the sheets write it
 };
 const PERK_KEYWORD = new RegExp(`\\b(${Object.keys(PERK_ICONS).join("|")})\\b`, "g");
 
