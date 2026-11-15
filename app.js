@@ -220,7 +220,9 @@ function nudge(iconName, title, body, extra = "") {
 function characterStats(c) {
   const level = stepFor(c.xp, XP_FOR_LEVEL);
   const toNext = progressFor(c.xp, XP_FOR_LEVEL);
-  const earned = perksEarned(level, c.checkmarks);
+  // perkBonus: extra perks a player gets for each character they've retired
+  // before (rulebook p. 48).
+  const earned = perksEarned(level, c.checkmarks) + (Number(c.perkBonus) || 0);
   return {
     level,
     toNext,
@@ -528,6 +530,16 @@ function renderOverview(data) {
   ];
 }
 
+// Going straight on from the last scenario played to one linked to it needs
+// no road event (rulebook p. 41): say which, if any can be played.
+function straightOn(data) {
+  const last = [...data.sessions].filter(s => s.date && s.scenarios?.length)
+    .sort((a, b) => b.date.localeCompare(a.date))[0]?.scenarios.at(-1);
+  const links = (scenarioRef?.scenarios?.[String(last?.number)]?.links || []).map(Number)
+    .filter(n => data.scenarios.some(s => s.number === n && s.status === "available"));
+  return links.length ? ` · none straight on to ${links.map(n => `#${n}`).join(" or ")}` : "";
+}
+
 // An evening of Gloomhaven, in the order it runs: a city event, the town
 // (shop, perks, the Sanctuary), a road event, then the scenario. Each step
 // links to where it's handled; the strip ends with recording the evening.
@@ -541,7 +553,7 @@ function tonightStrip(data) {
   return h("nav", { class: "tonight", "aria-label": "Tonight, step by step" },
     step(1, "City event", decks ? `${decks.city.size} in the deck` : "Draw one", "#events"),
     step(2, "In town", shop ? (shop.modifier === 0 ? "Normal prices" : `Prices ${signed(shop.modifier)} gold`) : "Shop, perks, Sanctuary", "#shop"),
-    step(3, "Road event", decks ? `${decks.road.size} in the deck` : "Draw one", "#events"),
+    step(3, "Road event", (decks ? `${decks.road.size} in the deck` : "Draw one") + straightOn(data), "#events"),
     step(4, "Scenario", t ? `Level ${t.level} · deal battle goals` : "Pick who is playing", "#scenarios"),
     rawCampaign ? h("button", { type: "button", class: `btn${recording ? "" : " primary"} tonight-record`, "data-key": "tonight-record",
       onclick: () => { if (!draft) draft = newDraft(data); showInRecorder(data, "rec-date"); } },
@@ -580,6 +592,12 @@ function todoItems(data) {
     for (const u of levelUps.filter(u => u.character === c.name)) {
       add(`${c.name} reached level ${u.level} last session: add an ability card of level ${u.level} or lower.`, "#characters", go, null, sheet);
     }
+    // Below the prosperity level: they may advance to it (rulebook p. 48).
+    const prosperity = stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
+    if (st.level < prosperity && !draft?.advances?.includes(c.name)) {
+      add(`Prosperity is ${prosperity}: ${c.name} may advance from level ${st.level} to ${prosperity}.`, "#characters", go,
+        rawCampaign ? { label: "Record it", run: () => recordAdvance(data, c.name) } : null, sheet);
+    }
     // A perk already picked in the session being recorded isn't asked for again.
     const left = perksLeft(c);
     if (left) add(`${c.name} has ${plural(left, "perk")} to choose.`, "#characters", go,
@@ -590,6 +608,26 @@ function todoItems(data) {
 
   for (const d of data.draws || []) add(`Draw ${d.what} (${d.from}).`, "#record");
   for (const c of data.claims || []) add(`Treasure ${c.treasure} in ${c.where} gave ${c.item}: who looted it?`, "#record");
+
+  // What the rulebook opens when the campaign reaches it (p. 49).
+  const rep = data.party.reputation;
+  const unlocked = new Set(data.city.unlockedClasses.map(u => u.id));
+  const inDecks = (deck, n) => data.eventState?.decks?.[deck]?.has(n) || data.eventState?.removed?.[deck]?.has(n);
+  const partyHas = new Set(data.party.achievements.map(a => a.id));
+  const cityHas = new Map(data.city.globalAchievements.map(a => [a.id, a.count || 1]));
+  if (rep >= 10 && !unlocked.has("sun")) add(`Reputation is ${signed(rep)}: open the box with the ${classIconName("sun")} icon.`, "#record");
+  if (rep <= -10 && !unlocked.has("eclipse")) add(`Reputation is ${signed(rep)}: open the box with the ${classIconName("eclipse")} icon.`, "#record");
+  if (rep >= 20 && !(inDecks("city", 76) && inDecks("road", 67))) add("Reputation is 20: add City 76 and Road 67 to the event decks.", "#events");
+  if (rep <= -20 && !(inDecks("city", 77) && inDecks("road", 68))) add("Reputation is −20: add City 77 and Road 68 to the event decks.", "#events");
+  if ((cityHas.get("ancient-technology") || 0) >= 5 && !data.city.envelopeA) {
+    add("Five Ancient Technology achievements: open envelope A, then set envelopeA to true in campaign.json.", "#record");
+  }
+  if (partyHas.has("the-drakes-command") && partyHas.has("the-drakes-treasure") && !cityHas.has("the-drake-aided")) {
+    add("The Drake's Command and The Drake's Treasure: add City 75 and Road 66 to the event decks, and gain The Drake Aided.", "#record");
+  }
+  if (data.characters.some(c => c.retired) && !data.city.townRecords) {
+    add("A character has retired: open the Town Records Book, then set townRecords to true in campaign.json.", "#record");
+  }
 
   // Events with no option recorded go together; other questions one by one.
   const questions = data.eventState?.questions || [];
@@ -641,6 +679,15 @@ function showInRecorder(data, key) {
   }, 0);
   if (location.hash === "#sessions") go();
   else { window.addEventListener("hashchange", go, { once: true }); location.hash = "sessions"; }
+}
+
+// "Record it" for a character below the prosperity level: advancing to it
+// goes in the draft.
+function recordAdvance(data, name) {
+  if (!draft) draft = newDraft(data);
+  draft.advances ||= [];
+  if (!draft.advances.includes(name)) draft.advances.push(name);
+  showInRecorder(data, `adv-${name}`);
 }
 
 // "Buy" in the Shop: a purchase in the draft, shown in the recorder.
@@ -1066,6 +1113,26 @@ function possibleOutcomes(options, letter, ctx, pinned, depth = 0) {
   });
 }
 
+// What a recorded event's chosen option did for the characters there: the
+// effects whose conditions are met. null when which outcome applied can't be
+// told from what's recorded.
+function chosenOutcome(data, evRef, deck, number, option, names, paid) {
+  const options = evRef?.events?.[deck]?.[String(number)];
+  if (!options || !option) return null;
+  const ctx = { ...eventParty(data, evRef, { characters: names }),
+                reputation: data.ledger?.reputation?.range || exact(data.party.reputation || 0), paid };
+  const found = possibleOutcomes(options, option, ctx, null);
+  if (found.length !== 1 || found[0].doubts.length) return null;
+  const effects = [];
+  let unsure = false;
+  for (const e of found[0].effects) {
+    const met = e.condition ? testCondition(e.condition, ctx) : true;
+    if (met === null) unsure = true;
+    else if (met) effects.push(e);
+  }
+  return { effects, unsure };
+}
+
 // What one outcome's effects come to. An effect with a condition that can't
 // be told counts as "may": a range for numbers, a question for cards.
 function tally(effects, ctx, ref, evRef) {
@@ -1098,7 +1165,8 @@ function tally(effects, ctx, ref, evRef) {
       }
       case "item":
       case "itemDesign":
-        (maybe ? t.mayGain : t.gains).push({ kind: "design", item: e.item });
+        // A design puts every copy in the shop; a named item is one copy.
+        (maybe ? t.mayGain : t.gains).push({ kind: e.type === "item" ? "found" : "design", item: e.item });
         say(e.type === "item" ? itemName(e.item) : `${itemName(e.item)} design`);
         break;
       case "randomItemDesign":
@@ -1193,8 +1261,17 @@ function deriveCampaign(data, ref, evRef) {
   const gain = (key, range, label, forGood = false) => {
     if (!range.lo && !range.hi) return;
     const t = totals[key];
+    const before = t.value;
     t.range = plus(t.range, range);
     t.value += settledPart(range);
+    // Reputation stays within −20 to +20, and the city never falls below the
+    // start of its prosperity level (rulebook p. 42).
+    const hold = (lo, hi) => {
+      t.value = Math.max(lo, Math.min(hi, t.value));
+      t.range = { lo: Math.max(lo, Math.min(hi, t.range.lo)), hi: Math.max(lo, Math.min(hi, t.range.hi)) };
+    };
+    if (key === "reputation") hold(-20, 20);
+    if (key === "prosperity" && range.lo < 0) hold(CHECKMARKS_FOR_PROSPERITY[stepFor(before, CHECKMARKS_FOR_PROSPERITY) - 1], Infinity);
     t.entries.push({ label, range });
     if (!isExact(range)) (forGood ? t.unknown : t.unsure).push(label);
   };
@@ -1242,6 +1319,7 @@ function deriveCampaign(data, ref, evRef) {
     for (const n of sure) unlocks.push({ number: n, source: `${label} event` });
     for (const g of inAll("gains")) {
       if (g.kind === "design") addDesign(g.item, label);
+      else if (g.kind === "found") record.found.push({ item: itemName(g.item), from: label });
       else if (g.kind === "randomDesign") {
         if (e.drew) addDesign(e.drew, label);
         else if (e.drawn !== false) record.draws.push({ what: "a random item design", from: label,
@@ -2460,7 +2538,7 @@ function newDraft(data) {
   // Anyone inactive picked there plays too, which brings them back once saved.
   const active = new Set(data.characters.filter(c => !c.retired).map(c => c.name));
   const party = [...(levelParty || defaultLevelParty(data))].filter(n => active.has(n));
-  return { id: draftId(), date: today(), title: "", party, notes: "",
+  return { id: draftId(), date: today(), title: "", party, notes: "", advances: [],
            scenarios: [], events: [], buys: [], sells: [], perks: [], donations: [],
            retirements: [], newCharacters: [] };
 }
@@ -2534,6 +2612,16 @@ function applyDraft(raw, d, data) {
     if (i >= 0) list.splice(i, 1);
   };
   const gainFor = new Map();   // name -> { xp, gold, checkmarks }
+  // An event's gold or XP. A gain counts with the evening's; a loss comes off
+  // at once, and can't take gold below 0 or XP below the start of the
+  // character's level (rulebook p. 42).
+  const eventGain = (name, key, amount) => {
+    if (amount >= 0) return gain(name, key, amount);
+    const c = who(name);
+    if (!c) return;
+    if (key === "gold") c.gold = Math.max(0, (c.gold || 0) + amount);
+    else c.xp = Math.max(XP_FOR_LEVEL[stepFor(c.xp || 0, XP_FOR_LEVEL) - 1], (c.xp || 0) + amount);
+  };
   const gain = (name, key, amount) => {
     if (!amount) return;
     const g = gainFor.get(name) || { xp: 0, gold: 0, checkmarks: 0 };
@@ -2568,9 +2656,11 @@ function applyDraft(raw, d, data) {
     const level = Math.max(1, Math.min(prosperity, num(x.level) || 1));
     const twin = out.characters.find(c => !c.retired && c.class === x.class);
     if (twin) warnings.push(`${twin.name} already plays a ${x.class}: a party can't have two of the same class.`);
+    const bonus = Math.max(0, num(x.bonusPerks));
     out.characters.push({ name, class: x.class, xp: XP_FOR_LEVEL[level - 1], gold: startingGold(level), checkmarks: 0,
-                          perks: [], items: [], personalQuest: "", retired: false, notes: "" });
-    log.push(`${name} the ${x.class} joins at level ${level}, with ${XP_FOR_LEVEL[level - 1]} XP and ${startingGold(level)} gold${level > 1 ? `, and ${plural(level - 1, "perk")} to choose` : ""}`);
+                          perks: [], items: [], personalQuest: "", retired: false, ...(bonus ? { perkBonus: bonus } : {}), notes: "" });
+    const perks = level - 1 + bonus;
+    log.push(`${name} the ${x.class} joins at level ${level}, with ${XP_FOR_LEVEL[level - 1]} XP and ${startingGold(level)} gold${perks ? `, and ${plural(perks, "perk")} to choose` : ""}`);
     if (x.playing !== false) joined.push(name);
   }
 
@@ -2608,6 +2698,31 @@ function applyDraft(raw, d, data) {
     if (!e.option) warnings.push(`${eventLabel(e.deck, entry.number)}: no option chosen.`);
     out.events.push(entry);
     log.push(`${eventLabel(e.deck, entry.number)} drawn${e.option ? `, option ${e.option}` : ""}${entry.scenario ? `, before #${entry.scenario}` : ""}`);
+
+    // Its gold and XP onto the sheets: "each" to everyone there, shared gold
+    // as the party split it (rulebook p. 42).
+    if (!e.option || !classRef?.events?.[e.deck]?.[String(entry.number)]) continue;
+    const label = `${eventLabel(e.deck, entry.number)}, option ${e.option}`;
+    const outcome = chosenOutcome(data, classRef, e.deck, entry.number, e.option, party, entry.paid);
+    if (!outcome) { warnings.push(`${label}: which outcome applied can't be told from what's recorded, so add any gold or XP it gave by hand.`); continue; }
+    if (outcome.unsure) warnings.push(`${label}: part of the outcome depends on something not recorded; check the card for gold or XP.`);
+    for (const fx of outcome.effects) {
+      if (fx.type === "gold" || fx.type === "experience") {
+        for (const name of party) eventGain(name, fx.type === "gold" ? "gold" : "xp", fx.amount);
+        log.push(`${label}: ${signed(fx.amount)} ${fx.type === "gold" ? "gold" : "XP"} each, for ${party.join(", ")}`);
+      } else if (fx.type === "collectiveGold") {
+        const shares = e.shares || {};
+        const total = party.reduce((sum, name) => sum + Math.max(0, num(shares[name])), 0);
+        const want = Math.abs(fx.amount);
+        if (total !== want) warnings.push(`${label}: ${want} gold to ${fx.amount > 0 ? "share" : "pay"}, but the shares come to ${total}.`);
+        for (const name of party) if (num(shares[name]) > 0) eventGain(name, "gold", Math.sign(fx.amount) * num(shares[name]));
+        if (total) log.push(`${label}: ${fx.amount > 0 ? "shared" : "paid"} ${party.filter(n => num(shares[n]) > 0).map(n => `${n} ${num(shares[n])}`).join(", ")} gold`);
+      } else if (fx.type === "choose" && fx.of.some(x => x.type === "gold" || x.type === "experience")) {
+        warnings.push(`${label}: a choice (${fx.of.map(x => x.amount != null ? `${signed(x.amount)} ${x.type === "experience" ? "XP" : x.type}` : x.type).join(" or ")}); add any gold or XP by hand.`);
+      } else if (fx.type === "item") {
+        warnings.push(`${label} gives ${itemName(fx.item)}: add it to one character's items.`);
+      }
+    }
   }
 
   // Treasures already looted, and where: a tile is looted once.
@@ -2697,6 +2812,17 @@ function applyDraft(raw, d, data) {
   session.characters = [...party];
   session.notes = d.notes || "";
   if (evening) out.sessions.push(session);
+
+  // Advancing to the prosperity level: XP up to that level's start (p. 48).
+  const cityLevel = stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
+  for (const name of d.advances || []) {
+    const c = who(name);
+    if (!c || c.retired) continue;
+    const short = XP_FOR_LEVEL[cityLevel - 1] - (c.xp || 0) - (gainFor.get(name)?.xp || 0);
+    if (short <= 0) continue;
+    gain(name, "xp", short);
+    log.push(`${name} advances to level ${cityLevel}, the prosperity level`);
+  }
 
   // XP, gold and checkmarks onto the character sheets. Passing a level means
   // a new ability card; the perk that comes with it the Characters tab counts.
@@ -2881,7 +3007,7 @@ function renderRecorder(data) {
   const newcomers = d.newCharacters.filter(x => String(x.name || "").trim()).map(x => {
     const level = Math.max(1, Math.min(prosperityLevel, num(x.level) || 1));
     return { name: x.name.trim(), class: x.class, xp: XP_FOR_LEVEL[level - 1], gold: startingGold(level), checkmarks: 0,
-             perks: [], items: [], retired: false, draft: x };
+             perks: [], items: [], retired: false, perkBonus: Math.max(0, num(x.bonusPerks)), draft: x };
   });
   const party = [...active.filter(c => d.party.includes(c.name)), ...newcomers.filter(c => c.draft.playing !== false)];
   const partyOptions = [["", "Who?"], ...party.map(c => [c.name, c.name])];
@@ -2996,7 +3122,20 @@ function renderRecorder(data) {
         [["", "In town / between"], ...d.scenarios.filter(s => num(s.number)).map(s => [num(s.number), `#${num(s.number)}`])])),
       pays ? field("Paid?", select(`ev-${i}-p`, e, "paid", [["", "Not sure"], ["yes", "Yes"], ["no", "No"]])) : null,
       remove(d.events, i, "event", "add-event")),
-      h("p", { class: "small muted", "data-ev-note": i }, eventNote(e, i, firstAfter)));
+      h("p", { class: "small muted", "data-ev-note": i }, eventNote(e, i, firstAfter)),
+      shareRow(e, i));
+  };
+  // Gold the event gives the party to share, or makes it pay: how it was split.
+  const shareRow = (e, i) => {
+    const oc = chosenOutcome(data, classRef, e.deck, num(e.number), e.option, party.map(c => c.name),
+                             e.paid === "yes" ? true : e.paid === "no" ? false : undefined);
+    const fx = oc?.effects.find(x => x.type === "collectiveGold");
+    if (!fx || !party.length) return null;
+    e.shares ||= {};
+    return h("div", { class: "rec-row" },
+      h("strong", { class: "rec-who" }, `${Math.abs(fx.amount)} gold to ${fx.amount > 0 ? "share" : "pay"}`),
+      party.map(c => field(c.name, text(`ev-${i}-share-${c.name}`, e.shares, c.name,
+        { type: "number", min: 0, inputmode: "numeric", placeholder: "0", "aria-label": `${c.name}'s share` }), "short")));
   };
 
   const buyBlock = (b, i) => h("div", { class: "rec-row" },
@@ -3023,6 +3162,8 @@ function renderRecorder(data) {
   // A newcomer: any unlocked class (or one unlocked tonight), at any level up
   // to the prosperity level.
   const prosperity = stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
+  d.advances ||= [];
+  const behind = active.filter(c => characterStats(c).level < prosperity);
   const classOptions = [...new Set([...data.city.unlockedClasses.map(u => u.name),
     ...d.retirements.filter(x => x.unlocks).map(x => className(classRef, x.unlocks))])].sort();
   const newBlock = (x, i) => {
@@ -3031,6 +3172,9 @@ function renderRecorder(data) {
       field("Name", text(`new-${i}-n`, x, "name", { autocomplete: "off" }, true), "wide"),
       field("Class", select(`new-${i}-c`, x, "class", [["", "Pick a class"], ...classOptions.map(n => [n, n])])),
       prosperity > 1 ? field("Level", select(`new-${i}-l`, x, "level", Array.from({ length: prosperity }, (_, l) => [String(l + 1), String(l + 1)]))) : null,
+      // Each character their player has retired gives one more perk (p. 48).
+      field("Perks from retirements", text(`new-${i}-b`, x, "bonusPerks", { type: "number", min: 0, inputmode: "numeric", placeholder: "0",
+        "aria-label": "Extra perks: one for each character this player has retired" }), "short"),
       h("span", { class: "small muted rec-note" }, `Starts at level ${level} with ${XP_FOR_LEVEL[level - 1]} XP and ${startingGold(level)} gold`),
       remove(d.newCharacters, i, "new character", "add-new"));
   };
@@ -3147,6 +3291,13 @@ function renderRecorder(data) {
     h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Retiring and joining"),
       d.retirements.length ? h("div", { class: "card rec-block" }, d.retirements.map(retireBlock)) : null,
       d.newCharacters.length ? h("div", { class: "card rec-block" }, d.newCharacters.map(newBlock)) : null,
+      // Anyone below the prosperity level may advance to it (p. 48).
+      behind.length ? h("div", { class: "field" },
+        h("span", { id: "rec-adv-label" }, `Advance to level ${prosperity}, the prosperity level`),
+        h("div", { class: "filters", role: "group", "aria-labelledby": "rec-adv-label" }, behind.map(c =>
+          h("button", { type: "button", "data-key": `adv-${c.name}`, "aria-pressed": String(d.advances.includes(c.name)),
+            onclick: () => { d.advances = d.advances.includes(c.name) ? d.advances.filter(n => n !== c.name) : [...d.advances, c.name]; rerender(); } },
+            c.name, h("span", {}, characterStats(c).level))))) : null,
       h("div", { class: "rec-buttons" },
         addButton("add-retire", "Retire a character", () => d.retirements.push({ character: "", unlocks: "" }), () => `ret-${d.retirements.length - 1}-c`),
         addButton("add-new", "Add a new character", () => d.newCharacters.push({ name: "", class: "", level: "1", playing: true }), () => `new-${d.newCharacters.length - 1}-n`))),

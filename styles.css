@@ -333,7 +333,7 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 .tonight-step .hex { --w: 24px; --fill: var(--surface); }
 .tonight-step > span:last-child { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .tonight-value { font-size: var(--t-sm); font-weight: 600; line-height: 1.3; }
-.tonight-record { align-self: stretch; justify-content: center; padding-inline: 18px; border-radius: var(--r-md); }
+.btn.tonight-record { align-self: stretch; justify-content: center; padding-inline: 18px; border-radius: var(--r-md); }
 .hero-side { grid-area: side; align-self: start; min-width: 0; display: flex; flex-direction: column; gap: 28px; }
 .ready { min-width: 0; }
 .ready-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
