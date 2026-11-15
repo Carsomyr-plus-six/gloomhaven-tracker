@@ -20,7 +20,7 @@ It runs on GitHub Pages, so it works on phones and desktops without installing a
 | `tools/update_scenario_data.py` | Regenerates the three reference files: `py tools/update_scenario_data.py` |
 | `icons/` | Game icons from the Gloomhaven Creator Pack: elements and conditions in perk text, class icons, item slots, the battle-goal checkmark, and whether an event card was removed or returned. Generated, don't edit by hand. Licensed CC BY-NC-SA 4.0, not AGPL; see `icons/README.md`. |
 | `tools/creator_pack_icons.py` | Remakes `icons/` from the Creator Pack zip: `py tools/creator_pack_icons.py "path/to/Creator Pack V2.zip"` (needs `pypdf`). |
-| `examples/sample-campaign.json` | Made-up data for testing. View it at `?data=examples/sample-campaign.json`. |
+| `examples/sample-campaign.json` | Made-up data for testing. View it at `?data=examples/sample-campaign.json`; it keeps its own character choice and draft, apart from the real campaign's. |
 
 ## Recording a session
 
@@ -37,9 +37,9 @@ The page does the end-of-scenario sums itself:
 - **XP and gold.** It adds the bonus XP for the scenario's level on a success, and turns coins into gold at that level's rate. Each character's row shows what it comes to. The level starts at tonight's level from the Overview, and the page says if it's outside easy to very hard for the party.
 - **Rewards and treasures.** Scenario rewards and treasure gold and XP go to the characters.
 - **Level-ups.** Anyone who passes a level is told to add an ability card and take a perk. Until the next session, **Before you play** reminds them about the card.
-- **New characters.** A new character starts at any level up to the prosperity level, with that level's XP and 15 gold per level plus 15. They can buy their first items in the same session.
+- **New characters.** A new character starts at any level up to the prosperity level, with that level's XP and 15 gold per level plus 15. They play that evening's scenarios unless marked as sitting it out, and can loot, buy items and take perks in the same session. A new campaign starts from an empty file: **Add the party's characters**, on the Overview or the Characters tab, opens the form for them.
 
-It lists every change, with anything that looks wrong, before you save. A bar at the top of the form says how many things there are to check.
+It lists every change, with anything that looks wrong, before you save: an event that isn't in its deck, or a treasure already looted, is most likely a mistyped number. A bar at the top of the form says how many things there are to check.
 
 A perk to choose can also be recorded straight from **Before you play** on the Overview, or from the character's sheet: **Record it** opens the form with a perk row for that character. Once picked, the perk stops being asked for while the draft waits to be saved.
 
