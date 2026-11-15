@@ -340,7 +340,7 @@ function renderOverview(data) {
       h("div", { class: "hero-head" },
         heroDecor(),
         h("div", { class: "eyebrow" }, eyebrowText(data.edition || "Gloomhaven", party.location)),
-        h("h1", { class: "party-name" }, party.name || "Unnamed party")),
+        h("h1", { class: (party.name || "").length > 22 ? "party-name long" : "party-name" }, party.name || "Unnamed party")),
       // Tiles before Ready to play: the left column reads first on wide
       // screens. Phones show Ready to play first (styles.css).
       h("div", { class: "tiles" }, reputationTile(party, data.ledger), prosperityTile(city, data.ledger), levelTile(data)),
@@ -1503,7 +1503,7 @@ function renderCharacters(data) {
       h("header", { class: "char-head" },
         h("div", { class: "char-level" }, hex(st.level, "level"), h("span", { class: "label" }, "Level")),
         h("div", {},
-          h("h3", {}, c.name),
+          h("h3", { class: Math.max(...c.name.split(/\s+/).map(w => w.length)) > 9 ? "long" : null }, c.name),
           h("p", {}, classIcon(c.class), [c.class, c.retired ? "retired" : null].filter(Boolean).join(" · ")))),
       h("div", { class: "block" },
         h("div", { class: "block-head" },
@@ -1555,17 +1555,21 @@ function renderCharacters(data) {
   const retired = order.filter(c => c.retired);
 
   // Phones show one sheet at a time, chosen from this row.
+  // With a big party it scrolls sideways rather than squeezing the names;
+  // retired characters come last, after a divider, dimmed.
   const switcher = h("div", { class: "char-switch", role: "group", "aria-label": "Choose a character" },
     order.map((c, i) => {
       const st = characterStats(c);
-      return h("button", {
-          type: "button", "data-key": `char-${i}`,
+      return [c.retired && !order[i - 1]?.retired ? h("span", { class: "switch-sep", "aria-hidden": "true" }) : null,
+        h("button", {
+          type: "button", "data-key": `char-${i}`, class: c.retired ? "retired" : null,
           "aria-pressed": String(i === characterIndex),
+          "aria-label": c.retired ? `${c.name}, retired` : null,
           onclick: () => pickCharacter(data, i),
         },
         h("span", {}, hex(st.level, "quiet"),
           st.unspent ? h("span", { class: "dot", role: "img", "aria-label": "Has a perk to choose" }) : null),
-        h("span", {}, c.name));
+        h("span", {}, c.name))];
     }));
 
   return [
@@ -1921,8 +1925,13 @@ function renderRecorder(data) {
   });
   const select = (key, obj, prop, options, again = true) => h("select", { "data-key": key, onchange: set(obj, prop, again) },
     options.map(([value, label]) => h("option", { value, selected: String(obj[prop] ?? "") === String(value) }, label)));
-  const remove = (list, i, what) => h("button", { type: "button", class: "btn quiet", onclick: () => { list.splice(i, 1); rerender(); } }, `Remove ${what}`);
-  const addButton = (label, onclick) => h("button", { type: "button", class: "btn", onclick: () => { onclick(); rerender(); } }, icon("plus"), label);
+  // Adding something puts focus on its first box; removing it, on the button
+  // that adds another. Otherwise the redraw would drop focus to the page.
+  const focusOn = key => document.querySelector(`[data-key="${CSS.escape(key)}"]`)?.focus();
+  const remove = (list, i, what, addKey) => h("button", { type: "button", class: "btn quiet",
+    onclick: () => { list.splice(i, 1); rerender(); focusOn(addKey); } }, `Remove ${what}`);
+  const addButton = (key, label, onclick, firstKey) => h("button", { type: "button", class: "btn", "data-key": key,
+    onclick: () => { onclick(); rerender(); focusOn(firstKey()); } }, icon("plus"), label);
 
   const active = characterOrder(data).filter(c => !c.retired);
   const party = active.filter(c => d.party.includes(c.name));
@@ -1958,9 +1967,10 @@ function renderRecorder(data) {
           field("Number", text(`sc-${i}-t${j}-n`, t, "number", { inputmode: "numeric", placeholder: "07", "aria-label": "Treasure number" }, true), "short"),
           field("Looted by", select(`sc-${i}-t${j}-c`, t, "character", partyOptions)),
           t.number ? h("span", { class: "small muted rec-note" }, treasureParts(scenarioRef, t.number).map(describeTreasurePart).join(", ") || "Not in the treasure index") : null,
-          remove(s.treasures, j, "treasure"))),
-        addButton("Add a treasure", () => s.treasures.push({ number: "", character: "" }))) : null,
-      remove(d.scenarios, i, "scenario"));
+          remove(s.treasures, j, "treasure", `add-treasure-${i}`))),
+        addButton(`add-treasure-${i}`, "Add a treasure", () => s.treasures.push({ number: "", character: "" }),
+          () => `sc-${i}-t${s.treasures.length - 1}-n`)) : null,
+      remove(d.scenarios, i, "scenario", "add-scenario"));
   };
 
   const eventBlock = (e, i) => {
@@ -1973,25 +1983,25 @@ function renderRecorder(data) {
       field("Before", select(`ev-${i}-s`, e, "scenario",
         [["", "In town / between"], ...d.scenarios.filter(s => num(s.number)).map(s => [num(s.number), `#${num(s.number)}`])])),
       pays ? field("Paid?", select(`ev-${i}-p`, e, "paid", [["", "Not sure"], ["yes", "Yes"], ["no", "No"]])) : null,
-      remove(d.events, i, "event"));
+      remove(d.events, i, "event", "add-event"));
   };
 
   const buyBlock = (b, i) => h("div", { class: "rec-row" },
     field("Who", select(`buy-${i}-c`, b, "character", partyOptions)),
     field("Item", select(`buy-${i}-i`, b, "item", [["", "Pick an item"],
       ...(data.shop?.stock || []).filter(x => x.left > 0).map(x => [x.name, `${x.name} · ${x.price} gold`])], false)),
-    remove(d.buys, i, "purchase"));
+    remove(d.buys, i, "purchase", "add-buy"));
   const sellBlock = (b, i) => h("div", { class: "rec-row" },
     field("Who", select(`sell-${i}-c`, b, "character", partyOptions)),
     field("Item", select(`sell-${i}-i`, b, "item", [["", "Pick an item"],
       ...(data.characters.find(c => c.name === b.character)?.items || []).map(x => [x, x])], false)),
-    remove(d.sells, i, "sale"));
+    remove(d.sells, i, "sale", "add-sell"));
   const perkBlock = (p, i) => {
     const c = data.characters.find(x => x.name === p.character);
     return h("div", { class: "rec-row" },
       field("Who", select(`perk-${i}-c`, p, "character", partyOptions)),
       field("Perk", select(`perk-${i}-p`, p, "perk", [["", "Pick a perk"], ...(c ? perkCheck(c).open.map(x => [x.text, x.text]) : [])], false), "wide"),
-      remove(d.perks, i, "perk"));
+      remove(d.perks, i, "perk", "add-perk"));
   };
 
   // What the draft changes, with the download. Rebuilt on its own as you type.
@@ -2035,21 +2045,22 @@ function renderRecorder(data) {
                       onclick: () => { d.party = d.party.includes(c.name) ? d.party.filter(n => n !== c.name) : [...d.party, c.name]; rerender(); } },
           c.name)))),
     h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Scenarios"),
-      d.scenarios.map(scenarioBlock), addButton("Add a scenario", () => d.scenarios.push(newScenario()))),
+      d.scenarios.map(scenarioBlock),
+      addButton("add-scenario", "Add a scenario", () => d.scenarios.push(newScenario()), () => `sc-${d.scenarios.length - 1}-n`)),
     h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Events drawn"),
       d.events.length ? h("div", { class: "card rec-block" }, d.events.map(eventBlock)) : null,
-      addButton("Add an event", () => d.events.push(newEvent()))),
+      addButton("add-event", "Add an event", () => d.events.push(newEvent()), () => `ev-${d.events.length - 1}-d`)),
     h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Shop, perks and the Sanctuary"),
       d.buys.length || d.sells.length || d.perks.length || d.donations.length
         ? h("div", { class: "card rec-block" }, d.buys.map(buyBlock), d.sells.map(sellBlock), d.perks.map(perkBlock),
             d.donations.map((x, i) => h("div", { class: "rec-row" },
               field(`Donates ${DONATION} gold`, select(`don-${i}-c`, x, "character", partyOptions)),
-              remove(d.donations, i, "donation")))) : null,
+              remove(d.donations, i, "donation", "add-donation")))) : null,
       h("div", { class: "rec-buttons" },
-        addButton("Buy an item", () => d.buys.push({ character: "", item: "" })),
-        addButton("Sell an item", () => d.sells.push({ character: "", item: "" })),
-        addButton("Take a perk", () => d.perks.push({ character: "", perk: "" })),
-        addButton("Donate to the Sanctuary", () => d.donations.push({ character: "" }))),
+        addButton("add-buy", "Buy an item", () => d.buys.push({ character: "", item: "" }), () => `buy-${d.buys.length - 1}-c`),
+        addButton("add-sell", "Sell an item", () => d.sells.push({ character: "", item: "" }), () => `sell-${d.sells.length - 1}-c`),
+        addButton("add-perk", "Take a perk", () => d.perks.push({ character: "", perk: "" }), () => `perk-${d.perks.length - 1}-c`),
+        addButton("add-donation", "Donate to the Sanctuary", () => d.donations.push({ character: "" }), () => `don-${d.donations.length - 1}-c`)),
       !rawCampaign.city?.envelopeB && (rawCampaign.city?.donations || 0) + DONATION * d.donations.filter(x => x.character).length >= ENVELOPE_B_DONATIONS
         ? h("label", { class: "rec-check" },
             h("input", { type: "checkbox", "data-key": "rec-envelope-b", checked: Boolean(d.envelopeB), onchange: set(d, "envelopeB", true) }),
@@ -2161,6 +2172,7 @@ function render(data, only) {
   // Redrawing replaces the buttons, so put focus and the map's scroll back.
   const key = document.activeElement?.dataset?.key;
   const mapScroll = document.querySelector(".map-scroll")?.scrollLeft;
+  const switchScroll = document.querySelector(".char-switch")?.scrollLeft;
 
   for (const [id, fn] of Object.entries(RENDERERS)) {
     if (only && id !== only) continue;
@@ -2179,6 +2191,18 @@ function render(data, only) {
     const picked = map.querySelector('.node[aria-pressed="true"]');
     const over = picked ? picked.getBoundingClientRect().right - map.getBoundingClientRect().right : 0;
     if (over > 0) map.scrollLeft = over + 28;
+  }
+  // The phone's character row scrolls when the party is big: keep its place,
+  // and keep the picked character in view.
+  const row = document.querySelector(".char-switch");
+  if (row && row.scrollWidth > row.clientWidth) {
+    if (switchScroll) row.scrollLeft = switchScroll;
+    const picked = row.querySelector('[aria-pressed="true"]');
+    if (picked) {
+      const b = picked.getBoundingClientRect(), r = row.getBoundingClientRect();
+      if (b.right > r.right) row.scrollLeft += b.right - r.right + 8;
+      else if (b.left < r.left) row.scrollLeft -= r.left - b.left + 8;
+    }
   }
 }
 
@@ -2282,6 +2306,7 @@ async function start() {
 
     if (data.party.name) {
       document.getElementById("title").textContent = data.party.name;
+      document.getElementById("title").title = data.party.name;   // in full, if the bar cuts it short
       document.title = `${data.party.name} · Gloomhaven`;
     }
     document.getElementById("footer").replaceChildren(
