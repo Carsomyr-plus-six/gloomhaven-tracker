@@ -65,7 +65,7 @@
       "number": 8,
       "name": "Gloomhaven Warehouse",
       "status": "completed",
-      "completed": null,
+      "completed": "2026-10-26",
       "treasures": [
         { "number": "51", "drawn": false }
       ],
@@ -183,6 +183,22 @@
       "date": null,
       "scenarios": [],
       "notes": "Some failed attempts before #4; details unknown.\nBoth Flik Flak's and Craig's sheets show more XP gains than completed scenarios before #4."
+    },
+    {
+      "title": "Warehouse session",
+      "date": "2026-10-26",
+      "scenarios": [
+        {
+          "number": 8,
+          "result": "success"
+        }
+      ],
+      "characters": [
+        "Azorica",
+        "Craig",
+        "Flik Flak"
+      ],
+      "notes": ""
     },
     {
       "date": "2026-11-13",
