@@ -415,39 +415,40 @@ function levelTile(data) {
   const shift = DIFFICULTIES.find(([key]) => key === difficulty)[2];
   const level = Math.max(0, Math.min(7, recommended + shift));
   const st = scenarioStats(level);
-  const prosperity = stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
   const toggle = name => {
     if (levelParty.has(name)) levelParty.delete(name); else levelParty.add(name);
     render(data);
   };
   const stat = (label, value) => h("div", {}, h("span", { class: "label" }, label), h("span", { class: "num" }, value));
-  // The scenario levels, 0 to 7, as hexes: tonight's lit, and the normal
-  // level ringed when the difficulty moves it. The figure says it in words.
-  const ladder = h("div", { class: "ladder", "aria-hidden": "true" }, Array.from({ length: 8 }, (_, l) =>
-    hex(l, !playing.length ? "quiet" : l === level ? "" : l === recommended && shift ? "goal" : "quiet")));
+  const average = levels.length ? (levels.reduce((a, b) => a + b, 0) / levels.length).toFixed(1).replace(/\.0$/, "") : null;
+  const diffLabel = DIFFICULTIES.find(([key]) => key === difficulty)[1].toLowerCase();
+  // The scenario levels, 0 to 7, as hexes: tonight's lit and larger, and the
+  // normal level ringed when the difficulty moves it. It is the tile's
+  // figure, so it says the level, and how it was reached, in words.
+  const ladder = h("div", { class: "ladder", role: "img",
+      "aria-label": playing.length
+        ? `Scenario level ${level}${shift ? `, on ${diffLabel}; ${recommended} on normal` : ""}. Average character level ${average}.`
+        : "No one picked to play." },
+    Array.from({ length: 8 }, (_, l) =>
+      hex(l, !playing.length ? "quiet" : l === level ? "now" : l === recommended && shift ? "goal" : "quiet")));
 
+  // What the level means first, then what sets it: who plays, and how hard.
   return h("div", { class: "card tile level-tile" },
-    h("div", { class: "tile-top" },
-      h("span", { class: "label" }, "Scenario level"),
-      h("span", { class: "figure" }, playing.length ? level : "–")),
+    h("span", { class: "label" }, "Scenario level"),
     ladder,
-    h("div", { class: "filters", role: "group", "aria-label": "Who is playing" }, active.map(c =>
+    playing.length
+      // Monster level is the scenario level, which the ladder shows.
+      ? h("div", { class: "level-stats" }, stat("Gold per coin", st.gold), stat("Trap damage", st.trap), stat("Bonus XP", st.xp))
+      : h("p", { class: "small muted" }, "Pick who is playing."),
+    h("div", { class: "filters party-pick", role: "group", "aria-label": "Who is playing" }, active.map(c =>
       h("button", { type: "button", "data-key": `playing-${c.name}`, "aria-pressed": String(levelParty.has(c.name)),
                     onclick: () => toggle(c.name) },
-        c.name, h("span", {}, characterStats(c).level)))),
-    playing.length ? [
-      h("div", { class: "segmented", role: "group", "aria-label": "Difficulty" }, DIFFICULTIES.map(([key, label]) =>
-        h("button", { type: "button", "data-key": `difficulty-${key}`, "aria-pressed": String(difficulty === key),
-                      onclick: () => { difficulty = key; render(data); } }, label))),
-      h("div", { class: "level-stats" },
-        stat("Monster level", st.monsters), stat("Gold per coin", st.gold),
-        stat("Trap damage", st.trap), stat("Bonus XP", st.xp)),
-    ] : h("p", { class: "small muted" }, "Pick who is playing."),
-    h("div", { class: "tile-foot" },
-      h("strong", {}, playing.length
-        ? `Average level ${(levels.reduce((a, b) => a + b, 0) / levels.length).toFixed(1).replace(/\.0$/, "")}, so ${recommended} on normal`
-        : "No one picked"),
-      h("span", {}, `New characters start at level ${prosperity === 1 ? "1" : `1 to ${prosperity}`} with ${startingGold(1)}${prosperity > 1 ? ` to ${startingGold(prosperity)}` : ""} gold`)));
+        h("span", { class: "pick-name" }, c.name), h("span", {}, characterStats(c).level)))),
+    playing.length
+      ? h("div", { class: "segmented", role: "group", "aria-label": "Difficulty" }, DIFFICULTIES.map(([key, label]) =>
+          h("button", { type: "button", "data-key": `difficulty-${key}`, "aria-pressed": String(difficulty === key),
+                        onclick: () => { difficulty = key; render(data); } }, label)))
+      : null);
 }
 
 // Phones: the sections that share a tab but sit far below, as links.
