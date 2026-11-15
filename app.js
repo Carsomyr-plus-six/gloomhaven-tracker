@@ -3,8 +3,9 @@
 
 // --- Rules (Gloomhaven 1st edition) -------------------------------------
 
-// XP needed to reach level 1, 2, 3 ... 9.
-const XP_FOR_LEVEL = [0, 45, 95, 150, 210, 280, 360, 450, 550];
+// XP needed to reach level 1, 2, 3 ... 9, as printed under the level boxes on
+// the character sheet (and in Gloomhaven Secretariat's CharacterManager).
+const XP_FOR_LEVEL = [0, 45, 95, 150, 210, 275, 345, 420, 500];
 
 // Prosperity checkmarks needed to reach prosperity level 1, 2, 3 ... 9.
 const CHECKMARKS_FOR_PROSPERITY = [0, 4, 9, 15, 22, 30, 39, 50, 64];
