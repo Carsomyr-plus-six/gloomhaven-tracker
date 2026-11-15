@@ -15,11 +15,11 @@
     "globalAchievements": [
       { "name": "Example global achievement", "scenario": 2, "notes": "Gained on the second night" }
     ],
-    "unlockedClasses": ["Brute", "Tinkerer", "Spellweaver", "Scoundrel", "Cragheart", "Mindthief"]
+    "unlockedClasses": []
   },
   "scenarios": [
-    { "number": 1, "name": "Example Scenario One", "status": "completed", "unlockedBy": null, "completed": "2026-09-20", "notes": "First outing. Barely made it." },
-    { "number": 2, "name": "Example Scenario Two", "status": "completed", "unlockedBy": 1, "completed": "2026-10-04", "notes": "" },
+    { "number": 1, "name": "Example Scenario One", "status": "completed", "unlockedBy": null, "completed": "2026-09-20", "treasures": ["07"], "notes": "First outing. Barely made it." },
+    { "number": 2, "name": "Example Scenario Two", "status": "completed", "unlockedBy": 1, "completed": "2026-10-04", "treasures": [{ "number": "67", "character": "Grunt" }], "notes": "" },
     { "number": 3, "name": "Example Scenario Three", "status": "available", "unlockedBy": 2, "completed": null, "notes": "Rumoured to be nasty." },
     { "number": 4, "name": "Example Scenario Four", "status": "blocked", "unlockedBy": 2, "completed": null, "notes": "Blocked by a choice we made." }
   ],

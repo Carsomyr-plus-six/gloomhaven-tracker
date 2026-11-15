@@ -1,0 +1,977 @@
+{
+ "source": "https://github.com/Lurkars/gloomhavensecretariat",
+ "license": "AGPL-3.0",
+ "retrieved": "2026-11-15",
+ "items": {
+  "1": {
+   "name": "Boots of Striding",
+   "cost": 20,
+   "count": 2,
+   "slot": "legs",
+   "prosperity": 1
+  },
+  "2": {
+   "name": "Winged Shoes",
+   "cost": 20,
+   "count": 2,
+   "slot": "legs",
+   "prosperity": 1
+  },
+  "3": {
+   "name": "Hide Armor",
+   "cost": 10,
+   "count": 2,
+   "slot": "body",
+   "prosperity": 1
+  },
+  "4": {
+   "name": "Leather Armor",
+   "cost": 20,
+   "count": 2,
+   "slot": "body",
+   "prosperity": 1
+  },
+  "5": {
+   "name": "Cloak of Invisibility",
+   "cost": 20,
+   "count": 2,
+   "slot": "body",
+   "prosperity": 1
+  },
+  "6": {
+   "name": "Eagle-Eye Goggles",
+   "cost": 30,
+   "count": 2,
+   "slot": "head",
+   "prosperity": 1
+  },
+  "7": {
+   "name": "Iron Helmet",
+   "cost": 10,
+   "count": 2,
+   "slot": "head",
+   "prosperity": 1
+  },
+  "8": {
+   "name": "Heater Shield",
+   "cost": 20,
+   "count": 2,
+   "slot": "onehand",
+   "prosperity": 1
+  },
+  "9": {
+   "name": "Piercing Bow",
+   "cost": 30,
+   "count": 2,
+   "slot": "twohand",
+   "prosperity": 1
+  },
+  "10": {
+   "name": "War Hammer",
+   "cost": 30,
+   "count": 2,
+   "slot": "twohand",
+   "prosperity": 1
+  },
+  "11": {
+   "name": "Poison Dagger",
+   "cost": 20,
+   "count": 2,
+   "slot": "onehand",
+   "prosperity": 1
+  },
+  "12": {
+   "name": "Minor Healing Potion",
+   "cost": 10,
+   "count": 4,
+   "slot": "small",
+   "prosperity": 1
+  },
+  "13": {
+   "name": "Minor Stamina Potion",
+   "cost": 10,
+   "count": 4,
+   "slot": "small",
+   "prosperity": 1
+  },
+  "14": {
+   "name": "Minor Power Potion",
+   "cost": 10,
+   "count": 4,
+   "slot": "small",
+   "prosperity": 1
+  },
+  "15": {
+   "name": "Boots of Speed",
+   "cost": 30,
+   "count": 2,
+   "slot": "legs",
+   "prosperity": 2
+  },
+  "16": {
+   "name": "Cloak of Pockets",
+   "cost": 20,
+   "count": 2,
+   "slot": "body",
+   "prosperity": 2
+  },
+  "17": {
+   "name": "Empowering Talisman",
+   "cost": 45,
+   "count": 2,
+   "slot": "head",
+   "prosperity": 2
+  },
+  "18": {
+   "name": "Battle-Axe",
+   "cost": 20,
+   "count": 2,
+   "slot": "onehand",
+   "prosperity": 2
+  },
+  "19": {
+   "name": "Weighted Net",
+   "cost": 20,
+   "count": 2,
+   "slot": "twohand",
+   "prosperity": 2
+  },
+  "20": {
+   "name": "Minor Mana Potion",
+   "cost": 10,
+   "count": 4,
+   "slot": "small",
+   "prosperity": 2
+  },
+  "21": {
+   "name": "Stun Powder",
+   "cost": 20,
+   "count": 2,
+   "slot": "small",
+   "prosperity": 2
+  },
+  "22": {
+   "name": "Heavy Greaves",
+   "cost": 20,
+   "count": 2,
+   "slot": "legs",
+   "prosperity": 3
+  },
+  "23": {
+   "name": "Chainmail",
+   "cost": 20,
+   "count": 2,
+   "slot": "body",
+   "prosperity": 3
+  },
+  "24": {
+   "name": "Amulet of Life",
+   "cost": 20,
+   "count": 2,
+   "slot": "head",
+   "prosperity": 3
+  },
+  "25": {
+   "name": "Jagged Sword",
+   "cost": 30,
+   "count": 2,
+   "slot": "onehand",
+   "prosperity": 3
+  },
+  "26": {
+   "name": "Long Spear",
+   "cost": 30,
+   "count": 2,
+   "slot": "twohand",
+   "prosperity": 3
+  },
+  "27": {
+   "name": "Major Healing Potion",
+   "cost": 30,
+   "count": 4,
+   "slot": "small",
+   "prosperity": 3
+  },
+  "28": {
+   "name": "Moon Earring",
+   "cost": 20,
+   "count": 2,
+   "slot": "small",
+   "prosperity": 3
+  },
+  "29": {
+   "name": "Comfortable Shoes",
+   "cost": 30,
+   "count": 2,
+   "slot": "legs",
+   "prosperity": 4
+  },
+  "30": {
+   "name": "Studded Leather",
+   "cost": 30,
+   "count": 2,
+   "slot": "body",
+   "prosperity": 4
+  },
+  "31": {
+   "name": "Hawk Helm",
+   "cost": 20,
+   "count": 2,
+   "slot": "head",
+   "prosperity": 4
+  },
+  "32": {
+   "name": "Tower Shield",
+   "cost": 40,
+   "count": 2,
+   "slot": "onehand",
+   "prosperity": 4
+  },
+  "33": {
+   "name": "Volatile Bomb",
+   "cost": 30,
+   "count": 2,
+   "slot": "onehand",
+   "prosperity": 4
+  },
+  "34": {
+   "name": "Major Stamina Potion",
+   "cost": 30,
+   "count": 4,
+   "slot": "small",
+   "prosperity": 4
+  },
+  "35": {
+   "name": "Falcon Figurine",
+   "cost": 50,
+   "count": 2,
+   "slot": "small",
+   "prosperity": 4
+  },
+  "36": {
+   "name": "Boots of Dashing",
+   "cost": 40,
+   "count": 2,
+   "slot": "legs",
+   "prosperity": 5
+  },
+  "37": {
+   "name": "Robes of Evocation",
+   "cost": 40,
+   "count": 2,
+   "slot": "body",
+   "prosperity": 5
+  },
+  "38": {
+   "name": "Heavy Basinet",
+   "cost": 30,
+   "count": 2,
+   "slot": "head",
+   "prosperity": 5
+  },
+  "39": {
+   "name": "Hooked Chain",
+   "cost": 40,
+   "count": 2,
+   "slot": "twohand",
+   "prosperity": 5
+  },
+  "40": {
+   "name": "Versatile Dagger",
+   "cost": 25,
+   "count": 2,
+   "slot": "onehand",
+   "prosperity": 5
+  },
+  "41": {
+   "name": "Major Power Potion",
+   "cost": 40,
+   "count": 4,
+   "slot": "small",
+   "prosperity": 5
+  },
+  "42": {
+   "name": "Ring of Haste",
+   "cost": 30,
+   "count": 2,
+   "slot": "small",
+   "prosperity": 5
+  },
+  "43": {
+   "name": "Boots of Quickness",
+   "cost": 75,
+   "count": 2,
+   "slot": "legs",
+   "prosperity": 6
+  },
+  "44": {
+   "name": "Splintmail",
+   "cost": 35,
+   "count": 2,
+   "slot": "body",
+   "prosperity": 6
+  },
+  "45": {
+   "name": "Pendant of Dark Pacts",
+   "cost": 75,
+   "count": 2,
+   "slot": "head",
+   "prosperity": 6
+  },
+  "46": {
+   "name": "Spiked Shield",
+   "cost": 40,
+   "count": 2,
+   "slot": "onehand",
+   "prosperity": 6
+  },
+  "47": {
+   "name": "Reaping Scythe",
+   "cost": 40,
+   "count": 2,
+   "slot": "twohand",
+   "prosperity": 6
+  },
+  "48": {
+   "name": "Major Mana Potion",
+   "cost": 30,
+   "count": 4,
+   "slot": "small",
+   "prosperity": 6
+  },
+  "49": {
+   "name": "Sun Earring",
+   "cost": 40,
+   "count": 2,
+   "slot": "small",
+   "prosperity": 6
+  },
+  "50": {
+   "name": "Steel Sabatons",
+   "cost": 60,
+   "count": 2,
+   "slot": "legs",
+   "prosperity": 7
+  },
+  "51": {
+   "name": "Shadow Armor",
+   "cost": 30,
+   "count": 2,
+   "slot": "body",
+   "prosperity": 7
+  },
+  "52": {
+   "name": "Protective Charm",
+   "cost": 60,
+   "count": 2,
+   "slot": "head",
+   "prosperity": 7
+  },
+  "53": {
+   "name": "Black Knife",
+   "cost": 25,
+   "count": 2,
+   "slot": "onehand",
+   "prosperity": 7
+  },
+  "54": {
+   "name": "Staff of Eminence",
+   "cost": 60,
+   "count": 2,
+   "slot": "twohand",
+   "prosperity": 7
+  },
+  "55": {
+   "name": "Super Healing Potion",
+   "cost": 50,
+   "count": 4,
+   "slot": "small",
+   "prosperity": 7
+  },
+  "56": {
+   "name": "Ring of Brutality",
+   "cost": 40,
+   "count": 2,
+   "slot": "small",
+   "prosperity": 7
+  },
+  "57": {
+   "name": "Serene Sandals",
+   "cost": 75,
+   "count": 2,
+   "slot": "legs",
+   "prosperity": 8
+  },
+  "58": {
+   "name": "Cloak of Phasing",
+   "cost": 75,
+   "count": 2,
+   "slot": "body",
+   "prosperity": 8
+  },
+  "59": {
+   "name": "Telescopic Lens",
+   "cost": 50,
+   "count": 2,
+   "slot": "head",
+   "prosperity": 8
+  },
+  "60": {
+   "name": "Unstable Explosives",
+   "cost": 45,
+   "count": 2,
+   "slot": "onehand",
+   "prosperity": 8
+  },
+  "61": {
+   "name": "Wall Shield",
+   "cost": 60,
+   "count": 2,
+   "slot": "twohand",
+   "prosperity": 8
+  },
+  "62": {
+   "name": "Doom Powder",
+   "cost": 40,
+   "count": 2,
+   "slot": "small",
+   "prosperity": 8
+  },
+  "63": {
+   "name": "Lucky Eye",
+   "cost": 60,
+   "count": 2,
+   "slot": "small",
+   "prosperity": 8
+  },
+  "64": {
+   "name": "Boots of Sprinting",
+   "cost": 75,
+   "count": 2,
+   "slot": "legs",
+   "prosperity": 9
+  },
+  "65": {
+   "name": "Platemail",
+   "cost": 50,
+   "count": 2,
+   "slot": "body",
+   "prosperity": 9
+  },
+  "66": {
+   "name": "Mask of Terror",
+   "cost": 50,
+   "count": 2,
+   "slot": "head",
+   "prosperity": 9
+  },
+  "67": {
+   "name": "Balanced Blade",
+   "cost": 60,
+   "count": 2,
+   "slot": "onehand",
+   "prosperity": 9
+  },
+  "68": {
+   "name": "Halberd",
+   "cost": 75,
+   "count": 2,
+   "slot": "twohand",
+   "prosperity": 9
+  },
+  "69": {
+   "name": "Star Earring",
+   "cost": 70,
+   "count": 2,
+   "slot": "small",
+   "prosperity": 9
+  },
+  "70": {
+   "name": "Second Chance Ring",
+   "cost": 75,
+   "count": 2,
+   "slot": "small",
+   "prosperity": 9
+  },
+  "71": {
+   "name": "Boots of Levitation",
+   "cost": 50,
+   "count": 2,
+   "slot": "legs"
+  },
+  "72": {
+   "name": "Shoes of Happiness",
+   "cost": 50,
+   "count": 2,
+   "slot": "legs"
+  },
+  "73": {
+   "name": "Blinking Cape",
+   "cost": 50,
+   "count": 2,
+   "slot": "body"
+  },
+  "74": {
+   "name": "Swordedge Armor",
+   "cost": 40,
+   "count": 2,
+   "slot": "body"
+  },
+  "75": {
+   "name": "Circlet of Elements",
+   "cost": 25,
+   "count": 2,
+   "slot": "head"
+  },
+  "76": {
+   "name": "Chain Hood",
+   "cost": 40,
+   "count": 2,
+   "slot": "head"
+  },
+  "77": {
+   "name": "Frigid Blade",
+   "cost": 30,
+   "count": 2,
+   "slot": "onehand"
+  },
+  "78": {
+   "name": "Storm Blade",
+   "cost": 30,
+   "count": 2,
+   "slot": "onehand"
+  },
+  "79": {
+   "name": "Inferno Blade",
+   "cost": 30,
+   "count": 2,
+   "slot": "onehand"
+  },
+  "80": {
+   "name": "Tremor Blade",
+   "cost": 30,
+   "count": 2,
+   "slot": "onehand"
+  },
+  "81": {
+   "name": "Brilliant Blade",
+   "cost": 30,
+   "count": 2,
+   "slot": "onehand"
+  },
+  "82": {
+   "name": "Night Blade",
+   "cost": 30,
+   "count": 2,
+   "slot": "onehand"
+  },
+  "83": {
+   "name": "Wand of Frost",
+   "cost": 30,
+   "count": 2,
+   "slot": "onehand"
+  },
+  "84": {
+   "name": "Wand of Storms",
+   "cost": 30,
+   "count": 2,
+   "slot": "onehand"
+  },
+  "85": {
+   "name": "Wand of Infernos",
+   "cost": 30,
+   "count": 2,
+   "slot": "onehand"
+  },
+  "86": {
+   "name": "Wand of Tremors",
+   "cost": 30,
+   "count": 2,
+   "slot": "onehand"
+  },
+  "87": {
+   "name": "Wand of Brilliance",
+   "cost": 30,
+   "count": 2,
+   "slot": "onehand"
+  },
+  "88": {
+   "name": "Wand of Darkness",
+   "cost": 30,
+   "count": 2,
+   "slot": "onehand"
+  },
+  "89": {
+   "name": "Minor Cure Potion",
+   "cost": 10,
+   "count": 2,
+   "slot": "small"
+  },
+  "90": {
+   "name": "Major Cure Potion",
+   "cost": 30,
+   "count": 2,
+   "slot": "small"
+  },
+  "91": {
+   "name": "Steel Ring",
+   "cost": 20,
+   "count": 2,
+   "slot": "small"
+  },
+  "92": {
+   "name": "Dampening Ring",
+   "cost": 25,
+   "count": 2,
+   "slot": "small"
+  },
+  "93": {
+   "name": "Scroll of Power",
+   "cost": 30,
+   "count": 2,
+   "slot": "small"
+  },
+  "94": {
+   "name": "Scroll of Healing",
+   "cost": 30,
+   "count": 2,
+   "slot": "small"
+  },
+  "95": {
+   "name": "Scroll of Stamina",
+   "cost": 50,
+   "count": 2,
+   "slot": "small"
+  },
+  "96": {
+   "name": "Rocket Boots",
+   "cost": 80,
+   "count": 2,
+   "slot": "legs"
+  },
+  "97": {
+   "name": "Endurance Footwraps",
+   "cost": 40,
+   "count": 1,
+   "slot": "legs"
+  },
+  "98": {
+   "name": "Drakescale Boots",
+   "cost": 50,
+   "count": 1,
+   "slot": "legs"
+  },
+  "99": {
+   "name": "Magma Waders",
+   "cost": 50,
+   "count": 1,
+   "slot": "legs"
+  },
+  "100": {
+   "name": "Robes of Summoning",
+   "cost": 40,
+   "count": 1,
+   "slot": "body"
+  },
+  "101": {
+   "name": "Second Skin",
+   "cost": 30,
+   "count": 1,
+   "slot": "body"
+  },
+  "102": {
+   "name": "Sacrificial Robes",
+   "cost": 50,
+   "count": 1,
+   "slot": "body"
+  },
+  "103": {
+   "name": "Drakescale Armor",
+   "cost": 50,
+   "count": 1,
+   "slot": "body"
+  },
+  "104": {
+   "name": "Steam Armor",
+   "cost": 50,
+   "count": 1,
+   "slot": "body"
+  },
+  "105": {
+   "name": "Flea-Bitten Shawl",
+   "cost": 10,
+   "count": 1,
+   "slot": "body"
+  },
+  "106": {
+   "name": "Necklace of Teeth",
+   "cost": 40,
+   "count": 1,
+   "slot": "head"
+  },
+  "107": {
+   "name": "Horned Helm",
+   "cost": 30,
+   "count": 2,
+   "slot": "head"
+  },
+  "108": {
+   "name": "Drakescale Helm",
+   "cost": 50,
+   "count": 1,
+   "slot": "head"
+  },
+  "109": {
+   "name": "Thief's Hood",
+   "cost": 20,
+   "count": 1,
+   "slot": "head"
+  },
+  "110": {
+   "name": "Helm of the Mountain",
+   "cost": 50,
+   "count": 1,
+   "slot": "head"
+  },
+  "111": {
+   "name": "Wave Crest",
+   "cost": 50,
+   "count": 1,
+   "slot": "head"
+  },
+  "112": {
+   "name": "Ancient Drill",
+   "cost": 30,
+   "count": 2,
+   "slot": "twohand"
+  },
+  "113": {
+   "name": "Skullbane Axe",
+   "cost": 50,
+   "count": 1,
+   "slot": "twohand"
+  },
+  "114": {
+   "name": "Staff of Xorn",
+   "cost": 50,
+   "count": 1,
+   "slot": "twohand"
+  },
+  "115": {
+   "name": "Mountain Hammer",
+   "cost": 50,
+   "count": 1,
+   "slot": "twohand"
+  },
+  "116": {
+   "name": "Fueled Falchion",
+   "cost": 20,
+   "count": 2,
+   "slot": "onehand"
+  },
+  "117": {
+   "name": "Bloody Axe",
+   "cost": 40,
+   "count": 2,
+   "slot": "onehand"
+  },
+  "118": {
+   "name": "Staff of Elements",
+   "cost": 50,
+   "count": 2,
+   "slot": "twohand"
+  },
+  "119": {
+   "name": "Skull of Hatred",
+   "cost": 50,
+   "count": 1,
+   "slot": "onehand"
+  },
+  "120": {
+   "name": "Staff of Summoning",
+   "cost": 60,
+   "count": 1,
+   "slot": "twohand"
+  },
+  "121": {
+   "name": "Orb of Dawn",
+   "cost": 50,
+   "count": 1,
+   "slot": "onehand"
+  },
+  "122": {
+   "name": "Orb of Twilight",
+   "cost": 50,
+   "count": 1,
+   "slot": "onehand"
+  },
+  "123": {
+   "name": "Ring of Skulls",
+   "cost": 50,
+   "count": 2,
+   "slot": "small"
+  },
+  "124": {
+   "name": "Doomed Compass",
+   "cost": 50,
+   "count": 1,
+   "slot": "small"
+  },
+  "125": {
+   "name": "Curious Gear",
+   "cost": 50,
+   "count": 1,
+   "slot": "small"
+  },
+  "126": {
+   "name": "Remote Spider",
+   "cost": 40,
+   "count": 1,
+   "slot": "small"
+  },
+  "127": {
+   "name": "Giant Remote Spider",
+   "cost": 60,
+   "count": 1,
+   "slot": "small"
+  },
+  "128": {
+   "name": "Black Censer",
+   "cost": 50,
+   "count": 1,
+   "slot": "small"
+  },
+  "129": {
+   "name": "Black Card",
+   "cost": 75,
+   "count": 1,
+   "slot": "small"
+  },
+  "130": {
+   "name": "Helix Ring",
+   "cost": 50,
+   "count": 1,
+   "slot": "small"
+  },
+  "131": {
+   "name": "Heart of the Betrayer",
+   "cost": 60,
+   "count": 1,
+   "slot": "small"
+  },
+  "132": {
+   "name": "Power Core",
+   "cost": 75,
+   "count": 1,
+   "slot": "small"
+  },
+  "133": {
+   "name": "Resonant Crystal",
+   "cost": 20,
+   "count": 1,
+   "slot": "small"
+  },
+  "134": {
+   "name": "Imposing Blade",
+   "cost": 50,
+   "count": 1,
+   "slot": "onehand"
+  },
+  "135": {
+   "name": "Focusing Ray",
+   "cost": 50,
+   "count": 1,
+   "slot": "onehand"
+  },
+  "136": {
+   "name": "Volatile Elixir",
+   "cost": 50,
+   "count": 1,
+   "slot": "small"
+  },
+  "137": {
+   "name": "Silent Stiletto",
+   "cost": 50,
+   "count": 1,
+   "slot": "onehand"
+  },
+  "138": {
+   "name": "Stone Charm",
+   "cost": 50,
+   "count": 1,
+   "slot": "head"
+  },
+  "139": {
+   "name": "Psychic Knife",
+   "cost": 50,
+   "count": 1,
+   "slot": "onehand"
+  },
+  "140": {
+   "name": "Sun Shield",
+   "cost": 50,
+   "count": 1,
+   "slot": "onehand"
+  },
+  "141": {
+   "name": "Utility Belt",
+   "cost": 50,
+   "count": 1,
+   "slot": "small"
+  },
+  "142": {
+   "name": "Phasing Idol",
+   "cost": 50,
+   "count": 1,
+   "slot": "small"
+  },
+  "143": {
+   "name": "Smoke Elixir",
+   "cost": 50,
+   "count": 1,
+   "slot": "small"
+  },
+  "144": {
+   "name": "Pendant of the Plague",
+   "cost": 50,
+   "count": 1,
+   "slot": "head"
+  },
+  "145": {
+   "name": "Mask of Death",
+   "cost": 50,
+   "count": 1,
+   "slot": "head"
+  },
+  "146": {
+   "name": "Master's Lute",
+   "cost": 50,
+   "count": 1,
+   "slot": "twohand"
+  },
+  "147": {
+   "name": "Cloak of the Hunter",
+   "cost": 50,
+   "count": 1,
+   "slot": "body"
+  },
+  "148": {
+   "name": "Doctor's Coat",
+   "cost": 50,
+   "count": 1,
+   "slot": "body"
+  },
+  "149": {
+   "name": "Elemental Boots",
+   "cost": 50,
+   "count": 1,
+   "slot": "legs"
+  },
+  "150": {
+   "name": "Staff of Command",
+   "cost": 50,
+   "count": 1,
+   "slot": "twohand"
+  }
+ }
+}

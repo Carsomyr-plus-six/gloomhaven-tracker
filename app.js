@@ -329,7 +329,7 @@ function recordRows(list) {
     h("span", {},
       h("strong", {}, a.name, a.count > 1 ? ` ×${a.count}` : null),
       a.notes ? h("span", { class: "sub" }, a.notes) : null),
-    a.scenario ? h("span", { class: "where" }, `#${a.scenario}`) : null)));
+    a.where ? h("span", { class: "where" }, a.where) : null)));
 }
 
 function renderRecord(data) {
@@ -337,12 +337,14 @@ function renderRecord(data) {
   const card = (title, body) => h("div", { class: "card" }, h("h3", { class: "label" }, title), body);
   return [
     sectionHead("Campaign record"),
+    (data.draws || []).map(d => nudge("question", `Draw ${d.what}`, `From ${d.from}. Not drawn yet.`)),
     h("div", { class: "record" },
       card("Party achievements", recordRows(party.achievements)),
       card("Global achievements", recordRows(city.globalAchievements)),
       card("In the shop for good", recordRows(city.itemDesigns)),
       card("Unlocked classes", city.unlockedClasses.length
-        ? h("div", { class: "chips" }, city.unlockedClasses.map(c => h("span", { class: "chip" }, c)))
+        ? h("div", { class: "chips" }, city.unlockedClasses.map(c =>
+            h("span", { class: "chip", title: c.where || null }, c.name || c)))
         : h("p", { class: "small muted" }, "None listed."))),
     party.notes ? h("div", { class: "party-notes" }, h("h3", { class: "label" }, "Party notes"), notes(party.notes)) : null,
   ];
@@ -360,6 +362,32 @@ function slug(name) {
 
 function achievementName(ref, kind, id) {
   return ref?.achievements?.[kind]?.[id] || id;
+}
+
+// data/gloomhaven-items.json, once loaded: item names by number.
+let itemsRef = null;
+function itemName(id) { return itemsRef?.items?.[String(id)]?.name || `item ${id}`; }
+
+// What a treasure tile gives, from the reference data ("gold:10|...").
+function treasureParts(ref, number) {
+  const raw = ref?.treasures?.[String(Number(number))];
+  return raw ? raw.split("|").map(part => { const [type, value] = part.split(":"); return { type, value }; }) : [];
+}
+
+function describeTreasurePart({ type, value }) {
+  switch (type) {
+    case "gold": return `${value} gold`;
+    case "experience": return `${value} XP`;
+    case "item": return itemName(value);
+    case "itemDesign": return `${itemName(value)} design`;
+    case "randomItemDesign": return "a random item design";
+    case "randomScenario": return "a random side scenario";
+    case "scenario": return `unlocks #${value}`;
+    case "damage": return `${value} damage`;
+    case "condition": return value;
+    case "battleGoal": return `${plural(Number(value), "battle goal checkmark")}`;
+    default: return "see the treasure index";
+  }
 }
 
 // How many times the party has each achievement, by kind ("global" / "party").
@@ -399,7 +427,7 @@ function unmetRequirements(ref, requirements, have) {
   return `Needs ${failures.join(", or ")}`;
 }
 
-function describeRewards(ref, rewards) {
+function describeRewards(ref, rewards, evRef) {
   if (!rewards) return [];
   const parts = [];
   const r = rewards;
@@ -412,8 +440,13 @@ function describeRewards(ref, rewards) {
   for (const id of r.partyAchievements || []) parts.push(achievementName(ref, "party", String(id).split(":")[0]));
   for (const id of r.lostPartyAchievements || []) parts.push(`lose ${achievementName(ref, "party", id)}`);
   if (r.chooseLocation) parts.push(`choose one of ${r.chooseLocation.map(n => `#${n}`).join(", ")}`);
+  for (const id of r.items || []) parts.push(itemName(String(id).split(":")[0]));
+  for (const id of r.itemDesigns || []) parts.push(`${itemName(id)} design`);
+  for (const ev of r.events || []) { const [deck, n] = ev.split(":"); parts.push(`adds ${eventLabel(deck, Number(n))}`); }
+  if (r.unlockCharacter) parts.push(`unlocks the ${className(evRef, r.unlockCharacter)}`);
   const known = ["gold", "collectiveGold", "experience", "prosperity", "reputation", "globalAchievements",
-                 "partyAchievements", "lostPartyAchievements", "chooseLocation"];
+                 "partyAchievements", "lostPartyAchievements", "chooseLocation", "items", "itemDesigns", "events",
+                 "unlockCharacter"];
   if (Object.keys(r).some(k => !known.includes(k))) parts.push("more in the scenario book");
   return parts;
 }
@@ -423,7 +456,9 @@ function describeRewards(ref, rewards) {
 // "events" lists the events drawn, in order, with the option chosen and who was
 // there; "eventDecks" holds cards added or removed some other way. One pass
 // over the campaign, in the order things happened, works out the decks, which
-// outcome each event had, and the party's reputation and the city's prosperity.
+// outcome each event had, the party's reputation and the city's prosperity,
+// and the campaign record: achievements, item designs, unlocked classes and
+// what each treasure gave.
 
 const DECK_NAMES = { city: "City", road: "Road" };
 const eventLabel = (deck, number) => `${DECK_NAMES[deck] || deck} ${number}`;
@@ -523,7 +558,8 @@ function possibleOutcomes(options, letter, ctx, pinned, depth = 0) {
 // What one outcome's effects come to. An effect with a condition that can't
 // be told counts as "may": a range for numbers, a question for cards.
 function tally(effects, ctx, ref, evRef) {
-  const t = { reputation: exact(0), prosperity: exact(0), adds: [], mayAdd: [], unlocks: [], mayUnlock: [], text: [], effectDoubts: [] };
+  const t = { reputation: exact(0), prosperity: exact(0), adds: [], mayAdd: [], unlocks: [], mayUnlock: [],
+              gains: [], mayGain: [], text: [], effectDoubts: [] };
   const amount = e => ["reputation", "prosperity"].includes(e.type) ? { [e.type]: exact(e.amount) } : {};
   let more = false;
   for (const e of effects) {
@@ -542,8 +578,22 @@ function tally(effects, ctx, ref, evRef) {
       case "gold": say(`${signed(e.amount)} gold each`); break;
       case "collectiveGold": say(`${signed(e.amount)} gold to share`); break;
       case "experience": say(`${signed(e.amount)} XP each`); break;
-      case "partyAchievement": say(achievementName(ref, "party", e.id)); break;
-      case "globalAchievement": say(achievementName(ref, "global", e.id)); break;
+      case "partyAchievement":
+      case "globalAchievement": {
+        const kind = e.type === "partyAchievement" ? "party" : "global";
+        (maybe ? t.mayGain : t.gains).push({ kind, id: e.id });
+        say(achievementName(ref, kind, e.id));
+        break;
+      }
+      case "item":
+      case "itemDesign":
+        (maybe ? t.mayGain : t.gains).push({ kind: "design", item: e.item });
+        say(e.type === "item" ? itemName(e.item) : `${itemName(e.item)} design`);
+        break;
+      case "randomItemDesign":
+        (maybe ? t.mayGain : t.gains).push({ kind: "randomDesign" });
+        say("a random item design");
+        break;
       case "addEvent": (maybe ? t.mayAdd : t.adds).push([e.deck, e.number]); say(`adds ${eventLabel(e.deck, e.number)}`); break;
       case "unlockScenario": (maybe ? t.mayUnlock : t.unlocks).push(e.number); say(`unlocks #${e.number}`); break;
       case "choose": {
@@ -579,6 +629,42 @@ function deriveCampaign(data, ref, evRef) {
   const unlocks = [];
   const track = () => ({ value: 0, range: exact(0), entries: [], unsure: [] });
   const totals = { reputation: track(), prosperity: track() };
+
+  // The campaign record. Each list maps an id to { name, count, where }.
+  const record = { party: new Map(), global: new Map(), designs: new Map(), classes: new Map(),
+                   draws: [], treasures: new Map() };
+  const note = (entry, where) => { if (where && !entry.where.includes(where)) entry.where.push(where); };
+  const gainAchievement = (kind, rawId, where) => {
+    const id = String(rawId).split(":")[0];
+    const name = achievementName(ref, kind, id);
+    const list = record[kind];
+    // "City Rule: Economic" replaces any other City Rule; likewise Artifact.
+    const type = kind === "global" && name.includes(": ") ? name.split(": ")[0] + ": " : null;
+    if (type) for (const [other, a] of list) if (other !== id && a.name.startsWith(type)) list.delete(other);
+    const entry = list.get(id) || { id, name, count: 0, where: [] };
+    entry.count++;
+    note(entry, where);
+    list.set(id, entry);
+  };
+  // The source sometimes names the achievement instead of giving its id.
+  const loseAchievement = (kind, id) => record[kind].delete(String(id)) || record[kind].delete(slug(id));
+  const isNumber = v => /^\d+$/.test(String(v));
+  const addDesign = (item, where) => {
+    const name = isNumber(item) ? itemName(item) : String(item);
+    const entry = record.designs.get(name) || { id: name, name, count: 1, where: [] };
+    note(entry, where);
+    record.designs.set(name, entry);
+  };
+  const classInfo = id => evRef?.classEvents?.[id];
+  const classIdOf = name => Object.entries(evRef?.classes || {}).find(([, n]) => n.toLowerCase() === String(name).toLowerCase())?.[0];
+  const unlockClass = (id, where) => {
+    if (record.classes.has(id)) return;
+    record.classes.set(id, { id, name: className(evRef, id), count: 1, where: where ? [where] : [] });
+    // A new class brings its city and road events.
+    const n = classInfo(id)?.unlockEvent;
+    if (n && !classInfo(id)?.starting) for (const deck of ["city", "road"]) addCard(deck, n, `${className(evRef, id)} unlocked`);
+  };
+  for (const [id, info] of Object.entries(evRef?.classEvents || {})) if (info.starting) unlockClass(id, "starting class");
 
   const addCard = (deck, number, source) => {
     decks[deck]?.add(number);
@@ -628,7 +714,7 @@ function deriveCampaign(data, ref, evRef) {
       .map(o => ({ ...o, ...tally(o.effects, ctx, ref, evRef) }));
 
     // Everything that every possible outcome agrees on happened.
-    const key = o => JSON.stringify([o.card, o.reputation, o.prosperity, o.adds, o.unlocks, o.mayAdd, o.mayUnlock]);
+    const key = o => JSON.stringify([o.card, o.reputation, o.prosperity, o.adds, o.unlocks, o.mayAdd, o.mayUnlock, o.gains]);
     const agreed = found.length > 0 && new Set(found.map(key)).size === 1;
     const fates = new Set(found.map(o => o.card));
     const fate = e.card || (fates.size === 1 ? [...fates][0] : null);
@@ -639,6 +725,13 @@ function deriveCampaign(data, ref, evRef) {
     for (const [deck, number] of adds) addCard(deck, number, `from ${label}`);
     const sure = inAll("unlocks");
     for (const n of sure) unlocks.push({ number: n, source: `${label} event` });
+    for (const g of inAll("gains")) {
+      if (g.kind === "design") addDesign(g.item, label);
+      else if (g.kind === "randomDesign") {
+        if (e.drew) addDesign(e.drew, label);
+        else record.draws.push({ what: "a random item design", from: label });
+      } else gainAchievement(g.kind, g.id, label);
+    }
 
     for (const k of ["reputation", "prosperity"]) {
       if (found.length) gain(k, found.map(o => o[k]).reduce(either), label);
@@ -668,8 +761,41 @@ function deriveCampaign(data, ref, evRef) {
   const doScenario = s => {
     const r = ref?.scenarios?.[String(s.number)]?.rewards || {};
     const label = `#${s.number}${s.name ? ` ${s.name}` : ""}`;
+    const where = `#${s.number}`;
     if (r.reputation) gain("reputation", exact(r.reputation), label);
     if (r.prosperity) gain("prosperity", exact(r.prosperity), label);
+    for (const id of r.globalAchievements || []) gainAchievement("global", id, where);
+    for (const id of r.partyAchievements || []) gainAchievement("party", id, where);
+    for (const id of r.lostPartyAchievements || []) loseAchievement("party", id);
+    // Items may be written "27:2" (item 27, two copies).
+    for (const id of [...(r.items || []), ...(r.itemDesigns || [])]) addDesign(String(id).split(":")[0], where);
+    for (const ev of r.events || []) { const [deck, n] = ev.split(":"); addCard(deck, Number(n), `from ${where}`); }
+    if (r.unlockCharacter) unlockClass(r.unlockCharacter, where);
+
+    // Treasures: "07", or { "number": "07", "character": "Craig", "drew": 52 }.
+    const found = [];
+    for (const t of s.treasures || []) {
+      const { number, character, drew } = typeof t === "object" ? t : { number: t };
+      const from = `treasure ${number}`;
+      const parts = treasureParts(ref, number);
+      for (const part of parts) {
+        if (part.type === "item" || part.type === "itemDesign") addDesign(part.value, from);
+        if (part.type === "scenario") unlocks.push({ number: Number(part.value), source: from });
+        if (part.type === "randomScenario") {
+          if (drew != null) unlocks.push({ number: Number(drew), source: from });
+          else record.draws.push({ what: "a random side scenario", from: `${from}, looted in ${where}` });
+        }
+        if (part.type === "randomItemDesign") {
+          if (drew != null) addDesign(drew, from);
+          else record.draws.push({ what: "a random item design", from: `${from}, looted in ${where}` });
+        }
+      }
+      const gives = parts.map(describeTreasurePart).join(", ") || "not in the treasure index";
+      const scenarioDraw = parts.some(part => part.type === "randomScenario");
+      const drawn = drew == null ? "" : ` (drew ${scenarioDraw ? `#${drew}` : drew})`;
+      found.push(`${number}: ${gives}${drawn}${character ? `, to ${character}` : ""}`);
+    }
+    if (found.length) record.treasures.set(s.number, found);
   };
 
   const doAdjustment = a => {
@@ -681,8 +807,35 @@ function deriveCampaign(data, ref, evRef) {
   const step = item => item.event ? doEvent(item.event) : doAdjustment(item.adjustment);
   played.forEach((s, i) => { before[i].forEach(step); doScenario(s); });
   after.forEach(step);
-  // Every retirement adds a checkmark to prosperity.
-  for (const c of data.characters.filter(c => c.retired)) gain("prosperity", exact(1), `${c.name} retired`);
+  // Every retirement adds a checkmark to prosperity, and the class's
+  // retirement events to the decks (unless one was since drawn and removed).
+  for (const c of data.characters.filter(c => c.retired)) {
+    gain("prosperity", exact(1), `${c.name} retired`);
+    const n = classInfo(classIdOf(c.class))?.retireEvent;
+    if (n) for (const deck of ["city", "road"]) if (!removed[deck].has(n)) addCard(deck, n, `${c.name} retired`);
+  }
+
+  // What campaign.json lists by hand: things nothing above accounts for.
+  const byHand = (list, entries, kind) => {
+    for (const a of entries) {
+      const item = typeof a === "string" ? { name: a } : a;
+      const id = kind === "classes" ? classIdOf(item.name) || slug(item.name)
+               : kind === "designs" ? item.name : item.id || slug(item.name);
+      const where = item.scenario != null ? `#${item.scenario}` : "added by hand";
+      if (list.has(id)) {
+        const known = list.get(id);
+        questions.push(`Record: ${known.name} is already worked out (${known.where.join(", ")}). Remove it from campaign.json.`);
+      } else if (kind === "classes") {
+        unlockClass(id, where);
+      } else {
+        list.set(id, { id, name: item.name, count: item.count || 1, where: [where], notes: item.notes });
+      }
+    }
+  };
+  byHand(record.party, data.party.achievements, "party");
+  byHand(record.global, data.city.globalAchievements, "global");
+  byHand(record.designs, data.city.itemDesigns, "designs");
+  byHand(record.classes, data.city.unlockedClasses, "classes");
 
   for (const a of data.eventDecks.added) addCard(a.deck, a.number, a.notes || "added by hand");
   for (const r of data.eventDecks.removed) removeCard(r.deck, r.number, r.notes || "removed by hand");
@@ -695,7 +848,10 @@ function deriveCampaign(data, ref, evRef) {
     }
   }
 
-  return { decks, added, removed, history, questions, unlocks, totals };
+  const list = map => [...map.values()].map(a => ({ ...a, where: a.where.join(", ") }));
+  return { decks, added, removed, history, questions, unlocks, totals,
+           record: { party: list(record.party), global: list(record.global), designs: list(record.designs),
+                     classes: list(record.classes), draws: record.draws, treasures: record.treasures } };
 }
 
 // What hangs on the choice of option: its effect on the deck and the numbers.
@@ -725,7 +881,7 @@ function askAbout(c, ctx, evRef) {
 // Turn campaign.json's scenario entries plus the reference data into the full
 // list of unlocked scenarios, each with a status and, if blocked, the reasons.
 // eventUnlocks are scenarios unlocked by events: [{ number, source }].
-function deriveScenarios(data, ref, eventUnlocks = []) {
+function deriveScenarios(data, ref, eventUnlocks = [], evRef = null) {
   const entries = new Map(data.scenarios.map(s => [s.number, s]));
   const refOf = n => ref?.scenarios?.[String(n)];
   const done = data.scenarios.filter(s => s.status === "completed").map(s => s.number).sort((a, b) => a - b);
@@ -758,7 +914,7 @@ function deriveScenarios(data, ref, eventUnlocks = []) {
 
     if (completed.has(n)) {
       s.status = "completed";
-      s.rewards = describeRewards(ref, info.rewards);
+      s.rewards = describeRewards(ref, info.rewards, evRef);
       return s;
     }
 
@@ -873,7 +1029,8 @@ function scenarioFacts(data, s) {
     ["Unlocked by", s.unlockedBy != null ? scenarioLabel(data, s.unlockedBy) : s.unlockedVia],
     ["Completed", formatDate(s.completed)],
     ["Rewards", s.rewards.length ? capitalize(s.rewards.join(", ")) : null],
-    ["Treasure", s.treasures?.length ? `${s.treasures.join(", ")} looted` : null],
+    ["Treasure", data.treasureInfo?.get(s.number)?.join("; ")
+      || (s.treasures?.length ? `${s.treasures.map(t => t.number || t).join(", ")} looted` : null)],
   ].filter(([, value]) => value);
   return pairs.length ? h("dl", { class: "facts" }, pairs.map(([k, v]) => h("div", {}, h("dt", {}, k), h("dd", {}, v)))) : null;
 }
@@ -883,7 +1040,7 @@ function scenarioRow(data, s, depth = 0) {
   const open = scenarioOpen === s.number;
   const blockedWhy = s.status === "blocked" && s.reasons.length ? s.reasons.join(" · ") : null;
   const meta = s.status === "completed"
-    ? [formatDate(s.completed), s.treasures?.length ? `treasure ${s.treasures.join(", ")}` : null].filter(Boolean).join(" · ")
+    ? [formatDate(s.completed), s.treasures?.length ? `treasure ${s.treasures.map(t => t.number || t).join(", ")}` : null].filter(Boolean).join(" · ")
     : s.status === "available"
       ? (s.unlockedBy != null ? `from #${s.unlockedBy}` : s.unlockedVia ? `from ${s.unlockedVia}` : "")
       : "";
@@ -1281,11 +1438,13 @@ async function start() {
   const status = document.getElementById("status");
   const url = dataUrl();
   try {
-    const [response, ref, evRef] = await Promise.all([
+    const [response, ref, evRef, items] = await Promise.all([
       fetch(url, { cache: "no-cache" }),
       loadReference("data/gloomhaven-scenarios.json"),
       loadReference("data/gloomhaven-events.json"),
+      loadReference("data/gloomhaven-items.json"),
     ]);
+    itemsRef = items;
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
     const data = withDefaults(await response.json());
     const derived = deriveCampaign(data, ref, evRef);
@@ -1293,7 +1452,13 @@ async function start() {
     data.ledger = derived.totals;
     data.party.reputation = derived.totals.reputation.value;
     data.city.prosperityCheckmarks = derived.totals.prosperity.value;
-    data.scenarios = deriveScenarios(data, ref, derived.unlocks);
+    data.party.achievements = derived.record.party;
+    data.city.globalAchievements = derived.record.global;
+    data.city.itemDesigns = derived.record.designs;
+    data.city.unlockedClasses = derived.record.classes;
+    data.draws = derived.record.draws;
+    data.treasureInfo = derived.record.treasures;
+    data.scenarios = deriveScenarios(data, ref, derived.unlocks, evRef);
 
     if (data.party.name) {
       document.getElementById("title").textContent = data.party.name;

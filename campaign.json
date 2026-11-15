@@ -5,50 +5,14 @@
   "party": {
     "name": "Craig's List",
     "location": "",
-    "achievements": [
-      {
-        "name": "First Steps",
-        "scenario": 1
-      },
-      {
-        "name": "Jekserah's Plans",
-        "scenario": 3
-      }
-    ],
-    "notes": "Unclaimed: a random side scenario from treasure 07 (scenario #1).\nUnclaimed: a random side scenario from treasure 51 (scenario #8)."
+    "achievements": [],
+    "notes": ""
   },
   "city": {
     "donations": 0,
-    "globalAchievements": [
-      {
-        "name": "The Merchant Flees",
-        "scenario": 8
-      },
-      {
-        "name": "The Power of Enhancement",
-        "scenario": 14
-      }
-    ],
-    "unlockedClasses": [
-      "Brute",
-      "Tinkerer",
-      "Spellweaver",
-      "Scoundrel",
-      "Cragheart",
-      "Mindthief"
-    ],
-    "itemDesigns": [
-      {
-        "name": "Horned Helm",
-        "scenario": 3,
-        "notes": "From treasure 65"
-      },
-      {
-        "name": "Ring of Skulls",
-        "scenario": 4,
-        "notes": "From treasure 38"
-      }
-    ]
+    "globalAchievements": [],
+    "unlockedClasses": [],
+    "itemDesigns": []
   },
   "scenarios": [
     {

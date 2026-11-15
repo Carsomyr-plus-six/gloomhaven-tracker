@@ -1,13 +1,16 @@
 """Download Gloomhaven (1st edition) scenario and event data from Gloomhaven Secretariat.
 
-Keeps only what the tracker needs and writes two files:
+Keeps only what the tracker needs and writes three files:
 - data/gloomhaven-scenarios.json: names, unlocks, blocks, requirements,
-  rewards and achievement names.
+  rewards, achievement names, and what each treasure tile gives.
 - data/gloomhaven-events.json: the starting city and road decks, the class
   names the events' conditions use, and for each event option its outcomes:
   the condition, whether the card is removed or returned, and the effects
   (reputation, prosperity, gold, XP, achievements, cards added, scenarios
-  unlocked). No event text is copied.
+  unlocked). No event text is copied. Also each class: its name, whether
+  it is a starting class, and the events unlocking or retiring it adds.
+- data/gloomhaven-items.json: each item's name, cost, number of copies,
+  slot and the prosperity level that puts it in the shop. No item text.
 
 Source: https://github.com/Lurkars/gloomhavensecretariat (AGPL-3.0)
 
@@ -25,6 +28,7 @@ RAW = f"https://raw.githubusercontent.com/{REPO}/main/data/gh"
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 OUTPUT = DATA_DIR / "gloomhaven-scenarios.json"
 EVENTS_OUTPUT = DATA_DIR / "gloomhaven-events.json"
+ITEMS_OUTPUT = DATA_DIR / "gloomhaven-items.json"
 
 # Fields copied from each scenario file. Map layouts and monsters are left out.
 FIELDS = ["name", "unlocks", "blocks", "requires", "requirements", "rewards", "links"]
@@ -94,10 +98,16 @@ def summarize_effect(effect):
     elif kind == "outcome":
         # "Then do what option X says."
         result = {"type": "asOption", "option": values[0]}
+    elif kind == "itemDesign":
+        result = {"type": "itemDesign", "item": int(values[0])}
+    elif kind == "itemCollective":
+        result = {"type": "item", "item": int(values[0])}
+    elif kind == "randomItemDesign":
+        result = {"type": "randomItemDesign"}
     elif kind == "choose":
         result = {"type": "choose", "of": [e for e in map(summarize_effect, values) if e]}
     else:
-        # Scenario effects, items, battle goals: on the card, not tracked here.
+        # Scenario effects, battle goals and so on: on the card, not tracked here.
         result = {"type": "other", "what": kind}
     if effect.get("condition") and effect["condition"].get("type") != "otherwise":
         result["condition"] = summarize_condition(effect["condition"])
@@ -137,6 +147,20 @@ def class_names(labels, spoiler_labels):
     return names
 
 
+def class_events(class_ids):
+    """Class id -> whether it is a starting class, and the city and road event
+    number its unlocking and retiring add."""
+    result = {}
+    for class_id in class_ids:
+        data = fetch(f"{RAW}/character/{class_id}.json")
+        info = {"starting": not data.get("spoiler", False)}
+        for key, name in (("unlockEvent", "unlockEvent"), ("retireEvent", "retireEvent")):
+            if data.get(key):
+                info[name] = int(data[key])
+        result[class_id] = info
+    return result
+
+
 def build_events(labels, spoiler_labels):
     campaign = fetch(f"{RAW}/campaign.json")
     events = {"city": {}, "road": {}}
@@ -152,6 +176,7 @@ def build_events(labels, spoiler_labels):
         "retrieved": date.today().isoformat(),
         "startingDecks": {deck: [int(n) for n in cards] for deck, cards in campaign["events"].items()},
         "classes": class_names(labels, spoiler_labels),
+        "classEvents": class_events(class_names(labels, spoiler_labels)),
         "events": events,
     }
 
@@ -183,6 +208,9 @@ def main():
             "party": labels.get("partyAchievements", {}),
         },
         "scenarios": scenarios,
+        # Treasure number -> what it gives, as the source writes it
+        # ("gold:10", "itemDesign:107", "randomScenario", ...).
+        "treasures": {str(i): reward for i, reward in enumerate(fetch(f"{RAW}/treasures.json"), start=1)},
     }
 
     write_json(OUTPUT, output)
@@ -192,6 +220,17 @@ def main():
     write_json(EVENTS_OUTPUT, events)
     counts = ", ".join(f"{len(cards)} {deck}" for deck, cards in events["events"].items())
     print(f"Wrote {counts} events to {EVENTS_OUTPUT}")
+
+    items = {str(item["id"]): {key: item[key] for key in ("name", "cost", "count", "slot") if key in item}
+                              | ({"prosperity": item["unlockProsperity"]} if item.get("unlockProsperity") else {})
+             for item in fetch(f"{RAW}/items.json")}
+    write_json(ITEMS_OUTPUT, {
+        "source": f"https://github.com/{REPO}",
+        "license": "AGPL-3.0",
+        "retrieved": date.today().isoformat(),
+        "items": items,
+    })
+    print(f"Wrote {len(items)} items to {ITEMS_OUTPUT}")
 
 
 if __name__ == "__main__":
