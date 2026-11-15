@@ -245,6 +245,9 @@ main {
 .rows > *:last-child { border-bottom: 0; }
 .rows strong { font-weight: 600; }
 
+/* What to type into campaign.json, inside a sentence. */
+code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3); color: var(--fg); font: 0.92em/1 ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { padding: 5px 11px; border: 1px solid var(--line); border-radius: var(--r-pill); font-size: var(--t-sm); font-weight: 500; }
 
@@ -362,9 +365,12 @@ main {
 
 /* --- Characters ----------------------------------------------------------- */
 .char-switch { display: none; }
-/* auto-fill, not auto-fit: one or two cards (a lone retired character, a
-   small party) keep card width instead of stretching across the page. */
-.char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 16px; align-items: start; }
+/* Columns rather than a grid: a long sheet (one with perks still open, say)
+   doesn't leave a gap beside the short ones, and a short card fills in under
+   another instead of sitting alone on a row. 340px leaves items room to share
+   a line. */
+.char-grid { columns: 340px; column-gap: 16px; }
+.char-grid > .char-card { break-inside: avoid; margin-bottom: 16px; }
 .subhead { font: 700 var(--d-md)/1.1 var(--display); margin-top: 16px; }
 .char-card {
   --under: var(--surface);
@@ -405,10 +411,14 @@ main {
 .goals i { width: 9px; height: 14px; border-radius: var(--r-xs); border: 1.5px solid var(--line-strong); }
 .goals i.on { background: var(--brass); border-color: var(--brass); }
 .perks > li { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line-soft); font-size: var(--t-md); }
-.perks > li > span:first-of-type { flex: 1; }
+.perks .perk-text { flex: 1; }
 .perks .icon { font-size: var(--t-md); color: var(--verdigris); stroke-width: 2.8; }
 .perks .unsure .icon { color: var(--brass); stroke-width: 2.2; }
-.perk-box { flex: none; width: 11px; height: 11px; margin: 0 2px; border-radius: var(--r-xs); background: var(--verdigris); }
+/* A perk's boxes, in front of it as on the sheet: filled when ticked. Room
+   for two keeps most perk texts lined up. */
+.perk-boxes { flex: none; display: inline-flex; gap: 3px; min-width: 25px; }
+.perk-box { box-sizing: border-box; width: 11px; height: 11px; border-radius: var(--r-xs); background: var(--verdigris); }
+.perk-box.unticked { background: none; border: 1.5px solid var(--line-strong); }
 /* A game icon standing in for a keyword in perk text. */
 .glyph { width: 1.25em; height: 1.25em; vertical-align: -0.28em; }
 /* A single-colour game icon (class, item slot, checkmark): the SVG is a
@@ -429,7 +439,7 @@ main {
 .results .marks .gicon { margin-right: 0; }
 .perks .note { display: block; margin-top: 2px; font-size: var(--t-xs); color: var(--muted); }
 .open-perks summary { font-size: var(--t-sm); color: var(--fg-3); cursor: pointer; padding: 6px 0 2px; }
-.open-perks li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line-soft); font-size: var(--t-md); }
+.open-perks li { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line-soft); font-size: var(--t-md); }
 .times { flex: none; padding: 1px 8px; border-radius: var(--r-pill); background: var(--surface-2); font-size: var(--t-xs); font-weight: 600; color: var(--fg-3); }
 .perk-nudge { align-items: center; padding: 9px 12px; border-radius: var(--r-md); font-weight: 600; color: var(--brass); }
 .perk-nudge .icon { margin: 0; font-size: var(--t-lg); }
@@ -504,8 +514,18 @@ main {
 .row-meta b { font-weight: 600; }
 .row-head > .icon { font-size: 20px; color: var(--muted); stroke-width: 2; transition: transform 0.15s; }
 .row.open .row-head > .icon { transform: rotate(180deg); }
-.elbow { flex: none; display: flex; justify-content: flex-end; }
-.elbow svg { width: 14px; height: 22px; fill: none; stroke: var(--line-strong); stroke-width: 1.5; stroke-linecap: round; }
+/* The unlock tree as indented rows. A rail is a line through the whole row
+   (an opened one included) at a depth that carries on below it; the elbow
+   turns the row's own branch off toward its hexagon. Both sit 2px into the
+   14px step of their depth, and reach 3px past the row (its 1px border and
+   half the 4px gap) to meet the next row's line. */
+.row.in-tree { position: relative; }
+.row.in-tree .row-body { padding-left: calc(var(--indent) + 14px); }
+.tree-rail { position: absolute; top: -3px; bottom: -3px; width: 1.5px; background: var(--line-strong); }
+.elbow { flex: none; align-self: stretch; position: relative; }
+.elbow::after { content: ""; position: absolute; right: -8px; top: 50%; width: 20px; height: 1.5px; background: var(--line-strong); }
+/* The last child: the line comes down from the row above and stops here. */
+.elbow.last::before { content: ""; position: absolute; right: 10.5px; top: -11px; height: calc(50% + 11.75px); width: 1.5px; background: var(--line-strong); }
 .row-body { display: flex; flex-direction: column; gap: 14px; padding: 4px 14px 16px; }
 
 .reasons { display: flex; flex-direction: column; gap: 4px; padding: 10px 14px; border-radius: var(--r-md); background: var(--ember-bg); color: var(--ember); font-size: var(--t-md); }
@@ -603,10 +623,12 @@ main {
 .deck-top .figure { font-size: var(--d-lg); line-height: 1; }
 .deck summary { font-size: var(--t-sm); color: var(--fg-3); cursor: pointer; padding: 4px 0; }
 .deck li { font-size: var(--t-sm); padding: 3px 0; }
-.drawn > li { display: flex; align-items: center; gap: 12px; min-height: 46px; padding: 6px 0; border-bottom: 1px solid var(--line-soft); font-size: var(--t-md); }
+/* Label, card and fate line up with the first line of the text, not its middle. */
+.drawn > li { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line-soft); font-size: var(--t-md); }
 .drawn strong { flex: none; width: 76px; font-weight: 600; }
 .drawn > li > span:nth-child(2) { flex: 1; min-width: 0; color: var(--fg-3); }
 .fate { flex: none; display: inline-flex; align-items: center; font-size: var(--t-sm); font-weight: 600; color: var(--muted); }
+.drawn .fate { height: calc(var(--t-md) * 1.45); }
 /* A question about that event, asked on its row. */
 .drawn .ask { display: flex; align-items: flex-start; gap: 6px; margin-top: 3px; font-size: var(--t-sm); font-weight: 600; color: var(--brass); }
 .drawn .ask .icon { margin-top: 2px; font-size: var(--t-md); stroke-width: 2; }
@@ -633,8 +655,8 @@ main {
 .btn.quiet { border-color: transparent; background: none; color: var(--muted); }
 .recorder { display: flex; flex-direction: column; gap: 20px; }
 /* Pinned under the top bar while the form scrolls (at the very top on phones). */
+.rec-pin { position: sticky; top: 53px; z-index: 5; margin: -8px 0; padding: 8px 0; background: var(--bg); }
 .rec-top {
-  position: sticky; top: 61px; z-index: 5;
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 4px 4px 4px 16px; border: 1px solid var(--line); border-radius: var(--r-pill);
   background: var(--bar); font-size: var(--t-md);
@@ -711,7 +733,12 @@ main {
   .segmented button { min-height: 44px; }
   .todo-go, .ready-head a { display: inline-flex; align-items: center; min-height: 44px; }
   .todo-do { min-height: 44px; }
-  .rec-top { top: 8px; }
+  /* Before you play: the text gets the full width, the actions go under it. */
+  .todo .rows > li { flex-wrap: wrap; row-gap: 0; padding-top: 10px; }
+  .todo .rows > li > span:first-child { flex: 1 1 100%; }
+  .todo-acts { gap: 16px; }
+  .todo-go { padding-left: 0; }
+  .rec-pin { top: 0; }
   .ledger summary, .deck summary, .open-perks summary { padding-block: 13px; margin-block: -9px; }
   .panel { gap: 16px; scroll-margin-top: 16px; }
   .panel.off, .site-footer.off { display: none; }
@@ -741,7 +768,7 @@ main {
   .tile-foot { flex-direction: column; }
   .tile-foot strong { font-size: var(--t-md); }
   .tile-foot span { font-size: var(--t-xs); }
-  .level-tile .filters, .recorder .filters { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
+  .level-tile .filters, .recorder .filters { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; -webkit-mask-image: none; mask-image: none; }
 
   .jump { position: relative; display: flex; flex-wrap: wrap; align-items: center; column-gap: 16px; font-size: var(--t-sm); color: var(--muted); }
   .jump a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; color: var(--fg-2); }
@@ -788,7 +815,8 @@ main {
   .char-switch button.retired:not([aria-pressed="true"]) { opacity: 0.55; }
   .switch-sep { flex: none; align-self: center; width: 1px; height: 44px; margin: 0 4px; background: var(--line); }
   .char-switch .dot { position: absolute; top: 0; right: -4px; width: 12px; height: 12px; border-radius: 50%; background: var(--brass); border: 2px solid var(--bg); }
-  .char-grid { display: block; }
+  .char-grid { display: block; columns: auto; }
+  .char-grid > .char-card { margin-bottom: 0; }
   .char-card { --under: var(--bg); gap: 20px; padding: 6px 0 0; background: none; border: 0; border-radius: 0; }
   .char-card:not(.current) { display: none; }
   .char-head { flex-direction: row-reverse; justify-content: space-between; gap: 16px; }
@@ -818,6 +846,8 @@ main {
   /* Scenarios */
   .filters { flex-wrap: nowrap; overflow-x: auto; margin: 0 -20px; padding: 0 20px; scrollbar-width: none; }
   .filters::-webkit-scrollbar { display: none; }
+  /* Fade the right edge, so a cut-off filter reads as more to scroll to. */
+  .filters { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
   .scenario-list { margin: 0 -10px; }
   .row-head:hover { background: none; }
   .facts dt { width: 92px; }
@@ -826,6 +856,12 @@ main {
   .tree-rows { display: flex; }
 
   .decks { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  /* Event rows: the label and what became of the card on one line, the
+     text under them at full width rather than squeezed between. */
+  .drawn > li { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "label fate" "text text"; gap: 2px 12px; }
+  .drawn strong { grid-area: label; width: auto; }
+  .drawn > li > span:nth-child(2) { grid-area: text; }
+  .drawn .fate { grid-area: fate; }
   .deck-top .figure { font-size: var(--d-md); }
   .record { gap: 12px; }
 }
