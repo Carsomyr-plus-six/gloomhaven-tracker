@@ -9,7 +9,7 @@
     "achievements": [
       { "name": "First Steps", "scenario": 1 }
     ],
-    "notes": ""
+    "notes": "Unclaimed: a random side scenario from treasure 07 (scenario #1)."
   },
   "city": {
     "prosperityCheckmarks": 0,
@@ -25,7 +25,7 @@
       "unlockedBy": null,
       "completed": null,
       "treasures": ["07"],
-      "notes": "Exact XP and gold gained are lost to time."
+      "notes": "Exact XP and gold gained are lost to time.\nTreasure 07 gave a random side scenario, which we never drew."
     },
     {
       "number": 2,
