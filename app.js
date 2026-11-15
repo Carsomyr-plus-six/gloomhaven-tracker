@@ -273,6 +273,17 @@ function defaultLevelParty(data) {
   return new Set(tonight.length ? tonight : active);
 }
 
+// Tonight's scenario level from the Overview's picker (who is playing,
+// difficulty), or null when no one is picked.
+function tonight(data) {
+  if (!levelParty) levelParty = defaultLevelParty(data);
+  const levels = characterOrder(data).filter(c => !c.retired && levelParty.has(c.name)).map(c => characterStats(c).level);
+  if (!levels.length) return null;
+  const [, label, shift] = DIFFICULTIES.find(([key]) => key === difficulty);
+  const level = Math.max(0, Math.min(7, recommendedLevel(levels) + shift));
+  return { level, difficulty: label, ...scenarioStats(level) };
+}
+
 function levelTile(data) {
   const active = characterOrder(data).filter(c => !c.retired);
   if (!active.length) return null;
@@ -286,7 +297,7 @@ function levelTile(data) {
   const prosperity = stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
   const toggle = name => {
     if (levelParty.has(name)) levelParty.delete(name); else levelParty.add(name);
-    render(data, "overview");
+    render(data);
   };
   const stat = (label, value) => h("div", {}, h("span", { class: "label" }, label), h("span", { class: "num" }, value));
 
@@ -301,7 +312,7 @@ function levelTile(data) {
     playing.length ? [
       h("div", { class: "segmented", role: "group", "aria-label": "Difficulty" }, DIFFICULTIES.map(([key, label]) =>
         h("button", { type: "button", "data-key": `difficulty-${key}`, "aria-pressed": String(difficulty === key),
-                      onclick: () => { difficulty = key; render(data, "overview"); } }, label))),
+                      onclick: () => { difficulty = key; render(data); } }, label))),
       h("div", { class: "level-stats" },
         stat("Monsters", `Level ${st.monsters}`), stat("Gold per coin", st.gold),
         stat("Trap damage", st.trap), stat("Bonus XP", st.xp)),
@@ -311,6 +322,12 @@ function levelTile(data) {
         ? `Average level ${(levels.reduce((a, b) => a + b, 0) / levels.length).toFixed(1).replace(/\.0$/, "")}, so ${recommended} on normal`
         : "No one picked"),
       h("span", {}, `New characters start at level ${prosperity === 1 ? "1" : `1 to ${prosperity}`} with ${startingGold(1)}${prosperity > 1 ? ` to ${startingGold(prosperity)}` : ""} gold`)));
+}
+
+// Phones: the sections that share a tab but sit far below, as links.
+function furtherDown(links) {
+  return h("nav", { class: "jump", "aria-label": "Further down this tab" },
+    h("span", {}, "Further down:"), links.map(([href, label]) => h("a", { href }, label)));
 }
 
 // A few hexes behind the party name, on phones.
@@ -323,11 +340,11 @@ function heroDecor() {
     { class: "hero-decor", "aria-hidden": "true" });
 }
 
-// The edition, then where the party is, unless the edition already says it
-// (no "Gloomhaven (1st edition) · Gloomhaven").
-function eyebrowText(edition, location) {
-  const here = location && !edition.toLowerCase().includes(location.trim().toLowerCase()) ? location : null;
-  return [edition, here].filter(Boolean).join(" · ");
+// Where the party is, above its name, when the campaign says somewhere more
+// particular than Gloomhaven itself. The edition is only in the footer.
+function locationText(location) {
+  const here = String(location || "").trim();
+  return here && here.toLowerCase() !== "gloomhaven" ? here : null;
 }
 
 function renderOverview(data) {
@@ -340,8 +357,9 @@ function renderOverview(data) {
     h("div", { class: "hero" },
       h("div", { class: "hero-head" },
         heroDecor(),
-        h("div", { class: "eyebrow" }, eyebrowText(data.edition || "Gloomhaven", party.location)),
-        h("h1", { class: (party.name || "").length > 22 ? "party-name long" : "party-name" }, party.name || "Unnamed party")),
+        locationText(party.location) ? h("div", { class: "eyebrow" }, locationText(party.location)) : null,
+        h("h1", { class: (party.name || "").length > 22 ? "party-name long" : "party-name" }, party.name || "Unnamed party"),
+        furtherDown([["#events", "Event decks"], ["#record", "Campaign record"]])),
       // Tiles first: the left column reads first on wide screens. The right
       // column pairs what to play with what to sort out before playing.
       // Phones show Ready to play, then the tiles, then the list (styles.css).
@@ -368,15 +386,20 @@ function renderOverview(data) {
 // the sections that work it out. Each entry links to where it's handled.
 function todoItems(data) {
   const items = [];
-  const add = (text, href, onclick) => items.push({ text, href, onclick });
+  const add = (text, href, onclick, action) => items.push({ text, href, onclick, action });
   const order = characterOrder(data);
 
   if (draft) add("A recorded session hasn't been saved: download it from Sessions and commit it.", "#sessions");
 
   for (const c of order.filter(c => !c.retired)) {
     const st = characterStats(c);
-    const go = () => pickCharacter(data, order.indexOf(c));
-    if (st.unspent) add(`${c.name} has ${plural(st.unspent, "perk")} to choose.`, "#characters", go);
+    // Phones open that character's sheet; wide screens scroll to its card.
+    const go = e => {
+      pickCharacter(data, order.indexOf(c));
+      if (!phone.matches) { e.preventDefault(); revealCharacter(c.name); }
+    };
+    if (st.unspent) add(`${c.name} has ${plural(st.unspent, "perk")} to choose.`, "#characters", go,
+      { label: "Record it", run: () => recordPerk(data, c.name) });
     for (const r of perkCheck(c).rows.filter(r => r.note && !r.quiet)) add(`${c.name}: "${r.written}". ${r.note}`, "#characters", go);
     for (const problem of itemCheck(c, st.level)) add(`${c.name}: ${problem}`, "#characters", go);
   }
@@ -401,6 +424,29 @@ function todoItems(data) {
 const TODO_PLACES = { "#characters": "Characters", "#shop": "Shop", "#sessions": "Sessions",
   "#events": "Event decks", "#record": "Campaign record", "#overview": "Overview" };
 
+// "Record it": open the recorder with a perk row for this character, ready
+// to pick the perk.
+function recordPerk(data, name) {
+  if (!draft) draft = newDraft(data);
+  let i = draft.perks.findIndex(p => p.character === name && !p.perk);
+  if (i < 0) { draft.perks.push({ character: name, perk: "" }); i = draft.perks.length - 1; }
+  recorderOpen = true;
+  saveDraft();
+  render(data);
+  location.hash = "sessions";
+  // After the tab switch (phones) or the scroll to Sessions (wide screens).
+  setTimeout(() => {
+    const box = document.querySelector(`[data-key="perk-${i}-p"]`);
+    box?.scrollIntoView({ block: "center" });
+    box?.focus({ preventScroll: true });
+  }, 80);
+}
+
+// Wide screens show every sheet: bring this character's into view.
+function revealCharacter(name) {
+  document.querySelector(`.char-card[data-char="${CSS.escape(name)}"]`)?.scrollIntoView({ block: "start" });
+}
+
 function todoList(data) {
   const items = todoItems(data);
   return h("div", { class: "card todo" },
@@ -410,7 +456,9 @@ function todoList(data) {
     items.length
       ? h("ul", { class: "rows" }, items.map(item => h("li", {},
           h("span", {}, item.text),
-          h("a", { class: "todo-go", href: item.href, onclick: item.onclick || null }, TODO_PLACES[item.href] || "Open"))))
+          h("span", { class: "todo-acts" },
+            item.action ? h("button", { type: "button", class: "todo-do", onclick: item.action.run }, item.action.label) : null,
+            h("a", { class: "todo-go", href: item.href, onclick: item.onclick || null }, TODO_PLACES[item.href] || "Open")))))
       : h("p", { class: "small muted" }, "Nothing to sort out before the next scenario."));
 }
 
@@ -500,6 +548,9 @@ function renderEvents(data) {
     h("div", { class: "decks" }, Object.keys(DECK_NAMES).map(deckCard)),
     loose.map(question),
     ev.history.length ? h("ul", { class: "drawn" }, ev.history.map(drawn)) : null,
+    // Past events can't be answered on the page, so say where the answer goes.
+    asks.size ? h("p", { class: "small muted how" },
+      'To answer, add "option": "A" or "B" to that event in the "events" list of campaign.json; the page works out the rest.') : null,
   ];
 }
 
@@ -519,7 +570,10 @@ function renderRecord(data) {
   const card = (title, body) => h("div", { class: "card" }, h("h3", { class: "label" }, title), body);
   return [
     sectionHead("Campaign record"),
-    (data.draws || []).map(d => nudge("question", `Draw ${d.what}`, `From ${d.from}. Not drawn yet.`)),
+    // The page can't record a draw itself, so say exactly what to write.
+    (data.draws || []).map(d => nudge("question", `Draw ${d.what}`, [
+      `From ${d.from}. Not drawn yet.`,
+      d.how ? h("span", { class: "how" }, `Once drawn, record it in campaign.json: ${d.how}.`) : null])),
     h("div", { class: "record" },
       card("Party achievements", recordRows(party.achievements)),
       card("Global achievements", recordRows(city.globalAchievements)),
@@ -914,7 +968,8 @@ function deriveCampaign(data, ref, evRef) {
       if (g.kind === "design") addDesign(g.item, label);
       else if (g.kind === "randomDesign") {
         if (e.drew) addDesign(e.drew, label);
-        else record.draws.push({ what: "a random item design", from: label });
+        else record.draws.push({ what: "a random item design", from: label,
+          how: `add "drew": "Item name" to ${label} in the "events" list` });
       } else gainAchievement(g.kind, g.id, label);
     }
 
@@ -968,11 +1023,13 @@ function deriveCampaign(data, ref, evRef) {
         if (part.type === "scenario") unlocks.push({ number: Number(part.value), source: from });
         if (part.type === "randomScenario") {
           if (drew != null) unlocks.push({ number: Number(drew), source: from });
-          else record.draws.push({ what: "a random side scenario", from: `${from}, looted in ${where}` });
+          else record.draws.push({ what: "a random side scenario", from: `${from}, looted in ${where}`,
+            how: `in scenario ${where}'s "treasures", write "${number}" as { "number": "${number}", "drew": 52 }, putting the number of the scenario you drew in place of 52` });
         }
         if (part.type === "randomItemDesign") {
           if (drew != null) addDesign(drew, from);
-          else record.draws.push({ what: "a random item design", from: `${from}, looted in ${where}` });
+          else record.draws.push({ what: "a random item design", from: `${from}, looted in ${where}`,
+            how: `in scenario ${where}'s "treasures", write "${number}" as { "number": "${number}", "drew": "Item name" }` });
         }
       }
       const gives = parts.map(describeTreasurePart).join(", ") || "not in the treasure index";
@@ -1215,7 +1272,10 @@ function resultsList(results, sign = "") {
 }
 
 function scenarioFacts(data, s) {
+  // For a scenario you could play, what it would be tonight.
+  const t = s.status === "available" ? tonight(data) : null;
   const pairs = [
+    ["Tonight", t ? `Scenario level ${t.level} (${t.difficulty.toLowerCase()}): monster level ${t.monsters}, ${t.gold} gold a coin, trap damage ${t.trap}, ${t.xp} bonus XP` : null],
     ["Unlocked by", s.unlockedBy != null ? scenarioLabel(data, s.unlockedBy) : s.unlockedVia],
     ["Completed", formatDate(s.completed)],
     ["Rewards", s.rewards.length ? capitalize(s.rewards.join(", ")) : null],
@@ -1387,9 +1447,11 @@ function classIcon(cls) {
   return id ? gameIcon(`class-${id}`) : null;
 }
 
-// Perk text with the game's icon in front of each keyword, as on the
-// character sheet. The word stays, so the text reads the same without the
-// icons. Icons: icons/README.md (Creator Pack, CC BY-NC-SA 4.0).
+// Perk text with each keyword shown as the game's icon instead of the word,
+// as on the character sheet: "Add one [rolling] [earth] card". The word
+// becomes the icon's alt text (and hover title), so a screen reader still
+// reads "Add one rolling earth card". Icons: icons/README.md (Creator Pack,
+// CC BY-NC-SA 4.0).
 const PERK_ICONS = {
   "ADD TARGET": "target", EARTH: "earth", AIR: "air", FIRE: "fire", ICE: "ice", LIGHT: "light", DARK: "dark",
   STUN: "stun", MUDDLE: "muddle", IMMOBILIZE: "immobilize", WOUND: "wound", POISON: "poison", CURSE: "curse",
@@ -1400,9 +1462,13 @@ const PERK_ICONS = {
 const PERK_KEYWORD = new RegExp(`\\b(${Object.keys(PERK_ICONS).join("|")})\\b`, "g");
 
 function perkText(text) {
-  return String(text).split(PERK_KEYWORD).map((part, i) => i % 2
-    ? h("span", { class: "kw" }, h("img", { class: "glyph", src: `icons/${PERK_ICONS[part]}.svg`, alt: "", width: 16, height: 16 }), part)
-    : part);
+  // Once the icon stands in for REFRESH, the rest needn't shout.
+  const plain = String(text).replace(/\bREFRESH AN ITEM\b/g, "REFRESH an item");
+  return plain.split(PERK_KEYWORD).map((part, i) => {
+    if (i % 2 === 0) return part;
+    const word = part.toLowerCase();
+    return h("img", { class: "glyph", src: `icons/${PERK_ICONS[part]}.svg`, alt: word, title: word, width: 16, height: 16 });
+  });
 }
 
 const NUMBER_WORDS = { "1": "one", "2": "two", "3": "three", "4": "four" };
@@ -1517,7 +1583,7 @@ function renderCharacters(data) {
     const check = perkCheck(c);
     const perks = check.rows;
     const itemProblems = itemCheck(c, st.level);
-    return h("article", { class: `char-card${order.indexOf(c) === characterIndex ? " current" : ""}` },
+    return h("article", { class: `char-card${order.indexOf(c) === characterIndex ? " current" : ""}`, "data-char": c.name },
       h("header", { class: "char-head" },
         h("div", { class: "char-level" }, hex(st.level, "level"), h("span", { class: "label" }, "Level")),
         h("div", {},
@@ -1594,6 +1660,7 @@ function renderCharacters(data) {
 
   return [
     sectionHead("Characters", [`${active.length} active`, retired.length ? `${retired.length} retired` : null].filter(Boolean).join(" · ")),
+    furtherDown([["#shop", "Shop"]]),
     switcher,
     active.length ? h("div", { class: "char-grid" }, active.map(card)) : empty("No active characters."),
     retired.length ? [h("h3", { class: "subhead" }, "Retired"), h("div", { class: "char-grid" }, retired.map(card))] : null,
@@ -1695,6 +1762,17 @@ function renderShop(data) {
 let rawCampaign = null;   // campaign.json exactly as loaded
 let scenarioRef = null;   // data/gloomhaven-scenarios.json
 let draft = null;
+let savedDraft = null;   // a draft found already in campaign.json on load, and cleared
+
+// Is this draft's session already in campaign.json? The same date (or, if
+// undated, title) and the same scenarios played in the same order.
+function draftIsSaved(d, raw) {
+  const played = (d.scenarios || []).map(s => num(s.number)).filter(Boolean).join(",");
+  return (raw.sessions || []).some(s =>
+    (s.date || null) === (d.date || null)
+    && (d.date || (s.title || "") === (d.title || ""))
+    && (s.scenarios || []).map(x => x.number).join(",") === played);
+}
 const DRAFT_KEY = "sessionDraft";
 
 function today() {
@@ -1943,7 +2021,10 @@ function renderRecorder(data) {
       if (box?.tagName === "INPUT") box.select();
     } : null,
   });
-  const select = (key, obj, prop, options, again = true) => h("select", { "data-key": key, onchange: set(obj, prop, again) },
+  // A choice that doesn't change the form (an item, a perk) still changes the
+  // summary, so refresh that.
+  const select = (key, obj, prop, options, again = true) => h("select", { "data-key": key,
+      onchange: e => { set(obj, prop, again)(e); if (!again) refreshSummary(); } },
     options.map(([value, label]) => h("option", { value, selected: String(obj[prop] ?? "") === String(value) }, label)));
   // Adding something puts focus on its first box; removing it, on the button
   // that adds another. Otherwise the redraw would drop focus to the page.
@@ -1956,6 +2037,8 @@ function renderRecorder(data) {
   const active = characterOrder(data).filter(c => !c.retired);
   const party = active.filter(c => d.party.includes(c.name));
   const partyOptions = [["", "Who?"], ...party.map(c => [c.name, c.name])];
+  // Perks are taken in town, by anyone still adventuring.
+  const activeOptions = [["", "Who?"], ...active.map(c => [c.name, c.name])];
   const available = data.scenarios.filter(s => s.status === "available").sort((a, b) => a.number - b.number);
 
   const scenarioBlock = (s, i) => {
@@ -2019,15 +2102,16 @@ function renderRecorder(data) {
   const perkBlock = (p, i) => {
     const c = data.characters.find(x => x.name === p.character);
     return h("div", { class: "rec-row" },
-      field("Who", select(`perk-${i}-c`, p, "character", partyOptions)),
+      field("Who", select(`perk-${i}-c`, p, "character", activeOptions)),
       field("Perk", select(`perk-${i}-p`, p, "perk", [["", "Pick a perk"], ...(c ? perkCheck(c).open.map(x => [x.text, x.text]) : [])], false), "wide"),
       remove(d.perks, i, "perk", "add-perk"));
   };
 
   // What the draft changes, with the download. Rebuilt on its own as you type.
-  const summary = () => {
-    const { out, log, warnings } = applyDraft(rawCampaign, d, data);
+  const summary = res => {
+    const { out, log, warnings } = res;
     const json = formatJson(out) + "\n";
+    const edit = githubEditUrl(dataUrl());
     const download = () => {
       const url = URL.createObjectURL(new Blob([json], { type: "application/json" }));
       const a = h("a", { href: url, download: "campaign.json" });
@@ -2045,15 +2129,34 @@ function renderRecorder(data) {
       h("h3", { class: "subtitle" }, "What changes"),
       warnings.map(w => nudge("question", "Check", w)),
       h("ul", {}, [`A session on ${formatDate(d.date) || "an undated evening"} with ${d.party.join(", ") || "no one"}`, ...log].map(line => h("li", {}, line))),
-      h("p", { class: "small muted" }, "Download the new campaign.json and put it in place of the old one in the repository. Nothing is saved anywhere else; this draft stays in this browser until you discard it."),
+      h("p", { class: "small muted" }, edit
+        ? "Copy and edit on GitHub copies the new campaign.json and opens the file on GitHub, phones included: select everything there, paste, and commit. Or download it and put it in place of the old one."
+        : "Download the new campaign.json and put it in place of the old one in the repository.",
+        " Nothing is saved anywhere else; the draft stays in this browser until you discard it, or until the page finds it in campaign.json."),
       h("div", { class: "rec-buttons" },
         h("button", { type: "button", class: "btn primary", onclick: download }, "Download campaign.json"),
+        edit ? h("a", { class: "btn", href: edit, target: "_blank", rel: "noopener",
+                        onclick: () => { navigator.clipboard?.writeText(json).catch(() => {}); } }, "Copy and edit on GitHub") : null,
         h("button", { type: "button", class: "btn", onclick: copy }, "Copy to clipboard"),
         h("button", { type: "button", class: "btn quiet", onclick: () => { if (confirm("Discard this draft?")) { dropDraft(); render(data, "sessions"); } } }, "Discard draft")));
   };
-  const refreshSummary = () => document.querySelector(".rec-summary")?.replaceWith(summary());
+  // A slim bar pinned above the form: how many checks are waiting, and a way
+  // down to them, so they're seen while filling it in, not only at the end.
+  const topBar = res => h("div", { class: "rec-top" },
+    res.warnings.length
+      ? h("span", { class: "rec-checks" }, icon("question"), `${plural(res.warnings.length, "thing")} to check`)
+      : h("span", { class: "muted" }, "Nothing to check"),
+    h("button", { type: "button", class: "btn quiet", onclick: () => document.querySelector(".rec-summary")?.scrollIntoView({ block: "start" }) },
+      "See what changes"));
+  const refreshSummary = () => {
+    const res = applyDraft(rawCampaign, d, data);
+    document.querySelector(".rec-summary")?.replaceWith(summary(res));
+    document.querySelector(".rec-top")?.replaceWith(topBar(res));
+  };
+  const first = applyDraft(rawCampaign, d, data);
 
   return h("div", { class: "recorder" },
+    topBar(first),
     h("datalist", { id: "rec-available" }, available.map(s => h("option", { value: s.number }, `#${s.number} ${s.name || ""}`))),
     h("fieldset", { class: "card rec-block" },
       h("legend", {}, "The evening"),
@@ -2089,7 +2192,7 @@ function renderRecorder(data) {
     h("fieldset", { class: "card rec-block" },
       h("legend", {}, "Notes"),
       h("textarea", { "data-key": "rec-notes", rows: 3, "aria-label": "Notes", oninput: set(d, "notes") }, d.notes)),
-    summary());
+    summary(first));
 }
 
 // --- Sessions -------------------------------------------------------------------
@@ -2129,8 +2232,10 @@ function renderSessions(data) {
     rawCampaign ? h("button", { type: "button", class: `btn${recorderOpen ? "" : " primary"}`, "data-key": "rec-toggle", onclick: toggle },
       recorderOpen ? "Close the form (keep the draft)" : draft ? "Go on recording" : "Record a session") : null);
 
+  const saved = savedDraft ? formatDate(savedDraft.date) || savedDraft.title || "an undated evening" : null;
   return [
     head,
+    saved ? nudge("check", "Session saved", `The session you recorded for ${saved} is in campaign.json now, so its draft has been cleared.`, "saved") : null,
     recorderOpen && draft ? renderRecorder(data) : null,
     sorted.length ? null : empty("No sessions recorded yet."),
     sorted.length ? h("p", { class: "aside" }, "Newest first") : null,
@@ -2272,6 +2377,16 @@ function withDefaults(raw) {
 }
 
 // ?data=examples/sample-campaign.json shows another file from this site (for testing).
+// On GitHub Pages (owner.github.io/repo/), the GitHub page that edits the
+// campaign file, so a phone at the table can commit a session itself.
+// Anywhere else (a local copy), there's no repository to point at: null.
+function githubEditUrl(file, at = location) {
+  const owner = at.hostname.match(/^([^.]+)\.github\.io$/i)?.[1];
+  const repo = at.pathname.split("/")[1];
+  if (!owner || !repo || !file.pathname.startsWith(`/${repo}/`)) return null;
+  return `https://github.com/${owner}/${repo}/edit/main/${file.pathname.slice(repo.length + 2)}`;
+}
+
 function dataUrl() {
   const requested = new URLSearchParams(location.search).get("data");
   if (requested) {
@@ -2309,6 +2424,12 @@ async function start() {
     rawCampaign = JSON.parse(JSON.stringify(json));
     scenarioRef = ref;
     draft = loadDraft();
+    // Once the downloaded file has been committed, the draft is in
+    // campaign.json: clear it, so it isn't recorded (and counted) twice.
+    if (draft && draftIsSaved(draft, rawCampaign)) {
+      savedDraft = draft;
+      dropDraft();
+    }
     const data = withDefaults(json);
     const derived = deriveCampaign(data, ref, evRef);
     data.eventState = evRef ? derived : null;

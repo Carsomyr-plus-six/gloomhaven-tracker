@@ -262,6 +262,11 @@ main {
 }
 .nudge .icon { margin-top: 2px; font-size: var(--t-xl); color: var(--brass); stroke-width: 2; }
 .nudge strong { display: block; font-weight: 600; color: var(--brass); }
+/* How to settle something the page can't record itself. */
+.nudge .how { display: block; margin-top: 4px; font-size: var(--t-sm); color: var(--fg-3); }
+/* Good news rather than something to see to. */
+.nudge.saved { background: var(--surface); border-color: var(--line-strong); }
+.nudge.saved .icon, .nudge.saved strong { color: var(--verdigris); }
 
 .meter { height: 8px; border-radius: var(--r-pill); background: var(--line); display: flex; }
 .meter > span { border-radius: var(--r-pill); background: var(--verdigris); }
@@ -319,6 +324,10 @@ main {
 .todo .block-head > span { font-size: var(--t-sm); color: var(--fg-3); }
 .todo .rows li { font-size: var(--t-md); }
 .todo-go { flex: none; padding: 8px 0 8px 12px; font-size: var(--t-sm); font-weight: 600; color: var(--fg-2); }
+.todo-acts { flex: none; display: flex; align-items: center; gap: 4px; }
+/* Doing the thing, right from the list: brass, as it settles something waiting. */
+.todo-do { padding: 6px 12px; border: 1px solid var(--brass-line); border-radius: var(--r-pill); background: var(--brass-bg); color: var(--brass); font-size: var(--t-sm); font-weight: 600; cursor: pointer; }
+.todo-do:hover { border-color: var(--brass); }
 .level-tile .segmented { align-self: flex-start; }
 .level-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .level-stats > div { display: flex; flex-direction: column; gap: 2px; }
@@ -348,6 +357,8 @@ main {
 
 /* The party at a glance: phones only, wide screens show the full sheets. */
 .party { display: none; }
+/* Phones only: links to the sections far down the same tab. */
+.jump { display: none; }
 
 /* --- Characters ----------------------------------------------------------- */
 .char-switch { display: none; }
@@ -357,6 +368,7 @@ main {
 .subhead { font: 700 var(--d-md)/1.1 var(--display); margin-top: 16px; }
 .char-card {
   --under: var(--surface);
+  scroll-margin-top: 84px;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -397,9 +409,8 @@ main {
 .perks .icon { font-size: var(--t-md); color: var(--verdigris); stroke-width: 2.8; }
 .perks .unsure .icon { color: var(--brass); stroke-width: 2.2; }
 .perk-box { flex: none; width: 11px; height: 11px; margin: 0 2px; border-radius: var(--r-xs); background: var(--verdigris); }
-/* A game icon in front of a keyword, kept on the same line as its word. */
-.kw { white-space: nowrap; }
-.glyph { width: 1.2em; height: 1.2em; margin-right: 0.25em; vertical-align: -0.25em; }
+/* A game icon standing in for a keyword in perk text. */
+.glyph { width: 1.25em; height: 1.25em; vertical-align: -0.28em; }
 /* A single-colour game icon (class, item slot, checkmark): the SVG is a
    mask, filled with the text colour. */
 .gicon {
@@ -621,6 +632,15 @@ main {
 .btn.primary { background: var(--brass); border-color: var(--brass); color: var(--brass-ink); }
 .btn.quiet { border-color: transparent; background: none; color: var(--muted); }
 .recorder { display: flex; flex-direction: column; gap: 20px; }
+/* Pinned under the top bar while the form scrolls (at the very top on phones). */
+.rec-top {
+  position: sticky; top: 61px; z-index: 5;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 4px 4px 4px 16px; border: 1px solid var(--line); border-radius: var(--r-pill);
+  background: var(--bar); font-size: var(--t-md);
+}
+.rec-checks { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--brass); }
+.rec-checks .icon { font-size: var(--t-xl); stroke-width: 2; }
 .rec-section { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
 .rec-section > .card { align-self: stretch; }
 .rec-block { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: var(--pad-card); min-width: 0; }
@@ -690,6 +710,8 @@ main {
   /* Everything tappable is at least 44px tall, as at the table it's a thumb. */
   .segmented button { min-height: 44px; }
   .todo-go, .ready-head a { display: inline-flex; align-items: center; min-height: 44px; }
+  .todo-do { min-height: 44px; }
+  .rec-top { top: 8px; }
   .ledger summary, .deck summary, .open-perks summary { padding-block: 13px; margin-block: -9px; }
   .panel { gap: 16px; scroll-margin-top: 16px; }
   .panel.off, .site-footer.off { display: none; }
@@ -721,6 +743,8 @@ main {
   .tile-foot span { font-size: var(--t-xs); }
   .level-tile .filters, .recorder .filters { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
 
+  .jump { position: relative; display: flex; flex-wrap: wrap; align-items: center; column-gap: 16px; font-size: var(--t-sm); color: var(--muted); }
+  .jump a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; color: var(--fg-2); }
   .party { display: flex; flex-direction: column; gap: 4px; }
   .party-head { display: flex; align-items: baseline; justify-content: space-between; }
   .party-row { display: flex; align-items: center; gap: 12px; min-height: 68px; padding: 10px 0; border-bottom: 1px solid var(--line-soft); color: var(--fg); text-decoration: none; }
