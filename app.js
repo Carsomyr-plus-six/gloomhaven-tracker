@@ -77,6 +77,49 @@ function donationCheckmarks(gold) {
 // 15 gold for each level plus one.
 const startingGold = level => 15 * (level + 1);
 
+// Enhancing an ability card at the Enhancer, once The Power of Enhancement is
+// gained: the sticker's base cost, doubled if the ability targets more than
+// one figure (not for an attack hex, nor a summon's stats), plus 25 gold for
+// each card level above 1 and 75 gold for each enhancement already on that
+// action. Costs as Gloomhaven Secretariat's EnhancementsManager has them for
+// the 1st edition. An attack hex costs 200 gold shared by the hexes the
+// attack has now, rounded up.
+const ENHANCEMENTS = [
+  ["+1 to a number", [["move", "Move", 30], ["attack", "Attack", 50], ["range", "Range", 30], ["target", "Target", 50],
+                      ["shield", "Shield", 100], ["retaliate", "Retaliate", 100], ["pierce", "Pierce", 30], ["heal", "Heal", 30],
+                      ["push", "Push", 30], ["pull", "Pull", 30]]],
+  ["On a move", [["jump", "Jump", 50]]],
+  ["An element", [["element", "One element", 100], ["wild", "Any element", 150]]],
+  ["A condition, on an attack", [["poison", "Poison", 75], ["wound", "Wound", 75], ["muddle", "Muddle", 50],
+                                 ["immobilize", "Immobilize", 100], ["disarm", "Disarm", 150], ["curse", "Curse", 75]]],
+  ["A condition, on a heal or buff", [["strengthen", "Strengthen", 50], ["bless", "Bless", 50]]],
+  ["An attack's area", [["hex", "One more hex", null]]],
+  ["A summon's stats", [["summon-move", "Summon move +1", 100], ["summon-attack", "Summon attack +1", 100],
+                        ["summon-range", "Summon range +1", 50], ["summon-hp", "Summon HP +1", 50]]],
+];
+const ENHANCEMENT_BY_KEY = new Map(ENHANCEMENTS.flatMap(([group, list]) => list.map(([key, label, base]) => [key, { key, label, base, group }])));
+
+// Doubling for more than one target leaves out an attack hex and a summon's stats.
+const canDouble = key => key !== "hex" && !key.startsWith("summon-");
+
+// The cost of one enhancement, step by step. x: { sticker, level, multi,
+// previous, hexes }, as the calculator holds them.
+function enhancementCost(x) {
+  const e = ENHANCEMENT_BY_KEY.get(x.sticker);
+  const hexes = Math.max(1, num(x.hexes));
+  const base = e.key === "hex" ? Math.ceil(200 / hexes) : e.base;
+  const doubles = canDouble(e.key) && Boolean(x.multi);
+  const level = Math.max(1, Math.min(9, num(x.level) || 1));
+  const previous = Math.max(0, num(x.previous));
+  const steps = [
+    [e.key === "hex" ? `One more hex: 200 gold over the ${hexes} it has` : e.group === "+1 to a number" ? `${e.label} +1` : e.label, base],
+    doubles ? ["Targets more than one: doubled", base] : null,
+    level > 1 ? [`Level ${level} card: 25 a level above 1`, 25 * (level - 1)] : null,
+    previous ? [`${previous} already on the action: 75 each`, 75 * previous] : null,
+  ].filter(Boolean);
+  return { steps, total: steps.reduce((sum, [, gold]) => sum + gold, 0) };
+}
+
 // One perk per level gained after 1, plus the checkmark perks.
 function perksEarned(level, checkmarks) {
   return level - 1 + perksFromCheckmarks(checkmarks);
@@ -1805,7 +1848,48 @@ function renderShop(data) {
         h("h3", { class: "label" }, gameIcon(`slot-${slot}`), label),
         h("ul", { class: "rows" }, list.map(row))))),
     shop.coming ? h("p", { class: "aside" }, `${plural(shop.coming, "more item")} arrive${shop.coming === 1 ? "s" : ""} at prosperity ${shop.level + 1}.`) : null,
+    enhancer(data),
   ];
+}
+
+// The Enhancer: what a sticker costs, from what's printed on the card. Not
+// saved anywhere; buying one is still a hand edit to the character's gold.
+const enhancing = { sticker: "attack", level: "1", multi: false, previous: "0", hexes: "3" };
+
+function enhancer(data) {
+  if (!data.city.globalAchievements.some(a => a.id === "the-power-of-enhancement")) return null;
+  const set = key => e => { enhancing[key] = e.target.type === "checkbox" ? e.target.checked : e.target.value; render(data, "shop"); };
+  const field = (label, control) => h("label", { class: "field" }, h("span", {}, label), control);
+  const select = (key, options) => h("select", { "data-key": `enh-${key}`, onchange: set(key) },
+    options.map(([value, label]) => h("option", { value, selected: String(enhancing[key]) === String(value) }, label)));
+  const counting = (from, to) => Array.from({ length: to - from + 1 }, (_, i) => [String(from + i), String(from + i)]);
+
+  const key = enhancing.sticker;
+  const cost = enhancementCost(enhancing);
+  const afford = data.characters.filter(c => !c.retired && c.gold >= cost.total).map(c => c.name);
+
+  return h("div", { class: "enhancer-wrap" },
+    h("h3", { class: "subtitle" }, "Enhancing a card"),
+    h("div", { class: "card enhancer" },
+      h("div", { class: "enhancer-form" },
+        h("p", { class: "small muted" }, "Read it off the card: its level, whether the ability targets more than one, and how many stickers that action has already."),
+        h("div", { class: "rec-row" },
+          field("Sticker", h("select", { "data-key": "enh-sticker", onchange: set("sticker") },
+            ENHANCEMENTS.map(([group, list]) => h("optgroup", { label: group },
+              list.map(([k, label]) => h("option", { value: k, selected: k === key }, label)))))),
+          field("Card level", select("level", counting(1, 9))),
+          field("Already on it", select("previous", counting(0, 4))),
+          key === "hex" ? field("Hexes it has", select("hexes", counting(1, 12))) : null),
+        canDouble(key) ? h("label", { class: "rec-check" },
+          h("input", { type: "checkbox", "data-key": "enh-multi", checked: Boolean(enhancing.multi), onchange: set("multi") }),
+          "The ability targets more than one figure") : null,
+        h("p", { class: "small muted" }, "A level X card counts as level 1.")),
+      h("div", { class: "enhancer-cost" },
+        h("div", { class: "enhancer-total", "aria-live": "polite" }, h("span", { class: "figure" }, cost.total), h("span", {}, "gold")),
+        h("ul", { class: "rows" }, cost.steps.map(([text, gold]) => h("li", {}, h("span", {}, text), h("span", { class: "num" }, `+${gold}`)))),
+        h("p", { class: "small muted" }, afford.length
+          ? `${afford.join(", ").replace(/, ([^,]*)$/, " and $1")} ${afford.length === 1 ? "has" : "have"} enough gold.`
+          : "No one has enough gold yet."))));
 }
 
 // --- Recording a session ------------------------------------------------------------
