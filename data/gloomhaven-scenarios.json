@@ -1238,7 +1238,8 @@
    ],
    "rewards": {
     "reputation": 1
-   }
+   },
+   "boss": true
   },
   "58": {
    "name": "Bloody Shack",
@@ -1248,7 +1249,8 @@
     ],
     "reputation": 2,
     "characterRetirement": "526"
-   }
+   },
+   "boss": true
   },
   "59": {
    "name": "Forgotten Grove",
