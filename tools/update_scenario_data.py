@@ -3,9 +3,11 @@
 Keeps only what the tracker needs and writes two files:
 - data/gloomhaven-scenarios.json: names, unlocks, blocks, requirements,
   rewards and achievement names.
-- data/gloomhaven-events.json: the starting city and road decks, and for each
-  event option whether the card is removed or returned, which cards it adds
-  and which scenarios it unlocks. No event text is copied.
+- data/gloomhaven-events.json: the starting city and road decks, the class
+  names the events' conditions use, and for each event option its outcomes:
+  the condition, whether the card is removed or returned, and the effects
+  (reputation, prosperity, gold, XP, achievements, cards added, scenarios
+  unlocked). No event text is copied.
 
 Source: https://github.com/Lurkars/gloomhavensecretariat (AGPL-3.0)
 
@@ -56,30 +58,86 @@ def normalize_requirements(requirements, labels):
             for alternative in requirements]
 
 
+# Upstream effect types, as (our type, sign). "Additional" effects are extras
+# that come with a condition of their own.
+AMOUNTS = {
+    "reputation": ("reputation", 1), "loseReputation": ("reputation", -1),
+    "reputationAdditional": ("reputation", 1),
+    "prosperity": ("prosperity", 1), "loseProsperity": ("prosperity", -1),
+    "gold": ("gold", 1), "loseGold": ("gold", -1), "goldAdditional": ("gold", 1),
+    "collectiveGold": ("collectiveGold", 1), "loseCollectiveGold": ("collectiveGold", -1),
+    "collectiveGoldAdditional": ("collectiveGold", 1),
+    "experience": ("experience", 1),
+}
+
+
+def summarize_condition(condition):
+    return {"type": condition.get("type"), "values": condition.get("values", [])}
+
+
+def summarize_effect(effect):
+    """One effect in the tracker's terms, or None for "no effect"."""
+    kind = effect.get("type")
+    values = effect.get("values", [])
+    if kind == "noEffect":
+        return None
+    if kind in AMOUNTS:
+        name, sign = AMOUNTS[kind]
+        result = {"type": name, "amount": sign * int(values[0])}
+    elif kind == "event":
+        result = {"type": "addEvent", "deck": values[0], "number": int(values[1])}
+    elif kind == "unlockScenario":
+        # Several scenarios in one effect become one effect each, below.
+        result = {"type": "unlockScenario", "numbers": [int(n) for n in values]}
+    elif kind in ("partyAchievement", "globalAchievement"):
+        result = {"type": kind, "id": values[0]}
+    elif kind == "outcome":
+        # "Then do what option X says."
+        result = {"type": "asOption", "option": values[0]}
+    elif kind == "choose":
+        result = {"type": "choose", "of": [e for e in map(summarize_effect, values) if e]}
+    else:
+        # Scenario effects, items, battle goals: on the card, not tracked here.
+        result = {"type": "other", "what": kind}
+    if effect.get("condition") and effect["condition"].get("type") != "otherwise":
+        result["condition"] = summarize_condition(effect["condition"])
+    return result
+
+
 def summarize_outcome(option, outcome):
-    """What happens to the decks (and scenarios) for one outcome of an event option."""
+    """The condition, the card's fate and the effects of one outcome of an event option."""
     result = {}
     if outcome.get("condition"):
-        result["condition"] = {"type": outcome["condition"].get("type"),
-                               "values": outcome["condition"].get("values", [])}
+        result["condition"] = summarize_condition(outcome["condition"])
     # The flag can sit on the outcome or on the whole option.
     if outcome.get("removeFromDeck") or option.get("removeFromDeck"):
         result["card"] = "removed"
     elif outcome.get("returnToDeck") or option.get("returnToDeck"):
         result["card"] = "returned"
 
+    effects = []
     for effect in outcome.get("effects", []):
-        conditional = bool(effect.get("condition"))
-        if effect.get("type") == "event":
-            deck, number = effect["values"][:2]
-            result.setdefault("mayAdd" if conditional else "adds", []).append([deck, int(number)])
-        elif effect.get("type") == "unlockScenario":
-            for number in effect.get("values", []):
-                result.setdefault("mayUnlock" if conditional else "unlocks", []).append(int(number))
+        summary = summarize_effect(effect)
+        if summary and summary["type"] == "unlockScenario":
+            numbers = summary.pop("numbers")
+            effects += [{**summary, "number": n} for n in numbers]
+        elif summary:
+            effects.append(summary)
+    if effects:
+        result["effects"] = effects
     return result
 
 
-def build_events():
+def class_names(labels, spoiler_labels):
+    """Class id (as event conditions write it) -> class name."""
+    names = {}
+    for source in (labels, spoiler_labels):
+        for class_id, name in source.get("character", {}).get("gh", {}).items():
+            names[class_id] = name[""] if isinstance(name, dict) else name
+    return names
+
+
+def build_events(labels, spoiler_labels):
     campaign = fetch(f"{RAW}/campaign.json")
     events = {"city": {}, "road": {}}
     for card in fetch(f"{RAW}/events.json"):
@@ -93,6 +151,7 @@ def build_events():
         "license": "AGPL-3.0",
         "retrieved": date.today().isoformat(),
         "startingDecks": {deck: [int(n) for n in cards] for deck, cards in campaign["events"].items()},
+        "classes": class_names(labels, spoiler_labels),
         "events": events,
     }
 
@@ -104,6 +163,7 @@ def write_json(path, data):
 
 def main():
     labels = fetch(f"{RAW}/label/en.json")
+    spoiler_labels = fetch(f"{RAW}/label/spoiler/en.json")
 
     scenarios = {}
     for number in range(1, 96):
@@ -128,7 +188,7 @@ def main():
     write_json(OUTPUT, output)
     print(f"Wrote {len(scenarios)} scenarios to {OUTPUT}")
 
-    events = build_events()
+    events = build_events(labels, spoiler_labels)
     write_json(EVENTS_OUTPUT, events)
     counts = ", ".join(f"{len(cards)} {deck}" for deck, cards in events["events"].items())
     print(f"Wrote {counts} events to {EVENTS_OUTPUT}")

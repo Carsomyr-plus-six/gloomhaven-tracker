@@ -4,7 +4,6 @@
   "updated": null,
   "party": {
     "name": "Craig's List",
-    "reputation": 2,
     "location": "",
     "achievements": [
       {
@@ -16,10 +15,9 @@
         "scenario": 3
       }
     ],
-    "notes": "Unclaimed: a random side scenario from treasure 07 (scenario #1).\nUnclaimed: a random side scenario from treasure 51 (scenario #8).\nReputation and prosperity are worked out from scenario rewards. Events drawn without a recorded option may have moved reputation a point or two, and city event 29 may have added a prosperity checkmark."
+    "notes": "Unclaimed: a random side scenario from treasure 07 (scenario #1).\nUnclaimed: a random side scenario from treasure 51 (scenario #8)."
   },
   "city": {
-    "prosperityCheckmarks": 2,
     "donations": 0,
     "globalAchievements": [
       {
@@ -235,7 +233,7 @@
   "events": [
     { "deck": "city", "number": 1, "notes": "Option and timing not recorded." },
     { "deck": "city", "number": 23, "notes": "Option and timing not recorded." },
-    { "deck": "city", "number": 29, "notes": "Option and timing not recorded." },
+    { "deck": "city", "number": 29, "option": "A", "characters": ["Craig"], "notes": "Convinced the Savvas to go back to work. Craig was there; the rest of the party and the timing weren't recorded." },
     { "deck": "road", "number": 9, "notes": "Option and timing not recorded." },
     { "deck": "road", "number": 28, "notes": "Option and timing not recorded." },
     { "deck": "city", "number": 21, "option": "B", "scenario": 8 },

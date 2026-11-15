@@ -265,6 +265,9 @@ main {
 .tile-foot { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; }
 .tile-foot strong { font-size: 15px; font-weight: 600; }
 .tile-foot span { font-size: 13px; color: var(--muted); }
+.ledger summary { font-size: 13px; color: var(--fg-3); cursor: pointer; padding: 2px 0; }
+.ledger ul { list-style: none; margin: 6px 0 0; padding: 0; }
+.ledger li { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; padding: 3px 0; border-top: 1px solid var(--line); }
 
 .track { position: relative; height: 6px; border-radius: 3px; background: var(--line); }
 .track::before { content: ""; position: absolute; left: 50%; top: -3px; width: 1px; height: 12px; background: #5c6963; }

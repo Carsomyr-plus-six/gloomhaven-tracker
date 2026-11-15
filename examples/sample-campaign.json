@@ -4,7 +4,6 @@
   "updated": "2026-11-15",
   "party": {
     "name": "The Sample Company",
-    "reputation": 4,
     "location": "Gloomhaven",
     "achievements": [
       { "name": "Example party achievement", "scenario": 2 }
@@ -12,7 +11,6 @@
     "notes": "Made-up data for testing the page. Not a real campaign."
   },
   "city": {
-    "prosperityCheckmarks": 6,
     "donations": 40,
     "globalAchievements": [
       { "name": "Example global achievement", "scenario": 2, "notes": "Gained on the second night" }
@@ -66,5 +64,13 @@
       "characters": ["Grunt", "Sparks"],
       "notes": "Second try went much better."
     }
+  ],
+  "events": [
+    { "deck": "city", "number": 1, "option": "B", "scenario": 1, "notes": "Example: one outcome, so nothing to ask." },
+    { "deck": "city", "number": 29, "option": "A", "scenario": 2, "notes": "Example: the party comes from the session, and it had no Cragheart." },
+    { "deck": "city", "number": 16, "option": "A", "scenario": 2, "notes": "Example: whether you paid isn't recorded, so the page asks." }
+  ],
+  "adjustments": [
+    { "reputation": 3, "prosperity": 4, "notes": "Example: a made-up starting point" }
   ]
 }

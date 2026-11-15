@@ -165,7 +165,18 @@ function priceText(modifier) {
   return modifier === 0 ? "normal prices" : `${signed(modifier)} gold per item`;
 }
 
-function reputationTile(party) {
+// Where a total comes from, and how sure it is.
+function ledgerFoot(t, unit) {
+  if (!t?.entries.length) return null;
+  return h("details", { class: "ledger" },
+    h("summary", {}, isExact(t.range) ? `From ${plural(t.entries.length, "source")}`
+                                      : `Could be ${rangeText(t.range)}: ${t.unsure.join(", ")} not settled`),
+    h("ul", {}, t.entries.map(e => h("li", {},
+      h("span", {}, e.label),
+      h("span", { class: "num" }, `${rangeText(e.range)}${unit}`)))));
+}
+
+function reputationTile(party, ledger) {
   const modifier = shopModifier(party.reputation);
   const next = nextShopStep(party.reputation);
   const marker = h("span");
@@ -177,10 +188,11 @@ function reputationTile(party) {
       h("div", { class: "track-scale" }, h("span", {}, "−20"), h("span", {}, "0"), h("span", {}, "+20"))),
     h("div", { class: "tile-foot" },
       h("strong", {}, modifier === 0 ? "Shop prices normal" : `Shop ${priceText(modifier)}`),
-      next ? h("span", {}, `${capitalize(priceText(next.modifier))} from ${signed(next.at)}`) : null));
+      next ? h("span", {}, `${capitalize(priceText(next.modifier))} from ${signed(next.at)}`) : null),
+    ledgerFoot(ledger?.reputation, ""));
 }
 
-function prosperityTile(city) {
+function prosperityTile(city, ledger) {
   const level = stepFor(city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
   const toNext = progressFor(city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
   const from = CHECKMARKS_FOR_PROSPERITY[level - 1];
@@ -191,7 +203,8 @@ function prosperityTile(city) {
       Array.from({ length: toNext.next - from }, (_, i) => h("span", { class: i < city.prosperityCheckmarks - from ? "on" : null }))) : null,
     h("div", { class: "tile-foot" },
       h("strong", {}, toNext ? `${toNext.remaining} more to level ${level + 1}` : "Maximum level"),
-      h("span", {}, `${plural(city.prosperityCheckmarks, "checkmark")} · ${city.donations} gold donated`)));
+      h("span", {}, `${plural(city.prosperityCheckmarks, "checkmark")} · ${city.donations} gold donated`)),
+    ledgerFoot(ledger?.prosperity, ""));
 }
 
 // A few hexes behind the party name, on phones.
@@ -228,7 +241,7 @@ function renderOverview(data) {
                   h("span", { class: "ready-name" }, s.name || "Untitled"),
                   from(s) ? h("span", { class: "ready-from" }, from(s)) : null))))
           : empty("Nothing is unlocked to play right now.")),
-      h("div", { class: "tiles" }, reputationTile(party), prosperityTile(city))),
+      h("div", { class: "tiles" }, reputationTile(party, data.ledger), prosperityTile(city, data.ledger))),
     partyList(data),
   ];
 }
@@ -289,7 +302,8 @@ function renderEvents(data) {
   const drawn = e => {
     const detail = [
       e.option ? `Option ${e.option}` : null,
-      e.adds.length ? `added ${e.adds.map(([d, n]) => eventLabel(d, n)).join(", ")}` : null,
+      e.effects.length ? capitalize(e.effects.join(", ")) : null,
+      !e.effects.length && e.adds.length ? `added ${e.adds.map(([d, n]) => eventLabel(d, n)).join(", ")}` : null,
       e.scenario ? `before #${e.scenario}` : null,
     ].filter(Boolean).join(" · ");
     return h("li", {},
@@ -404,24 +418,154 @@ function describeRewards(ref, rewards) {
   return parts;
 }
 
-// --- Event decks ------------------------------------------------------------
-// data/gloomhaven-events.json says what each event option does to the decks.
-// campaign.json's "events" lists the events drawn and the option chosen;
-// "eventDecks" holds manual additions and removals the data can't know about.
+// --- Events and the ledger ----------------------------------------------------
+// data/gloomhaven-events.json says what each event option does. campaign.json's
+// "events" lists the events drawn, in order, with the option chosen and who was
+// there; "eventDecks" holds cards added or removed some other way. One pass
+// over the campaign, in the order things happened, works out the decks, which
+// outcome each event had, and the party's reputation and the city's prosperity.
 
 const DECK_NAMES = { city: "City", road: "Road" };
 const eventLabel = (deck, number) => `${DECK_NAMES[deck] || deck} ${number}`;
 
-function describeCondition(c) {
+// A number that may not be known exactly: the lowest and highest it can be.
+const exact = n => ({ lo: n, hi: n });
+const plus = (a, b) => ({ lo: a.lo + b.lo, hi: a.hi + b.hi });
+const either = (a, b) => ({ lo: Math.min(a.lo, b.lo), hi: Math.max(a.hi, b.hi) });
+const isExact = r => r.lo === r.hi;
+const rangeText = r => isExact(r) ? signed(r.lo) : `${signed(r.lo)} to ${signed(r.hi)}`;
+
+function className(evRef, id) { return evRef?.classes?.[id] || capitalize(id); }
+
+function describeCondition(c, evRef) {
   if (!c || c.type === "otherwise") return "otherwise";
-  if (c.type === "reputationGT") return `reputation above ${c.values[0]}`;
-  if (c.type === "reputationLT") return `reputation below ${c.values[0]}`;
-  if (c.type === "character") return `with ${c.values.join(" or ")}`;
+  if (c.type === "reputationGT") return `reputation above ${signed(c.values[0])}`;
+  if (c.type === "reputationLT") return `reputation below ${signed(c.values[0])}`;
+  if (c.type === "character") return `with a ${c.values.map(id => className(evRef, id)).join(" or ")}`;
+  if (c.type === "payCollectiveGold" || c.type === "payGold") return `if you paid ${c.values[0]} gold`;
   if (c.type.startsWith("pay")) return "if you paid";
   return c.type;
 }
 
-function deriveEvents(data, evRef) {
+// Who was at an event, as class ids. The event's own "characters" win; an
+// event drawn before a scenario played in only one session takes that
+// session's party. complete is false when someone's class isn't known.
+function eventParty(data, evRef, e) {
+  let names = e.characters;
+  if (!names && e.scenario != null) {
+    const sessions = data.sessions.filter(s => s.scenarios.some(sc => sc.number === e.scenario));
+    if (sessions.length === 1) names = sessions[0].characters;
+  }
+  if (!names?.length) return { classes: null, complete: false };
+  const ids = Object.entries(evRef?.classes || {});
+  const classes = new Set();
+  let complete = true;
+  for (const name of names) {
+    const cls = data.characters.find(c => c.name === name)?.class;
+    const id = cls && (ids.find(([, n]) => n.toLowerCase() === cls.toLowerCase())?.[0] || slug(cls));
+    if (id) classes.add(id); else complete = false;
+  }
+  return { classes, complete };
+}
+
+// true, false, or null when campaign.json doesn't say enough to tell.
+function testCondition(c, ctx) {
+  if (!c || c.type === "otherwise") return true;
+  if (c.type === "character") {
+    if (!ctx.classes) return null;
+    if (c.values.some(id => ctx.classes.has(id))) return true;
+    return ctx.complete ? false : null;
+  }
+  const v = c.values[0];
+  if (c.type === "reputationGT") return ctx.reputation.lo > v ? true : ctx.reputation.hi <= v ? false : null;
+  if (c.type === "reputationLT") return ctx.reputation.hi < v ? true : ctx.reputation.lo >= v ? false : null;
+  if (c.type.startsWith("pay")) return typeof ctx.paid === "boolean" ? ctx.paid : null;
+  return null;
+}
+
+// The outcomes an option could have had: the first whose condition is met,
+// plus any before it that can't be ruled out. "Do what option X says" is
+// followed through. Each comes with the conditions that couldn't be told.
+function possibleOutcomes(options, letter, ctx, pinned, depth = 0) {
+  const outcomes = options[letter] || [];
+  const found = [];
+  if (pinned) {
+    if (outcomes[pinned - 1]) found.push({ number: pinned, outcome: outcomes[pinned - 1], doubts: [] });
+  } else {
+    let settled = false;
+    for (const [i, outcome] of outcomes.entries()) {
+      // A blank outcome ahead of the real ones is only the card's lead-in.
+      if (outcomes.length > 1 && !outcome.condition && !outcome.card && !outcome.effects) continue;
+      const met = testCondition(outcome.condition, ctx);
+      if (met === false) continue;
+      found.push({ number: i + 1, outcome, doubts: met === null ? [outcome.condition] : [] });
+      if (met === true) { settled = true; break; }
+    }
+    // If no condition is surely met, it may be that none was: nothing
+    // happens, and the card goes where all of the option's outcomes send it.
+    if (!settled && outcomes.length) {
+      const cards = new Set(outcomes.map(o => o.card));
+      found.push({ number: null, outcome: cards.size === 1 ? { card: [...cards][0] } : {},
+                   doubts: found.length ? [found[0].doubts[0]] : [] });
+    }
+  }
+  return found.flatMap(({ number, outcome, doubts }) => {
+    const own = outcome.effects || [];
+    const then = own.find(e => e.type === "asOption");
+    const base = { option: letter, number, card: outcome.card, effects: own.filter(e => e.type !== "asOption"), doubts };
+    if (!then || depth > 2) return [base];
+    return possibleOutcomes(options, then.option, ctx, null, depth + 1).map(sub => ({
+      ...base, card: base.card || sub.card, effects: [...base.effects, ...sub.effects], doubts: [...doubts, ...sub.doubts],
+    }));
+  });
+}
+
+// What one outcome's effects come to. An effect with a condition that can't
+// be told counts as "may": a range for numbers, a question for cards.
+function tally(effects, ctx, ref, evRef) {
+  const t = { reputation: exact(0), prosperity: exact(0), adds: [], mayAdd: [], unlocks: [], mayUnlock: [], text: [], effectDoubts: [] };
+  const amount = e => ["reputation", "prosperity"].includes(e.type) ? { [e.type]: exact(e.amount) } : {};
+  let more = false;
+  for (const e of effects) {
+    const met = e.condition ? testCondition(e.condition, ctx) : true;
+    if (met === false) continue;
+    const maybe = met === null;
+    if (maybe) t.effectDoubts.push(e.condition);
+    const say = text => t.text.push(maybe ? `${text} ${describeCondition(e.condition, evRef)}` : text);
+    const add = (key, r) => { t[key] = plus(t[key], maybe ? either(exact(0), r) : r); };
+    switch (e.type) {
+      case "reputation":
+      case "prosperity":
+        add(e.type, exact(e.amount));
+        say(`${signed(e.amount)} ${e.type}`);
+        break;
+      case "gold": say(`${signed(e.amount)} gold each`); break;
+      case "collectiveGold": say(`${signed(e.amount)} gold to share`); break;
+      case "experience": say(`${signed(e.amount)} XP each`); break;
+      case "partyAchievement": say(achievementName(ref, "party", e.id)); break;
+      case "globalAchievement": say(achievementName(ref, "global", e.id)); break;
+      case "addEvent": (maybe ? t.mayAdd : t.adds).push([e.deck, e.number]); say(`adds ${eventLabel(e.deck, e.number)}`); break;
+      case "unlockScenario": (maybe ? t.mayUnlock : t.unlocks).push(e.number); say(`unlocks #${e.number}`); break;
+      case "choose": {
+        // One of several; without knowing which, anything in between.
+        for (const key of ["reputation", "prosperity"]) {
+          const ranges = e.of.map(sub => amount(sub)[key] || exact(0));
+          if (ranges.some(r => r.lo || r.hi)) add(key, ranges.reduce(either));
+        }
+        say(`choose: ${e.of.map(sub => sub.amount != null ? `${signed(sub.amount)} ${sub.type === "gold" ? "gold" : sub.type}` : sub.type).join(" or ")}`);
+        break;
+      }
+      default: more = true;
+    }
+  }
+  if (more) t.text.push("more on the card");
+  return t;
+}
+
+// The part of a range that is certain: the smallest change it could be.
+const settledPart = r => r.lo > 0 ? r.lo : r.hi < 0 ? r.hi : 0;
+
+function deriveCampaign(data, ref, evRef) {
   const decks = {};
   const added = {};
   const removed = {};
@@ -433,66 +577,149 @@ function deriveEvents(data, evRef) {
   const history = [];
   const questions = [];
   const unlocks = [];
+  const track = () => ({ value: 0, range: exact(0), entries: [], unsure: [] });
+  const totals = { reputation: track(), prosperity: track() };
 
-  const add = (deck, number, source) => {
+  const addCard = (deck, number, source) => {
     decks[deck]?.add(number);
     added[deck]?.set(number, source);
     removed[deck]?.delete(number);
   };
-  const remove = (deck, number, source) => {
+  const removeCard = (deck, number, source) => {
     decks[deck]?.delete(number);
     removed[deck]?.set(number, source);
   };
+  const gain = (key, range, label) => {
+    if (!range.lo && !range.hi) return;
+    const t = totals[key];
+    t.range = plus(t.range, range);
+    t.value += settledPart(range);
+    t.entries.push({ label, range });
+    if (!isExact(range)) t.unsure.push(label);
+  };
 
+  // The order things happened: completed scenarios as campaign.json lists
+  // them. An event with "scenario" comes just before that scenario; one
+  // without comes after the event listed before it. Adjustments with a
+  // scenario come before it, the rest at the end.
+  const played = data.scenarios.filter(s => s.status === "completed");
+  const before = played.map(() => []);
+  const after = [];
+  let into = before[0] || after;
   for (const e of data.events) {
-    const label = eventLabel(e.deck, e.number);
-    const options = evRef?.events?.[e.deck]?.[String(e.number)] || {};
-    // Without a known option, consider every outcome of every option.
-    const outcomes = e.option ? options[e.option] || [] : Object.values(options).flat();
-    const outcome = e.option && e.outcome ? outcomes[e.outcome - 1]
-                  : outcomes.length === 1 ? outcomes[0] : null;
-
-    // Removed or returned: the campaign entry wins, then the outcome, then
-    // all possible outcomes agreeing.
-    const fates = new Set(outcomes.map(o => o.card));
-    const fate = e.card || outcome?.card || (fates.size === 1 ? [...fates][0] : null);
-    if (fate === "removed") remove(e.deck, e.number, e.option ? `${label}, option ${e.option}` : label);
-
-    // With no outcome pinned down, cards added or scenarios unlocked count
-    // only if every possible outcome agrees.
-    const same = key => {
-      const all = outcomes.map(o => JSON.stringify(o[key] || []));
-      return new Set(all).size === 1 ? JSON.parse(all[0]) : [];
-    };
-    const adds = outcome ? outcome.adds || [] : same("adds");
-    for (const [deck, number] of adds) add(deck, number, `from ${label}`);
-    for (const n of outcome ? outcome.unlocks || [] : same("unlocks")) unlocks.push({ number: n, source: `${label} event` });
-
-    // Settled: the card's fate is known and every possible outcome agrees on
-    // what it adds and unlocks, so there is nothing to ask.
-    const settled = Boolean(fate) && (Boolean(outcome) ||
-      new Set(outcomes.map(o => JSON.stringify([o.adds || [], o.unlocks || []]))).size <= 1);
-    if (!settled) {
-      if (!e.option) {
-        questions.push(`${label}: which option did you choose, and who was there? It decides what happened to the card.`);
-      } else if (!outcome && outcomes.length > 1) {
-        const choices = outcomes.map((o, i) => `${i + 1}: ${describeCondition(o.condition)}`).join("; ");
-        questions.push(`${label}, option ${e.option}: which outcome? (${choices})`);
-      } else {
-        questions.push(`${label}: check whether the card was removed or returned to the deck.`);
-      }
+    if (e.scenario != null) {
+      const i = played.findIndex(s => s.number === e.scenario);
+      into = i >= 0 ? before[i] : after;
     }
-    for (const [deck, number] of outcome?.mayAdd || []) {
-      questions.push(`${label}: ${eventLabel(deck, number)} may have been added, depending on the characters present.`);
-    }
-
-    history.push({ ...e, label, fate, adds });
+    into.push({ event: e });
+  }
+  for (const a of data.adjustments) {
+    const i = a.scenario != null ? played.findIndex(s => s.number === a.scenario) : -1;
+    (i >= 0 ? before[i] : after).push({ adjustment: a });
   }
 
-  for (const a of data.eventDecks.added) add(a.deck, a.number, a.notes || "added by hand");
-  for (const r of data.eventDecks.removed) remove(r.deck, r.number, r.notes || "removed by hand");
+  const doEvent = e => {
+    const label = eventLabel(e.deck, e.number);
+    const options = evRef?.events?.[e.deck]?.[String(e.number)] || {};
+    const party = eventParty(data, evRef, e);
+    const ctx = { ...party, reputation: totals.reputation.range, paid: e.paid };
+    const letters = e.option ? [e.option] : Object.keys(options);
+    const found = letters.flatMap(l => possibleOutcomes(options, l, ctx, e.option ? e.outcome : null))
+      .map(o => ({ ...o, ...tally(o.effects, ctx, ref, evRef) }));
 
-  return { decks, added, removed, history, questions, unlocks };
+    // Everything that every possible outcome agrees on happened.
+    const key = o => JSON.stringify([o.card, o.reputation, o.prosperity, o.adds, o.unlocks, o.mayAdd, o.mayUnlock]);
+    const agreed = found.length > 0 && new Set(found.map(key)).size === 1;
+    const fates = new Set(found.map(o => o.card));
+    const fate = e.card || (fates.size === 1 ? [...fates][0] : null);
+    if (fate === "removed") removeCard(e.deck, e.number, e.option ? `${label}, option ${e.option}` : label);
+
+    const inAll = list => found.length ? found[0][list].filter(x => found.every(o => o[list].some(y => JSON.stringify(y) === JSON.stringify(x)))) : [];
+    const adds = inAll("adds");
+    for (const [deck, number] of adds) addCard(deck, number, `from ${label}`);
+    const sure = inAll("unlocks");
+    for (const n of sure) unlocks.push({ number: n, source: `${label} event` });
+
+    for (const k of ["reputation", "prosperity"]) {
+      if (found.length) gain(k, found.map(o => o[k]).reduce(either), label);
+    }
+
+    // What to ask, if anything is still open.
+    const one = found.length === 1 ? found[0] : null;
+    if (!found.length) {
+      questions.push(`${label}: check the option. The event data has no option ${e.option || ""} for this card.`.replace(" .", "."));
+    } else if (!agreed && !e.option) {
+      const who = found.some(o => o.doubts.some(c => c?.type === "character")) ? ", and who was there" : "";
+      questions.push(`${label}: which option did you choose${who}? It decides ${describeStakes(found)}.`);
+    } else if (!agreed || (one && one.effectDoubts.length)) {
+      const doubt = found.flatMap(o => [...o.doubts, ...o.effectDoubts])[0];
+      questions.push(`${label}, option ${e.option}: ${askAbout(doubt, ctx, evRef)}`);
+    }
+    if (!fate && agreed) questions.push(`${label}: check whether the card was removed or returned to the deck.`);
+    const sureAdds = new Set(adds.map(a => JSON.stringify(a)));
+    const mayAdds = new Set(found.flatMap(o => [...o.mayAdd, ...o.adds]).map(a => JSON.stringify(a)).filter(a => !sureAdds.has(a)));
+    for (const [deck, number] of [...mayAdds].map(a => JSON.parse(a))) {
+      questions.push(`${label}: ${eventLabel(deck, number)} may have been added, depending on ${one ? "who was there" : "the outcome"}.`);
+    }
+
+    history.push({ ...e, label, fate, adds, option: e.option, outcome: one?.number, effects: one ? one.text : [] });
+  };
+
+  const doScenario = s => {
+    const r = ref?.scenarios?.[String(s.number)]?.rewards || {};
+    const label = `#${s.number}${s.name ? ` ${s.name}` : ""}`;
+    if (r.reputation) gain("reputation", exact(r.reputation), label);
+    if (r.prosperity) gain("prosperity", exact(r.prosperity), label);
+  };
+
+  const doAdjustment = a => {
+    const label = a.notes || "Adjustment";
+    if (a.reputation) gain("reputation", exact(a.reputation), label);
+    if (a.prosperity) gain("prosperity", exact(a.prosperity), label);
+  };
+
+  const step = item => item.event ? doEvent(item.event) : doAdjustment(item.adjustment);
+  played.forEach((s, i) => { before[i].forEach(step); doScenario(s); });
+  after.forEach(step);
+  // Every retirement adds a checkmark to prosperity.
+  for (const c of data.characters.filter(c => c.retired)) gain("prosperity", exact(1), `${c.name} retired`);
+
+  for (const a of data.eventDecks.added) addCard(a.deck, a.number, a.notes || "added by hand");
+  for (const r of data.eventDecks.removed) removeCard(r.deck, r.number, r.notes || "removed by hand");
+
+  // Older files kept the totals by hand. Say so if they disagree.
+  for (const [key, stored, name] of [["reputation", data.stored.reputation, "reputation"],
+                                     ["prosperity", data.stored.prosperityCheckmarks, "prosperity checkmarks"]]) {
+    if (typeof stored === "number" && stored !== totals[key].value) {
+      questions.push(`Ledger: ${name} in campaign.json says ${stored}, but the scenarios and events add up to ${totals[key].value}. The page uses ${totals[key].value}; remove the number, or add an adjustment for the difference.`);
+    }
+  }
+
+  return { decks, added, removed, history, questions, unlocks, totals };
+}
+
+// What hangs on the choice of option: its effect on the deck and the numbers.
+function describeStakes(found) {
+  const differs = key => new Set(found.map(o => JSON.stringify(o[key]))).size > 1;
+  const stakes = [
+    differs("card") ? "what happened to the card" : null,
+    differs("reputation") ? "reputation" : null,
+    differs("prosperity") ? "prosperity" : null,
+    differs("adds") || differs("mayAdd") ? "which cards were added" : null,
+    differs("unlocks") || differs("mayUnlock") ? "which scenarios opened" : null,
+  ].filter(Boolean);
+  return stakes.length ? stakes.join(", ").replace(/, ([^,]*)$/, " and $1") : "what happened";
+}
+
+function askAbout(c, ctx, evRef) {
+  if (c?.type === "character") {
+    return `who was there? It turns on having a ${c.values.map(id => className(evRef, id)).join(" or ")} in the party.`;
+  }
+  if (c?.type?.startsWith("pay")) return `did you pay${c.values?.length && typeof c.values[0] === "number" ? ` ${c.values[0]} gold` : ""}?`;
+  if (c?.type === "reputationGT" || c?.type === "reputationLT") {
+    return `it turns on ${describeCondition(c, evRef)}, and reputation then could have been ${rangeText(ctx.reputation)}. Which outcome was it?`;
+  }
+  return "which outcome was it?";
 }
 
 // Turn campaign.json's scenario entries plus the reference data into the full
@@ -1012,12 +1239,15 @@ function onNavigate() {
 
 // Fill in anything missing, so older or partial files still display.
 function withDefaults(raw) {
-  const party = { name: "", reputation: 0, location: "", achievements: [], notes: "", ...raw.party };
-  const city = { prosperityCheckmarks: 0, donations: 0, globalAchievements: [], unlockedClasses: [], itemDesigns: [], ...raw.city };
+  const party = { name: "", location: "", achievements: [], notes: "", ...raw.party, reputation: 0 };
+  const city = { donations: 0, globalAchievements: [], unlockedClasses: [], itemDesigns: [], ...raw.city, prosperityCheckmarks: 0 };
   return {
     ...raw,
     party,
     city,
+    // Reputation and prosperity are worked out; older files kept them by hand.
+    stored: { reputation: raw.party?.reputation, prosperityCheckmarks: raw.city?.prosperityCheckmarks },
+    adjustments: raw.adjustments || [],
     scenarios: raw.scenarios || [],
     characters: (raw.characters || []).map(c => ({ xp: 0, gold: 0, checkmarks: 0, perks: [], items: [], ...c })),
     sessions: (raw.sessions || []).map(s => ({ scenarios: [], ...s })),
@@ -1058,8 +1288,12 @@ async function start() {
     ]);
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
     const data = withDefaults(await response.json());
-    data.eventState = evRef ? deriveEvents(data, evRef) : null;
-    data.scenarios = deriveScenarios(data, ref, data.eventState?.unlocks);
+    const derived = deriveCampaign(data, ref, evRef);
+    data.eventState = evRef ? derived : null;
+    data.ledger = derived.totals;
+    data.party.reputation = derived.totals.reputation.value;
+    data.city.prosperityCheckmarks = derived.totals.prosperity.value;
+    data.scenarios = deriveScenarios(data, ref, derived.unlocks);
 
     if (data.party.name) {
       document.getElementById("title").textContent = data.party.name;
