@@ -1,0 +1,1616 @@
+{
+ "source": "https://github.com/Lurkars/gloomhavensecretariat",
+ "license": "AGPL-3.0",
+ "retrieved": "2026-11-15",
+ "achievements": {
+  "global": {
+   "ancient-technology": "Ancient Technology",
+   "annihilation-of-order": "Annihilation of Order",
+   "artifact-cleansed": "Artifact: Cleansed",
+   "artifact-lost": "Artifact: Lost",
+   "artifact-recovered": "Artifact: Recovered",
+   "city-rule-demonic": "City Rule: Demonic",
+   "city-rule-economic": "City Rule: Economic",
+   "city-rule-militaristic": "City Rule: Militaristic",
+   "end-of-corruption": "End of Corruption",
+   "end-of-gloom": "End of Gloom",
+   "end-of-the-invasion": "End of the Invasion",
+   "the-dead-invade": "The Dead Invade",
+   "the-drake-aided": "The Drake Aided",
+   "the-drake-slain": "The Drake Slain",
+   "the-edge-of-darkness": "The Edge of Darkness",
+   "the-merchant-flees": "The Merchant Flees",
+   "the-power-of-enhancement": "The Power of Enhancement",
+   "the-rift-neutralized": "The Rift Neutralized",
+   "the-voice-freed": "The Voice Freed",
+   "the-voice-silenced": "The Voice Silenced",
+   "water-breathing": "Water-Breathing"
+  },
+  "party": {
+   "a-demons-errand": "A Demon's Errand",
+   "a-map-to-treasure": "A Map to Treasure",
+   "across-the-divide": "Across the Divide",
+   "an-invitation": "An Invitation",
+   "bad-business": "Bad Business",
+   "dark-bounty": "Dark Bounty",
+   "debt-collection": "Debt Collection",
+   "first-steps": "First Steps",
+   "fishs-aid": "Fish's Aid",
+   "following-clues": "Following Clues",
+   "grave-job": "Grave Job",
+   "high-sea-escort": "High Sea Escort",
+   "jekserahs-plans": "Jekserah's Plans",
+   "redthorns-aid": "Redthorn's Aid",
+   "sin-ra": "Sin-Ra",
+   "stonebreakers-censer": "Stonebreaker's Censer",
+   "sun-blessed": "Sun-Blessed",
+   "the-drakes-command": "The Drake's Command",
+   "the-drakes-treasure": "The Drake's Treasure",
+   "the-poisons-source": "The Poison's Source",
+   "the-scepter-and-the-voice": "The Scepter and the Voice",
+   "the-voices-command": "The Voice's Command",
+   "the-voices-treasure": "The Voice's Treasure",
+   "through-the-nest": "Through the Nest",
+   "through-the-ruins": "Through the Ruins",
+   "through-the-trench": "Through the Trench",
+   "tremors": "Tremors",
+   "water-staff": "Water Staff"
+  }
+ },
+ "scenarios": {
+  "1": {
+   "name": "Black Barrow",
+   "unlocks": [
+    "2"
+   ],
+   "rewards": {
+    "partyAchievements": [
+     "first-steps"
+    ]
+   },
+   "links": [
+    "2"
+   ]
+  },
+  "2": {
+   "name": "Barrow Lair",
+   "unlocks": [
+    "3",
+    "4"
+   ],
+   "requires": [
+    [
+     "1"
+    ]
+   ],
+   "requirements": [
+    {
+     "party": [
+      "first-steps"
+     ]
+    }
+   ],
+   "rewards": {
+    "gold": 10,
+    "prosperity": 1
+   }
+  },
+  "3": {
+   "name": "Inox Encampment",
+   "unlocks": [
+    "8",
+    "9"
+   ],
+   "requirements": [
+    {
+     "global": [
+      "!the-merchant-flees"
+     ]
+    }
+   ],
+   "rewards": {
+    "partyAchievements": [
+     "jekserahs-plans"
+    ],
+    "gold": 15,
+    "prosperity": 1
+   }
+  },
+  "4": {
+   "name": "Crypt of the Damned",
+   "unlocks": [
+    "5",
+    "6"
+   ]
+  },
+  "5": {
+   "name": "Ruinous Crypt",
+   "unlocks": [
+    "10",
+    "14",
+    "19"
+   ],
+   "links": [
+    "10"
+   ]
+  },
+  "6": {
+   "name": "Decaying Crypt",
+   "unlocks": [
+    "8"
+   ],
+   "rewards": {
+    "partyAchievements": [
+     "jekserahs-plans",
+     "dark-bounty"
+    ],
+    "gold": 5
+   }
+  },
+  "7": {
+   "name": "Vibrant Grotto",
+   "unlocks": [
+    "20"
+   ],
+   "requires": [
+    [
+     "14",
+     "8"
+    ]
+   ],
+   "requirements": [
+    {
+     "global": [
+      "the-power-of-enhancement",
+      "the-merchant-flees"
+     ]
+    }
+   ]
+  },
+  "8": {
+   "name": "Gloomhaven Warehouse",
+   "unlocks": [
+    "7",
+    "13",
+    "14"
+   ],
+   "blocks": [
+    "3",
+    "9"
+   ],
+   "requires": [
+    [
+     "3"
+    ],
+    [
+     "6"
+    ]
+   ],
+   "requirements": [
+    {
+     "global": [
+      "!the-dead-invade"
+     ],
+     "party": [
+      "jekserahs-plans"
+     ]
+    }
+   ],
+   "rewards": {
+    "globalAchievements": [
+     "the-merchant-flees"
+    ],
+    "reputation": 2
+   }
+  },
+  "9": {
+   "name": "Diamond Mine",
+   "unlocks": [
+    "11",
+    "12"
+   ],
+   "blocks": [
+    "8"
+   ],
+   "requirements": [
+    {
+     "global": [
+      "!the-merchant-flees"
+     ]
+    }
+   ],
+   "rewards": {
+    "globalAchievements": [
+     "the-dead-invade"
+    ],
+    "gold": 20,
+    "prosperity": 1
+   }
+  },
+  "10": {
+   "name": "Plane of Elemental Power",
+   "unlocks": [
+    "21",
+    "22"
+   ],
+   "requirements": [
+    {
+     "global": [
+      "!the-rift-neutralized"
+     ]
+    }
+   ],
+   "rewards": {
+    "partyAchievements": [
+     "a-demons-errand"
+    ]
+   },
+   "links": [
+    "21"
+   ]
+  },
+  "11": {
+   "name": "Gloomhaven Square A",
+   "unlocks": [
+    "16",
+    "18"
+   ],
+   "blocks": [
+    "12"
+   ],
+   "requirements": [
+    {
+     "global": [
+      "!end-of-the-invasion"
+     ]
+    }
+   ],
+   "rewards": {
+    "globalAchievements": [
+     "city-rule-economic",
+     "end-of-the-invasion"
+    ],
+    "gold": 15,
+    "reputation": -2,
+    "prosperity": 2,
+    "itemDesigns": [
+     "113"
+    ]
+   }
+  },
+  "12": {
+   "name": "Gloomhaven Square B",
+   "unlocks": [
+    "16",
+    "18",
+    "28"
+   ],
+   "blocks": [
+    "11"
+   ],
+   "requirements": [
+    {
+     "global": [
+      "!end-of-the-invasion"
+     ]
+    }
+   ],
+   "rewards": {
+    "globalAchievements": [
+     "end-of-the-invasion"
+    ],
+    "reputation": 4,
+    "itemDesigns": [
+     "113"
+    ]
+   }
+  },
+  "13": {
+   "name": "Temple of the Seer",
+   "rewards": {
+    "chooseLocation": [
+     "15",
+     "17",
+     "20"
+    ]
+   }
+  },
+  "14": {
+   "name": "Frozen Hollow",
+   "rewards": {
+    "globalAchievements": [
+     "the-power-of-enhancement"
+    ]
+   }
+  },
+  "15": {
+   "name": "Shrine of Strength",
+   "rewards": {
+    "experience": 20
+   }
+  },
+  "16": {
+   "name": "Mountain Pass",
+   "unlocks": [
+    "24",
+    "25"
+   ],
+   "links": [
+    "24"
+   ]
+  },
+  "17": {
+   "name": "Lost Island",
+   "rewards": {
+    "gold": 25
+   }
+  },
+  "18": {
+   "name": "Abandoned Sewers",
+   "unlocks": [
+    "14",
+    "23",
+    "26",
+    "43"
+   ]
+  },
+  "19": {
+   "name": "Forgotten Crypt",
+   "unlocks": [
+    "27"
+   ],
+   "requires": [
+    [
+     "14"
+    ]
+   ],
+   "requirements": [
+    {
+     "global": [
+      "the-power-of-enhancement"
+     ]
+    }
+   ],
+   "rewards": {
+    "partyAchievements": [
+     "stonebreakers-censer"
+    ],
+    "prosperity": 1
+   }
+  },
+  "20": {
+   "name": "Necromancer's Sanctum",
+   "unlocks": [
+    "16",
+    "18",
+    "28"
+   ],
+   "requires": [
+    [
+     "8"
+    ]
+   ],
+   "requirements": [
+    {
+     "global": [
+      "the-merchant-flees"
+     ]
+    }
+   ],
+   "rewards": {
+    "gold": 20,
+    "reputation": 2,
+    "prosperity": 1
+   }
+  },
+  "21": {
+   "name": "Infernal Throne",
+   "blocks": [
+    "10",
+    "35",
+    "36"
+   ],
+   "requirements": [
+    {
+     "global": [
+      "!the-rift-neutralized"
+     ]
+    }
+   ],
+   "rewards": {
+    "globalAchievements": [
+     "the-rift-neutralized"
+    ],
+    "gold": 50,
+    "prosperity": 1,
+    "events": [
+     "city:78"
+    ]
+   }
+  },
+  "22": {
+   "name": "Temple of the Elements",
+   "unlocks": [
+    "31",
+    "35",
+    "36"
+   ],
+   "requires": [
+    [
+     "10"
+    ],
+    [
+     "26"
+    ]
+   ],
+   "requirements": [
+    {
+     "party": [
+      "a-demons-errand"
+     ]
+    },
+    {
+     "party": [
+      "following-clues"
+     ]
+    }
+   ],
+   "rewards": {
+    "globalAchievements": [
+     "artifact-recovered"
+    ]
+   }
+  },
+  "23": {
+   "name": "Deep Ruins",
+   "unlocks": [
+    "26"
+   ],
+   "rewards": {
+    "globalAchievements": [
+     "ancient-technology"
+    ],
+    "partyAchievements": [
+     "through-the-ruins"
+    ]
+   }
+  },
+  "24": {
+   "name": "Echo Chamber",
+   "unlocks": [
+    "30",
+    "32"
+   ],
+   "rewards": {
+    "partyAchievements": [
+     "the-voices-command"
+    ]
+   }
+  },
+  "25": {
+   "name": "Icecrag Ascent",
+   "unlocks": [
+    "33",
+    "34"
+   ],
+   "rewards": {
+    "partyAchievements": [
+     "the-drakes-command"
+    ]
+   },
+   "links": [
+    "34"
+   ]
+  },
+  "26": {
+   "name": "Ancient Cistern",
+   "unlocks": [
+    "22"
+   ],
+   "requires": [
+    [
+     "23"
+    ],
+    [
+     "43"
+    ]
+   ],
+   "requirements": [
+    {
+     "global": [
+      "water-breathing"
+     ]
+    },
+    {
+     "party": [
+      "through-the-ruins"
+     ]
+    }
+   ],
+   "rewards": {
+    "partyAchievements": [
+     "following-clues"
+    ],
+    "gold": 10,
+    "reputation": 1,
+    "prosperity": 2
+   }
+  },
+  "27": {
+   "name": "Ruinous Rift",
+   "blocks": [
+    "10",
+    "21",
+    "35",
+    "36"
+   ],
+   "requires": [
+    [
+     "19"
+    ]
+   ],
+   "requirements": [
+    {
+     "global": [
+      "!artifact-lost"
+     ],
+     "party": [
+      "stonebreakers-censer"
+     ]
+    }
+   ],
+   "rewards": {
+    "globalAchievements": [
+     "the-rift-neutralized"
+    ],
+    "gold": 100,
+    "prosperity": 1,
+    "hints": {
+     "gold": "This money must immediately be spent on enhancements"
+    }
+   }
+  },
+  "28": {
+   "name": "Outer Ritual Chamber",
+   "unlocks": [
+    "29"
+   ],
+   "requires": [
+    [
+     "6"
+    ]
+   ],
+   "requirements": [
+    {
+     "party": [
+      "dark-bounty"
+     ]
+    }
+   ],
+   "rewards": {
+    "partyAchievements": [
+     "an-invitation"
+    ]
+   },
+   "links": [
+    "29"
+   ]
+  },
+  "29": {
+   "name": "Sanctuary of Gloom",
+   "requires": [
+    [
+     "28"
+    ]
+   ],
+   "requirements": [
+    {
+     "party": [
+      "an-invitation"
+     ]
+    }
+   ],
+   "rewards": {
+    "globalAchievements": [
+     "the-edge-of-darkness"
+    ],
+    "experience": 15
+   }
+  },
+  "30": {
+   "name": "Shrine of the Depths",
+   "unlocks": [
+    "42"
+   ],
+   "requires": [
+    [
+     "24"
+    ]
+   ],
+   "requirements": [
+    {
+     "party": [
+      "the-voices-command"
+     ]
+    }
+   ],
+   "rewards": {
+    "partyAchievements": [
+     "the-scepter-and-the-voice"
+    ],
+    "gold": 10
+   }
+  },
+  "31": {
+   "name": "Plane of the Night",
+   "unlocks": [
+    "37",
+    "38",
+    "39",
+    "43"
+   ],
+   "requires": [
+    [
+     "14",
+     "21"
+    ],
+    [
+     "14",
+     "22"
+    ]
+   ],
+   "requirements": [
+    {
+     "global": [
+      "the-power-of-enhancement",
+      "artifact-recovered"
+     ]
+    }
+   ],
+   "rewards": {
+    "globalAchievements": [
+     "artifact-cleansed"
+    ]
+   }
+  },
+  "32": {
+   "name": "Decrepit Wood",
+   "unlocks": [
+    "33",
+    "40"
+   ],
+   "requires": [
+    [
+     "24"
+    ]
+   ],
+   "requirements": [
+    {
+     "party": [
+      "the-voices-command"
+     ]
+    }
+   ]
+  },
+  "33": {
+   "name": "Savvas Armory",
+   "requires": [
+    [
+     "24"
+    ],
+    [
+     "25"
+    ]
+   ],
+   "requirements": [
+    {
+     "party": [
+      "the-voices-command"
+     ]
+    },
+    {
+     "party": [
+      "the-drakes-command"
+     ]
+    }
+   ],
+   "rewards": {
+    "partyAchievements": [
+     "the-voices-treasure",
+     "the-drakes-treasure"
+    ]
+   }
+  },
+  "34": {
+   "name": "Scorched Summit",
+   "requires": [
+    [
+     "25"
+    ]
+   ],
+   "requirements": [
+    {
+     "global": [
+      "!the-drake-aided"
+     ],
+     "party": [
+      "the-drakes-command"
+     ]
+    }
+   ],
+   "rewards": {
+    "globalAchievements": [
+     "the-drake-slain"
+    ],
+    "lostPartyAchievements": [
+     "the-drakes-command"
+    ],
+    "gold": 20,
+    "reputation": 2,
+    "prosperity": 1
+   }
+  },
+  "35": {
+   "name": "Gloomhaven Battlements A",
+   "unlocks": [
+    "45"
+   ],
+   "blocks": [
+    "36"
+   ],
+   "requires": [
+    [
+     "10"
+    ]
+   ],
+   "requirements": [
+    {
+     "global": [
+      "!the-rift-neutralized"
+     ],
+     "party": [
+      "a-demons-errand"
+     ]
+    }
+   ],
+   "rewards": {
+    "globalAchievements": [
+     "city-rule-demonic",
+     "artifact-lost"
+    ],
+    "lostPartyAchievements": [
+     "a-demons-errand"
+    ],
+    "gold": 30,
+    "reputation": -5,
+    "prosperity": -2,
+    "events": [
+     "city:79"
+    ]
+   }
+  },
+  "36": {
+   "name": "Gloomhaven Battlements B",
+   "blocks": [
+    "10",
+    "21",
+    "35"
+   ],
+   "requires": [
+    [
+     "10"
+    ]
+   ],
+   "requirements": [
+    {
+     "global": [
+      "!the-rift-neutralized"
+     ],
+     "party": [
+      "a-demons-errand"
+     ]
+    }
+   ],
+   "rewards": {
+    "globalAchievements": [
+     "the-rift-neutralized"
+    ],
+    "lostPartyAchievements": [
+     "The Demmon's Errand"
+    ],
+    "gold": 10,
+    "reputation": 4,
+    "events": [
+     "city:78"
+    ]
+   }
+  },
+  "37": {
+   "name": "Doom Trench",
+   "unlocks": [
+    "47"
+   ],
+   "requires": [
+    [
+     "43"
+    ]
+   ],
+   "requirements": [
+    {
+     "global": [
+      "water-breathing"
+     ]
+    }
+   ],
+   "rewards": {
+    "partyAchievements": [
+     "through-the-trench"
+    ]
+   }
+  },
+  "38": {
+   "name": "Slave Pens",
+   "unlocks": [
+    "44",
+    "48"
+   ],
+   "rewards": {
+    "partyAchievements": [
+     "redthorns-aid"
+    ],
+    "reputation": 1
+   },
+   "links": [
+    "44"
+   ]
+  },
+  "39": {
+   "name": "Treacherous Divide",
+   "unlocks": [
+    "15",
+    "46"
+   ],
+   "rewards": {
+    "partyAchievements": [
+     "across-the-divide"
+    ],
+    "experience": 10
+   },
+   "links": [
+    "46"
+   ]
+  },
+  "40": {
+   "name": "Ancient Defense Network",
+   "unlocks": [
+    "41"
+   ],
+   "requirements": [
+    {
+     "party": [
+      "the-voices-command",
+      "the-voices-treasure"
+     ]
+    }
+   ],
+   "rewards": {
+    "globalAchievements": [
+     "ancient-technology"
+    ]
+   },
+   "links": [
+    "41"
+   ]
+  },
+  "41": {
+   "name": "Timeworn Tomb",
+   "blocks": [
+    "42"
+   ],
+   "requires": [
+    [
+     "24"
+    ]
+   ],
+   "requirements": [
+    {
+     "party": [
+      "the-voices-command"
+     ]
+    }
+   ],
+   "rewards": {
+    "globalAchievements": [
+     "the-voice-freed"
+    ],
+    "gold": 50,
+    "experience": 25,
+    "prosperity": 2,
+    "battleGoals": 2
+   }
+  },
+  "42": {
+   "name": "Realm of the Voice",
+   "blocks": [
+    "30",
+    "32",
+    "40",
+    "41"
+   ],
+   "requires": [
+    [
+     "30"
+    ]
+   ],
+   "requirements": [
+    {
+     "global": [
+      "!the-voice-freed"
+     ],
+     "party": [
+      "the-scepter-and-the-voice"
+     ]
+    }
+   ],
+   "rewards": {
+    "globalAchievements": [
+     "the-voice-silenced"
+    ],
+    "lostPartyAchievements": [
+     "the-voices-command"
+    ]
+   }
+  },
+  "43": {
+   "name": "Drake Nest",
+   "requires": [
+    [
+     "14"
+    ]
+   ],
+   "requirements": [
+    {
+     "global": [
+      "the-power-of-enhancement"
+     ]
+    }
+   ],
+   "rewards": {
+    "globalAchievements": [
+     "water-breathing"
+    ]
+   }
+  },
+  "44": {
+   "name": "Tribal Assault",
+   "requires": [
+    [
+     "38"
+    ]
+   ],
+   "requirements": [
+    {
+     "party": [
+      "redthorns-aid"
+     ]
+    }
+   ],
+   "rewards": {
+    "reputation": 2,
+    "unlockCharacter": "angry-face"
+   }
+  },
+  "45": {
+   "name": "Rebel Swamp",
+   "unlocks": [
+    "49",
+    "50"
+   ],
+   "requires": [
+    [
+     "35"
+    ]
+   ],
+   "requirements": [
+    {
+     "global": [
+      "city-rule-demonic"
+     ]
+    }
+   ],
+   "rewards": {
+    "gold": 20,
+    "reputation": -2
+   }
+  },
+  "46": {
+   "name": "Nightmare Peak",
+   "unlocks": [
+    "51"
+   ],
+   "requires": [
+    [
+     "39"
+    ]
+   ],
+   "requirements": [
+    {
+     "party": [
+      "across-the-divide"
+     ]
+    }
+   ],
+   "rewards": {
+    "globalAchievements": [
+     "end-of-corruption"
+    ]
+   }
+  },
+  "47": {
+   "name": "Lair of the Unseeing Eye",
+   "unlocks": [
+    "51"
+   ],
+   "requires": [
+    [
+     "37"
+    ]
+   ],
+   "requirements": [
+    {
+     "party": [
+      "through-the-trench"
+     ]
+    }
+   ],
+   "rewards": {
+    "globalAchievements": [
+     "end-of-corruption"
+    ]
+   }
+  },
+  "48": {
+   "name": "Shadow Weald",
+   "unlocks": [
+    "51"
+   ],
+   "requires": [
+    [
+     "38"
+    ]
+   ],
+   "requirements": [
+    {
+     "party": [
+      "redthorns-aid"
+     ]
+    }
+   ],
+   "rewards": {
+    "globalAchievements": [
+     "end-of-corruption"
+    ]
+   }
+  },
+  "49": {
+   "name": "Rebel's Stand",
+   "blocks": [
+    "50"
+   ],
+   "requires": [
+    [
+     "35"
+    ]
+   ],
+   "requirements": [
+    {
+     "global": [
+      "city-rule-demonic"
+     ]
+    }
+   ],
+   "rewards": {
+    "globalAchievements": [
+     "annihilation-of-order"
+    ],
+    "gold": 50,
+    "reputation": -3
+   }
+  },
+  "50": {
+   "name": "Ghost Fortress",
+   "requires": [
+    [
+     "35"
+    ]
+   ],
+   "requirements": [
+    {
+     "global": [
+      "city-rule-demonic",
+      "!annihilation-of-order"
+     ]
+    }
+   ],
+   "rewards": {
+    "globalAchievements": [
+     "city-rule-militaristic"
+    ],
+    "reputation": 3,
+    "prosperity": -2
+   }
+  },
+  "51": {
+   "name": "The Void",
+   "requirements": [
+    {
+     "global": [
+      "end-of-corruption:3"
+     ]
+    }
+   ],
+   "rewards": {
+    "globalAchievements": [
+     "end-of-gloom"
+    ],
+    "reputation": 5,
+    "prosperity": 5,
+    "events": [
+     "city:81",
+     "road:69"
+    ]
+   }
+  },
+  "52": {
+   "name": "Noxious Cellar",
+   "unlocks": [
+    "53"
+   ]
+  },
+  "53": {
+   "name": "Crypt Basement",
+   "unlocks": [
+    "54"
+   ],
+   "rewards": {
+    "items": [
+     "114"
+    ],
+    "hints": {
+     "items": [
+      "The Seeker of Xorn receives item. The Seeker cannot sell this item."
+     ]
+    }
+   }
+  },
+  "54": {
+   "name": "Palace of Ice",
+   "rewards": {
+    "events": [
+     "city:59",
+     "road:59"
+    ],
+    "custom": "%data.scenario.rewards.gh.54%",
+    "characterRetirement": "510",
+    "unlockCharacter": "squidface"
+   }
+  },
+  "55": {
+   "name": "Foggy Thicket",
+   "unlocks": [
+    "56"
+   ],
+   "rewards": {
+    "collectiveGold": 10
+   },
+   "links": [
+    "56"
+   ]
+  },
+  "56": {
+   "name": "Bandit's Wood",
+   "rewards": {
+    "gold": 10,
+    "reputation": 2,
+    "characterRetirement": "521",
+    "unlockCharacter": "angry-face"
+   }
+  },
+  "57": {
+   "name": "Investigation",
+   "unlocks": [
+    "58"
+   ],
+   "rewards": {
+    "reputation": 1
+   }
+  },
+  "58": {
+   "name": "Bloody Shack",
+   "rewards": {
+    "envelopes": [
+     "X"
+    ],
+    "reputation": 2,
+    "characterRetirement": "526"
+   }
+  },
+  "59": {
+   "name": "Forgotten Grove",
+   "unlocks": [
+    "60"
+   ]
+  },
+  "60": {
+   "name": "Alchemy Lab",
+   "rewards": {
+    "envelopes": [
+     "X"
+    ],
+    "prosperity": 1,
+    "characterRetirement": "513"
+   }
+  },
+  "61": {
+   "name": "Fading Lighthouse",
+   "unlocks": [
+    "62"
+   ],
+   "links": [
+    "62"
+   ]
+  },
+  "62": {
+   "name": "Pit of Souls",
+   "rewards": {
+    "experience": 10,
+    "characterRetirement": "529",
+    "unlockCharacter": "eclipse"
+   }
+  },
+  "63": {
+   "name": "Magma Pit",
+   "rewards": {
+    "gold": 15
+   }
+  },
+  "64": {
+   "name": "Underwater Lagoon",
+   "requires": [
+    [
+     "43"
+    ]
+   ],
+   "requirements": [
+    {
+     "global": [
+      "water-breathing"
+     ]
+    }
+   ],
+   "rewards": {
+    "experience": 10
+   }
+  },
+  "65": {
+   "name": "Sulfur Mine",
+   "rewards": {
+    "globalAchievements": [
+     "ancient-technology"
+    ],
+    "itemDesigns": [
+     "112"
+    ]
+   }
+  },
+  "66": {
+   "name": "Clockwork Cove",
+   "rewards": {
+    "globalAchievements": [
+     "ancient-technology"
+    ]
+   }
+  },
+  "67": {
+   "name": "Arcane Library",
+   "rewards": {
+    "globalAchievements": [
+     "ancient-technology"
+    ],
+    "items": [
+     "132"
+    ]
+   }
+  },
+  "68": {
+   "name": "Toxic Moor",
+   "rewards": {
+    "items": [
+     "27:2"
+    ]
+   }
+  },
+  "69": {
+   "name": "Well of the Unfortunate",
+   "rewards": {
+    "gold": 15
+   }
+  },
+  "70": {
+   "name": "Chained Isle",
+   "rewards": {
+    "prosperity": 2
+   }
+  },
+  "71": {
+   "name": "Windswept Highlands",
+   "rewards": {
+    "items": [
+     "41:2"
+    ]
+   }
+  },
+  "72": {
+   "name": "Oozing Grove",
+   "rewards": {
+    "reputation": 1,
+    "prosperity": 1
+   }
+  },
+  "73": {
+   "name": "Rockslide Ridge",
+   "rewards": {
+    "reputation": 1
+   }
+  },
+  "74": {
+   "name": "Merchant Ship",
+   "requirements": [
+    {
+     "party": [
+      "high-sea-escort"
+     ]
+    }
+   ],
+   "rewards": {
+    "gold": 10,
+    "prosperity": 2
+   }
+  },
+  "75": {
+   "name": "Overgrown Graveyard",
+   "requirements": [
+    {
+     "party": [
+      "grave-job"
+     ]
+    }
+   ],
+   "rewards": {
+    "gold": 60
+   }
+  },
+  "76": {
+   "name": "Harrower Hive"
+  },
+  "77": {
+   "name": "Vault of Secrets",
+   "rewards": {
+    "experience": 5
+   }
+  },
+  "78": {
+   "name": "Sacrifice Pit",
+   "rewards": {
+    "reputation": 3
+   }
+  },
+  "79": {
+   "name": "Lost Temple",
+   "requirements": [
+    {
+     "party": [
+      "fishs-aid"
+     ]
+    }
+   ],
+   "rewards": {
+    "gold": 15
+   }
+  },
+  "80": {
+   "name": "Vigil Keep",
+   "rewards": {
+    "experience": 10
+   }
+  },
+  "81": {
+   "name": "Temple of the Eclipse",
+   "rewards": {
+    "experience": 10
+   }
+  },
+  "82": {
+   "name": "Burning Mountain"
+  },
+  "83": {
+   "name": "Shadows Within",
+   "requirements": [
+    {
+     "party": [
+      "bad-business"
+     ]
+    }
+   ],
+   "rewards": {
+    "collectiveGold": 40
+   }
+  },
+  "84": {
+   "name": "Crystalline Cave",
+   "requirements": [
+    {
+     "party": [
+      "tremors"
+     ]
+    }
+   ],
+   "rewards": {
+    "prosperity": 1,
+    "items": [
+     "133"
+    ]
+   }
+  },
+  "85": {
+   "name": "Sun Temple",
+   "rewards": {
+    "items": [
+     "121"
+    ]
+   }
+  },
+  "86": {
+   "name": "Harried Village",
+   "unlocks": [
+    "87"
+   ],
+   "rewards": {
+    "partyAchievements": [
+     "the-poisons-source"
+    ],
+    "reputation": 2
+   }
+  },
+  "87": {
+   "name": "Corrupted Cove",
+   "requires": [
+    [
+     "86"
+    ]
+   ],
+   "requirements": [
+    {
+     "party": [
+      "the-poisons-source"
+     ]
+    }
+   ],
+   "rewards": {
+    "reputation": 1,
+    "prosperity": 1
+   }
+  },
+  "88": {
+   "name": "Plane of Water",
+   "requires": [
+    [
+     "43"
+    ]
+   ],
+   "requirements": [
+    {
+     "global": [
+      "water-breathing"
+     ],
+     "party": [
+      "water-staff"
+     ]
+    }
+   ],
+   "rewards": {
+    "items": [
+     "120"
+    ]
+   }
+  },
+  "89": {
+   "name": "Syndicate Hideout",
+   "requirements": [
+    {
+     "party": [
+      "sin-ra"
+     ]
+    }
+   ],
+   "rewards": {
+    "collectiveGold": 50
+   }
+  },
+  "90": {
+   "name": "Demonic Rift",
+   "rewards": {
+    "items": [
+     "128"
+    ]
+   }
+  },
+  "91": {
+   "name": "Wild Melee",
+   "rewards": {
+    "battleGoals": 2
+   }
+  },
+  "92": {
+   "name": "Back Alley Brawl",
+   "requirements": [
+    {
+     "party": [
+      "debt-collection"
+     ]
+    }
+   ],
+   "rewards": {
+    "gold": 10,
+    "reputation": -3
+   }
+  },
+  "93": {
+   "name": "Sunken Vessel",
+   "requirements": [
+    {
+     "party": [
+      "a-map-to-treasure"
+     ]
+    }
+   ],
+   "rewards": {
+    "experience": 10
+   }
+  },
+  "94": {
+   "name": "Vermling Nest",
+   "unlocks": [
+    "95"
+   ],
+   "rewards": {
+    "partyAchievements": [
+     "through-the-nest"
+    ]
+   },
+   "links": [
+    "95"
+   ]
+  },
+  "95": {
+   "name": "Payment Due",
+   "requires": [
+    [
+     "94"
+    ]
+   ],
+   "requirements": [
+    {
+     "party": [
+      "through-the-nest"
+     ]
+    }
+   ],
+   "rewards": {
+    "items": [
+     "119"
+    ]
+   }
+  }
+ }
+}

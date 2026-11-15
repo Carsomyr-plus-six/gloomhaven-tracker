@@ -3,19 +3,248 @@
   "edition": "Gloomhaven (1st edition)",
   "updated": null,
   "party": {
-    "name": "",
-    "reputation": 0,
+    "name": "Craig's List",
+    "reputation": 2,
     "location": "",
-    "achievements": [],
-    "notes": ""
+    "achievements": [
+      {
+        "name": "First Steps",
+        "scenario": 1
+      },
+      {
+        "name": "Jekserah's Plans",
+        "scenario": 3
+      }
+    ],
+    "notes": "Unclaimed: a random side scenario from treasure 07 (scenario #1).\nUnclaimed: a random side scenario from treasure 51 (scenario #8).\nReputation and prosperity are worked out from scenario rewards. Events drawn without a recorded option may have moved reputation a point or two, and city event 29 may have added a prosperity checkmark."
   },
   "city": {
-    "prosperityCheckmarks": 0,
+    "prosperityCheckmarks": 2,
     "donations": 0,
-    "globalAchievements": [],
-    "unlockedClasses": ["Brute", "Tinkerer", "Spellweaver", "Scoundrel", "Cragheart", "Mindthief"]
+    "globalAchievements": [
+      {
+        "name": "The Merchant Flees",
+        "scenario": 8
+      },
+      {
+        "name": "The Power of Enhancement",
+        "scenario": 14
+      }
+    ],
+    "unlockedClasses": [
+      "Brute",
+      "Tinkerer",
+      "Spellweaver",
+      "Scoundrel",
+      "Cragheart",
+      "Mindthief"
+    ],
+    "itemDesigns": [
+      {
+        "name": "Horned Helm",
+        "scenario": 3,
+        "notes": "From treasure 65"
+      },
+      {
+        "name": "Ring of Skulls",
+        "scenario": 4,
+        "notes": "From treasure 38"
+      }
+    ]
   },
-  "scenarios": [],
-  "characters": [],
-  "sessions": []
+  "scenarios": [
+    {
+      "number": 1,
+      "name": "Black Barrow",
+      "status": "completed",
+      "completed": null,
+      "treasures": [
+        "07"
+      ],
+      "notes": "Exact XP and gold gained are lost to time.\nTreasure 07 gave a random side scenario, which we never drew."
+    },
+    {
+      "number": 2,
+      "name": "Barrow Lair",
+      "status": "completed",
+      "completed": null,
+      "treasures": [
+        "67"
+      ],
+      "notes": "Played the same day as #1.\nTreasure 67 gave 10 gold to whoever looted it (not sure who)."
+    },
+    {
+      "number": 3,
+      "name": "Inox Encampment",
+      "status": "completed",
+      "completed": null,
+      "treasures": [
+        "65"
+      ],
+      "notes": "New evening, after #1 and #2.\nTreasure 65 gave the Horned Helm design."
+    },
+    {
+      "number": 4,
+      "name": "Crypt of the Damned",
+      "status": "completed",
+      "completed": null,
+      "treasures": [
+        "38",
+        "46"
+      ],
+      "results": [
+        { "character": "Azorica", "xp": 15, "gold": 10, "checkmarks": 1 },
+        { "character": "Craig", "xp": 14, "gold": 10, "checkmarks": 1 },
+        { "character": "Flik Flak", "xp": 17, "gold": 12, "checkmarks": 1 }
+      ],
+      "notes": "First scenario without Kaktus.\nAll three completed their battle goals.\nTreasure 38 gave the Ring of Skulls design.\nTreasure 46 was a trap (3 damage and poisoned), with no lasting effect."
+    },
+    {
+      "number": 8,
+      "name": "Gloomhaven Warehouse",
+      "status": "completed",
+      "completed": null,
+      "treasures": [
+        "51"
+      ],
+      "results": [
+        { "character": "Azorica", "xp": 16, "gold": 3 },
+        { "character": "Craig", "xp": 20, "gold": 6 },
+        { "character": "Flik Flak", "xp": 14, "gold": 12 }
+      ],
+      "notes": "No Kaktus.\nTreasure 51 gave a random side scenario, which we never drew."
+    },
+    {
+      "number": 14,
+      "name": "Frozen Hollow",
+      "status": "completed",
+      "completed": "2026-11-13",
+      "treasures": ["26"],
+      "results": [
+        { "character": "Azorica", "xp": 15, "gold": 9 },
+        { "character": "Craig", "xp": 19, "gold": 12 },
+        { "character": "Flik Flak", "xp": 15, "gold": 15 }
+      ],
+      "notes": "No Kaktus.\nTreasure 26 (20 gold): our notes say Craig looted it, but Flik Flak's sheet has a matching +20. To confirm."
+    },
+    {
+      "number": 13,
+      "name": "Temple of the Seer",
+      "status": "completed",
+      "completed": "2026-11-13",
+      "results": [
+        { "character": "Azorica", "xp": 18, "gold": 0 },
+        { "character": "Craig", "xp": 19, "gold": 15 },
+        { "character": "Flik Flak", "xp": 29, "gold": 0 }
+      ],
+      "notes": "No Kaktus. Played the same evening as #14.\nChose #15 as our new location (over #17 and #20)."
+    },
+    {
+      "number": 15,
+      "status": "available",
+      "unlockedBy": 13,
+      "notes": "Chosen as the reward from #13."
+    }
+  ],
+  "characters": [
+    {
+      "name": "Azorica",
+      "class": "Spellweaver",
+      "player": "Mathias",
+      "xp": 149,
+      "gold": 44,
+      "checkmarks": 7,
+      "perks": [
+        "Remove four +0 cards",
+        "Replace one -1 card with one +1 card",
+        "Replace one -1 card with one +1 card"
+      ],
+      "items": ["Cloak of Invisibility", "Minor Power Potion", "Minor Stamina Potion"],
+      "personalQuest": "2/15",
+      "retired": false,
+      "notes": ""
+    },
+    {
+      "name": "Craig",
+      "class": "Cragheart",
+      "player": "Eirik",
+      "xp": 170,
+      "gold": 94,
+      "checkmarks": 9,
+      "perks": [
+        "Remove four +0 cards",
+        "Replace one -1 card with one +1 card",
+        "Replace one -1 card with one +1 card",
+        "Replace one -1 card with one +1 card",
+        "Add two MUDDLE cards (exact wording to check)",
+        "Ignore negative scenario effects"
+      ],
+      "items": ["Minor Power Potion", "Boots of Striding", "Minor Stamina Potion", "Horned Helm"],
+      "personalQuest": "2? (noted as II)",
+      "retired": false,
+      "notes": "Sheet has \"BG: (5 count)\" written under the personal quest tracker, meaning unclear."
+    },
+    {
+      "name": "Flik Flak",
+      "class": "Tinkerer",
+      "player": "Jørgen",
+      "xp": 192,
+      "gold": 109,
+      "checkmarks": 11,
+      "perks": [
+        "Remove two -1 cards",
+        "Remove two -1 cards",
+        "Replace one -2 card with one +0 card",
+        "Add one +3 card",
+        "Add three MUDDLE cards",
+        "Ignore negative scenario effects"
+      ],
+      "items": ["Eagle-Eye Goggles", "Minor Stamina Potion"],
+      "personalQuest": "2? (noted as II)",
+      "retired": false,
+      "notes": "Sheet has a note \"+10 global gold\", origin unknown.\nSheet lists 10 XP gains and 9 gold gains; six XP gains come before #4, which suggests failed attempts early on."
+    },
+    {
+      "name": "Kaktus",
+      "class": "Scoundrel",
+      "player": "Thorstein",
+      "xp": 59,
+      "gold": 46,
+      "checkmarks": 2,
+      "perks": [],
+      "items": ["Leather Armor", "Minor Stamina Potion", "Balanced Blade", "Iron Helmet"],
+      "personalQuest": "5?",
+      "retired": false,
+      "notes": "Thorstein lives far away, so Kaktus misses some sessions."
+    }
+  ],
+  "sessions": [
+    {
+      "title": "Early sessions",
+      "date": null,
+      "scenarios": [],
+      "notes": "Some failed attempts before #4; details unknown.\nBoth Flik Flak's and Craig's sheets show more XP gains than completed scenarios before #4."
+    },
+    {
+      "date": "2026-11-13",
+      "scenarios": [{ "number": 14, "result": "success" }, { "number": 13, "result": "success" }],
+      "characters": ["Azorica", "Craig", "Flik Flak"],
+      "notes": ""
+    }
+  ],
+  "events": [
+    { "deck": "city", "number": 1, "notes": "Option and timing not recorded." },
+    { "deck": "city", "number": 23, "notes": "Option and timing not recorded." },
+    { "deck": "city", "number": 29, "notes": "Option and timing not recorded." },
+    { "deck": "road", "number": 9, "notes": "Option and timing not recorded." },
+    { "deck": "road", "number": 28, "notes": "Option and timing not recorded." },
+    { "deck": "city", "number": 21, "option": "B", "scenario": 8 },
+    { "deck": "road", "number": 15, "scenario": 14, "notes": "On the way to #14. Option not recorded." },
+    { "deck": "city", "number": 13, "scenario": 13, "notes": "Back in town after #14. Option not recorded." },
+    { "deck": "road", "number": 1, "scenario": 13, "notes": "On the way to #13. Option not recorded." }
+  ],
+  "eventDecks": {
+    "added": [],
+    "removed": []
+  }
 }
