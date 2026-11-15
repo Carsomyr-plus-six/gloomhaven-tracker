@@ -307,12 +307,9 @@ def build_quests(labels, spoiler_labels, item_names):
     return cards
 
 
-def boss_monsters():
-    """Monster id -> True for the bosses."""
-    names = [entry["name"].removesuffix(".json")
-             for entry in fetch(f"https://api.github.com/repos/{REPO}/contents/data/gh/monster")
-             if entry["name"].endswith(".json")]
-    return {name for name in names if fetch(f"{RAW}/monster/{name}.json").get("boss")}
+def boss_monsters(names):
+    """Of these monster ids, the bosses: each monster file fetched once."""
+    return {name for name in sorted(names) if fetch(f"{RAW}/monster/{name}.json").get("boss")}
 
 
 def write_json(path, data):
@@ -324,12 +321,16 @@ def main():
     labels = fetch(f"{RAW}/label/en.json")
     spoiler_labels = fetch(f"{RAW}/label/spoiler/en.json")
 
-    bosses = boss_monsters()
+    # The scenarios first, then only the monsters they name, to find which
+    # have a boss.
+    # A scenario can name a monster with a level change ("stone-golem:+1").
+    sources = {number: fetch(f"{RAW}/scenarios/{number:02d}.json") for number in range(1, 96)}
+    monsters = {number: {m.partition(":")[0] for m in data.get("monsters", [])} for number, data in sources.items()}
+    bosses = boss_monsters(set().union(*monsters.values()))
     scenarios = {}
-    for number in range(1, 96):
-        data = fetch(f"{RAW}/scenarios/{number:02d}.json")
+    for number, data in sources.items():
         scenario = {field: data[field] for field in FIELDS if data.get(field)}
-        if bosses.intersection(data.get("monsters", [])):
+        if bosses & monsters[number]:
             scenario["boss"] = True
         if "requirements" in scenario:
             scenario["requirements"] = normalize_requirements(scenario["requirements"], labels)
