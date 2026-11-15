@@ -93,6 +93,10 @@ button { font: inherit; color: inherit; }
   clip-path: var(--hexagon);
   color: var(--ink);
   font: 700 calc(var(--w) * 0.55) / 1 var(--display);
+  /* Grenze Gotisch has old-style figures (x-height digits, some with
+     descenders) and a tall ascent, so a centred line box puts the digits
+     low. Lift them so the body of the digit sits on the hex's centre. */
+  padding-bottom: 0.26em;
 }
 .hex.completed { --ring: var(--verdigris); --fill: var(--under); --ink: var(--verdigris); }
 .hex.blocked { --ring: var(--line-strong); --fill: var(--under); --ink: var(--muted); }
