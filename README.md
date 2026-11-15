@@ -13,10 +13,11 @@ It runs on GitHub Pages, so it works on phones and desktops without installing a
 | `campaign.json` | The campaign itself. This is the file you edit. |
 | `index.html` | The page skeleton: header, tabs, empty sections. |
 | `styles.css` | How it looks: one dark theme, with the phone layout at the bottom of the file. |
-| `app.js` | Reads `campaign.json` and fills in the page. Also works out levels, reputation and prosperity, event outcomes and decks, shop prices, the unlock map, and which scenarios are unlocked or blocked. |
-| `data/gloomhaven-scenarios.json` | Reference data for all 95 scenarios: unlocks, blocks, requirements, rewards. Generated, don't edit by hand. **Contains spoilers.** |
-| `data/gloomhaven-events.json` | Reference data for city and road events: starting decks, and each option's outcomes: the condition, what happens to the card, and the effects (reputation, prosperity, gold, XP, achievements, cards added, scenarios unlocked). No event text. Generated, **contains spoilers**. |
-| `tools/update_scenario_data.py` | Regenerates both reference files: `py tools/update_scenario_data.py` |
+| `app.js` | Reads `campaign.json` and fills in the page. Also works out levels, reputation and prosperity, event outcomes and decks, achievements, item designs, unlocked classes, what treasures gave, shop prices, the unlock map, and which scenarios are unlocked or blocked. |
+| `data/gloomhaven-scenarios.json` | Reference data for all 95 scenarios: unlocks, blocks, requirements, rewards; and what each treasure tile gives. Generated, don't edit by hand. **Contains spoilers.** |
+| `data/gloomhaven-events.json` | Reference data for city and road events: starting decks, and each option's outcomes: the condition, what happens to the card, and the effects (reputation, prosperity, gold, XP, achievements, cards added, scenarios unlocked), plus each class's unlock and retirement events. No event text. Generated, **contains spoilers**. |
+| `data/gloomhaven-items.json` | Reference data for the 150 items: name, cost, copies, slot, and the prosperity that puts them in the shop. No item text. Generated, **contains spoilers**. |
+| `tools/update_scenario_data.py` | Regenerates the three reference files: `py tools/update_scenario_data.py` |
 | `examples/sample-campaign.json` | Made-up data for testing. View it at `?data=examples/sample-campaign.json`. |
 
 ## Running it locally
@@ -37,7 +38,9 @@ Then open http://127.0.0.1:8000/. Stop the server with Ctrl+C.
 
 **city**: `donations` (total gold given to the Sanctuary), `globalAchievements`, `unlockedClasses` (a list of class names), `itemDesigns` (items added to the shop permanently).
 
-Achievements, party or global, and item designs look like this. Only `name` is required. Spell achievement names as the game does: scenario requirements are checked against them. Add `"count": 2` for an achievement gained more than once.
+Achievements, item designs and unlocked classes are mostly worked out, so these lists are usually empty. The page takes them from scenario rewards, event outcomes and treasures; the starting classes are always unlocked; a new City Rule or Artifact replaces the old one; and lost party achievements are dropped. List something here only when nothing else records it, such as a class unlocked by a retirement. The Overview says when an entry is already worked out.
+
+Hand-listed achievements and item designs look like this. Only `name` is required. Spell achievement names as the game does: scenario requirements are checked against them. Add `"count": 2` for an achievement gained more than once.
 
 ```json
 { "name": "Achievement name", "scenario": 2, "notes": "Optional" }
@@ -49,6 +52,12 @@ Reputation and prosperity aren't written down: the page adds them up from the re
 
 ```json
 { "number": 2, "name": "Barrow Lair", "status": "completed", "completed": "2026-10-04", "treasures": ["07"], "notes": "" }
+```
+
+The page looks up what each treasure gave: item designs go to the shop and unlocked scenarios open. A treasure can also be written out to say who looted it and, for a random side scenario or item design, what you drew. Until a random one is drawn, the Campaign record reminds you.
+
+```json
+"treasures": [{ "number": "07", "character": "Craig", "drew": 52 }, { "number": "11", "drew": "Item name" }]
 ```
 
 `results` is optional: what each character got from the scenario. `xp` and `gold` are what they gained there; `checkmarks` are from battle goals. These are shown on the scenario but not added to the character totals automatically.
@@ -64,7 +73,7 @@ Add an entry that isn't completed only when the reference data can't know about 
 - A scenario unlocked some other way (a choice, a treasure, an event): `{ "number": 15, "status": "available", "unlockedBy": 13 }`
 - A scenario you've decided to treat as blocked: `{ "number": 5, "status": "blocked", "notes": "Why" }`
 
-**characters**: the page works out the level from `xp` and the perks earned from `checkmarks`. Set `retired` to `true` when a character retires. Personal quests are secret, so `personalQuest` holds only the progress (like `"2/15"`), never the quest's name.
+**characters**: the page works out the level from `xp` and the perks earned from `checkmarks`. Set `retired` to `true` when a character retires: the page adds a prosperity checkmark and the class's retirement events. Personal quests are secret, so `personalQuest` holds only the progress (like `"2/15"`), never the quest's name.
 
 ```json
 {
@@ -106,7 +115,9 @@ The Overview asks when it can't tell. `"outcome": 1` (counting from 1) picks an 
 "adjustments": [{ "reputation": -1, "prosperity": 0, "notes": "Why" }]
 ```
 
-**eventDecks**: cards added or removed some other way, such as a new class's events or a retirement: `{ "added": [{ "deck": "road", "number": 31, "notes": "Why" }], "removed": [] }`.
+An event that gives a random item design takes `"drew": "Item name"` once you've drawn it.
+
+**eventDecks**: cards added or removed some other way. Events added by other events, scenario rewards, unlocking a class or a retirement are already counted: `{ "added": [{ "deck": "road", "number": 31, "notes": "Why" }], "removed": [] }`.
 
 ## Credits and license
 

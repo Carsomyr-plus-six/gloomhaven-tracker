@@ -87,6 +87,87 @@
   "triangles": "Elementalist",
   "two-mini": "Beast Tyrant"
  },
+ "classEvents": {
+  "brute": {
+   "starting": true,
+   "retireEvent": 42
+  },
+  "cragheart": {
+   "starting": true,
+   "retireEvent": 46
+  },
+  "mindthief": {
+   "starting": true,
+   "retireEvent": 47
+  },
+  "scoundrel": {
+   "starting": true,
+   "retireEvent": 45
+  },
+  "spellweaver": {
+   "starting": true,
+   "retireEvent": 44
+  },
+  "tinkerer": {
+   "starting": true,
+   "retireEvent": 43
+  },
+  "angry-face": {
+   "starting": false,
+   "unlockEvent": 38,
+   "retireEvent": 55
+  },
+  "circles": {
+   "starting": false,
+   "unlockEvent": 33,
+   "retireEvent": 50
+  },
+  "eclipse": {
+   "starting": false,
+   "unlockEvent": 34,
+   "retireEvent": 51
+  },
+  "lightning": {
+   "starting": false,
+   "unlockEvent": 36,
+   "retireEvent": 53
+  },
+  "music-note": {
+   "starting": false,
+   "unlockEvent": 37,
+   "retireEvent": 54
+  },
+  "saw": {
+   "starting": false,
+   "unlockEvent": 39,
+   "retireEvent": 56
+  },
+  "squidface": {
+   "starting": false,
+   "unlockEvent": 35,
+   "retireEvent": 52
+  },
+  "sun": {
+   "starting": false,
+   "unlockEvent": 31,
+   "retireEvent": 48
+  },
+  "three-spears": {
+   "starting": false,
+   "unlockEvent": 32,
+   "retireEvent": 49
+  },
+  "triangles": {
+   "starting": false,
+   "unlockEvent": 40,
+   "retireEvent": 57
+  },
+  "two-mini": {
+   "starting": false,
+   "unlockEvent": 41,
+   "retireEvent": 58
+  }
+ },
  "events": {
   "city": {
    "1": {
@@ -163,8 +244,8 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "itemCollective"
+        "type": "item",
+        "item": 125
        },
        {
         "type": "globalAchievement",
@@ -271,8 +352,7 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "randomItemDesign"
+        "type": "randomItemDesign"
        },
        {
         "type": "reputation",
@@ -485,8 +565,7 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "randomItemDesign"
+        "type": "randomItemDesign"
        },
        {
         "type": "reputation",
@@ -1216,8 +1295,8 @@
         "amount": 5
        },
        {
-        "type": "other",
-        "what": "itemCollective"
+        "type": "item",
+        "item": 105
        }
       ]
      },
@@ -1715,8 +1794,8 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "itemCollective"
+        "type": "item",
+        "item": 102
        },
        {
         "type": "reputation",
@@ -1738,8 +1817,8 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "itemCollective"
+        "type": "item",
+        "item": 34
        }
       ]
      },
@@ -1753,8 +1832,8 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "itemCollective"
+        "type": "item",
+        "item": 34
        }
       ]
      },
@@ -1836,8 +1915,8 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "itemCollective"
+        "type": "item",
+        "item": 126
        }
       ]
      }
@@ -2158,8 +2237,8 @@
         "amount": -1
        },
        {
-        "type": "other",
-        "what": "itemCollective"
+        "type": "item",
+        "item": 117
        }
       ]
      }
@@ -2270,8 +2349,8 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "itemDesign"
+        "type": "itemDesign",
+        "item": 118
        }
       ]
      },
@@ -2392,8 +2471,8 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "itemCollective"
+        "type": "item",
+        "item": 127
        }
       ]
      }
@@ -2416,8 +2495,8 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "itemCollective"
+        "type": "item",
+        "item": 109
        }
       ]
      }
@@ -2541,8 +2620,8 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "itemCollective"
+        "type": "item",
+        "item": 55
        }
       ]
      },
@@ -3144,8 +3223,8 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "itemCollective"
+        "type": "item",
+        "item": 106
        }
       ]
      }
@@ -3545,8 +3624,8 @@
         "amount": -2
        },
        {
-        "type": "other",
-        "what": "itemCollective",
+        "type": "item",
+        "item": 41,
         "condition": {
          "type": "reputationLT",
          "values": [
@@ -4673,8 +4752,8 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "itemCollective"
+        "type": "item",
+        "item": 129
        }
       ]
      }
@@ -4732,8 +4811,8 @@
         "what": "consumeItem"
        },
        {
-        "type": "other",
-        "what": "itemCollective"
+        "type": "item",
+        "item": 117
        }
       ]
      }
@@ -4921,8 +5000,8 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "itemCollective"
+        "type": "item",
+        "item": 18
        }
       ]
      }
@@ -4996,8 +5075,8 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "itemCollective"
+        "type": "item",
+        "item": 49
        }
       ]
      }
