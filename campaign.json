@@ -160,7 +160,7 @@
         "Replace one -1 card with one +1 card"
       ],
       "items": ["Cloak of Invisibility", "Minor Power Potion", "Minor Stamina Potion"],
-      "personalQuest": "A Study of Anatomy (2/15)",
+      "personalQuest": "2/15",
       "retired": false,
       "notes": ""
     },
@@ -193,7 +193,7 @@
         "Ignore negative scenario effects"
       ],
       "items": [],
-      "personalQuest": "Seeker of Xorn (II?)",
+      "personalQuest": "2? (noted as II)",
       "retired": false,
       "notes": ""
     },

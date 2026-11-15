@@ -62,7 +62,7 @@ Add an entry that isn't completed only when the reference data can't know about 
 - A scenario unlocked some other way (a choice, a treasure, an event): `{ "number": 15, "status": "available", "unlockedBy": 13 }`
 - A scenario you've decided to treat as blocked: `{ "number": 5, "status": "blocked", "notes": "Why" }`
 
-**characters**: the page works out the level from `xp` and the perks earned from `checkmarks`. Set `retired` to `true` when a character retires.
+**characters**: the page works out the level from `xp` and the perks earned from `checkmarks`. Set `retired` to `true` when a character retires. Personal quests are secret, so `personalQuest` holds only the progress (like `"2/15"`), never the quest's name.
 
 ```json
 {
