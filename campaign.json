@@ -120,7 +120,12 @@
       "status": "completed",
       "completed": "2026-11-13",
       "treasures": ["26"],
-      "notes": "Treasure 26: Craig looted it and gained 20 gold."
+      "results": [
+        { "character": "Azorica", "xp": 15, "gold": 9 },
+        { "character": "Craig", "xp": 19, "gold": 12 },
+        { "character": "Flik Flak", "xp": 15, "gold": 15 }
+      ],
+      "notes": "No Kaktus.\nTreasure 26: Craig looted it and gained 20 gold."
     }
   ],
   "characters": [
@@ -181,6 +186,7 @@
     {
       "date": "2026-11-13",
       "scenarios": [{ "number": 14, "result": "success" }],
+      "characters": ["Azorica", "Craig", "Flik Flak"],
       "notes": ""
     }
   ],
@@ -190,7 +196,9 @@
     { "deck": "city", "number": 29, "notes": "Option and timing not recorded." },
     { "deck": "road", "number": 9, "notes": "Option and timing not recorded." },
     { "deck": "road", "number": 28, "notes": "Option and timing not recorded." },
-    { "deck": "city", "number": 21, "option": "B", "scenario": 8 }
+    { "deck": "city", "number": 21, "option": "B", "scenario": 8 },
+    { "deck": "road", "number": 15, "scenario": 14, "notes": "On the way to #14. Option not recorded." },
+    { "deck": "city", "number": 13, "scenario": 13, "notes": "Back in town after #14. Option not recorded." }
   ],
   "eventDecks": {
     "added": [],
