@@ -4,7 +4,7 @@ A small website for tracking our Gloomhaven (first edition) campaign: the party,
 
 Live site: https://carsomyr-plus-six.github.io/gloomhaven-tracker/
 
-It runs on GitHub Pages, so it works on phones and desktops without installing anything. On a phone it is four tabs along the bottom, made to be read at the table; on a wide screen the whole campaign is one page. The first time a phone opens it, it asks which character you play, and from then on opens on that character's sheet (a link to another part of the page still goes there). That tab then carries the character's name and class icon, marks them "You" among the party, and goes back to their sheet whenever it's tapped; the Shop says how much gold they have and which items would fit. The choice is kept in that phone's browser only, and can be changed at the bottom of the sheet. Campaign data lives in this repository, so every change is a commit and the history of the campaign is the history of the repo.
+It runs on GitHub Pages, so it works on phones and desktops without installing anything. On a phone it is four tabs along the bottom, made to be read at the table; on a wide screen the whole campaign is one page. The first time a phone opens it, it asks which character you play, and from then on opens on that character's sheet (a link to another part of the page still goes there). That tab then carries the character's name and class icon, marks them "You" among the party, and goes back to their sheet whenever it's tapped; the Shop starts out shopping for them. The choice is kept in that phone's browser only, and can be changed at the bottom of the sheet. Campaign data lives in this repository, so every change is a commit and the history of the campaign is the history of the repo.
 
 ## Files
 
@@ -41,14 +41,14 @@ The page does the end-of-scenario sums itself:
 - **Level-ups.** Anyone who passes a level is told to add an ability card and take a perk. Until the next session, **Before you play** reminds them about the card.
 - **New characters.** A new character starts at any level up to the prosperity level, with that level's XP and 15 gold per level plus 15. They play that evening's scenarios unless marked as sitting it out, and can loot, buy items and take perks in the same session. A new campaign starts from an empty file: **Add the party's characters**, on the Overview or the Characters tab, opens the form for them.
 
-It lists every change, with anything that looks wrong, before you save: an event that isn't in its deck, or a treasure already looted, is most likely a mistyped number; an item bought for a slot that's already full won't fit. A bar at the top of the form says how many things there are to check.
+It lists every change, with anything that looks wrong, before you save: an event that isn't in its deck, or a treasure already looted, is most likely a mistyped number; an item bought for a slot that's already full won't fit; a character can own only one of each item, and the shop has only so many copies. A bar at the top of the form says how many things there are to check.
 
 The form starts with whoever is picked to play on the Overview's scenario level. In a scenario's number box, the scenarios the party can play are there to tap, and the scenario's name shows as you type.
 
 Some things can be recorded straight from where you see them, each opening the form at the right row:
 - **A perk to choose:** **Record it** in **Before you play** on the Overview, or on the character's sheet. Once picked, the perk stops being asked for while the draft waits to be saved.
 - **A scenario you can play:** **Record it** in its details on the Scenarios tab, at tonight's level.
-- **An item:** **Buy** in the Shop, on what this phone's character can afford and has room for. It then says "In the draft".
+- **Items:** in the Shop, pick who is shopping (this phone's character to start with). **Buy** shows on what they can afford and have room for, and **Sell** on what they carry; either then says it's in the draft. **Can buy** narrows the list to what they could buy. The Shop counts the draft: its purchases take gold, slots and copies, and its sales free them.
 
 A form opened and closed with nothing in it leaves no draft behind.
 
