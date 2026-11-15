@@ -36,6 +36,11 @@ function perksFromCheckmarks(checkmarks) {
   return Math.min(6, Math.floor(checkmarks / 3));
 }
 
+// One perk per level gained after 1, plus the checkmark perks.
+function perksEarned(level, checkmarks) {
+  return level - 1 + perksFromCheckmarks(checkmarks);
+}
+
 // --- Building the page ----------------------------------------------------
 
 // Make an element. Text children become text nodes, so campaign notes can
@@ -490,7 +495,10 @@ function renderCharacters(data) {
       stats([["Gold", c.gold],
              ["Checkmarks", `${c.checkmarks} (${perksFromCheckmarks(c.checkmarks)} perk${perksFromCheckmarks(c.checkmarks) === 1 ? "" : "s"} earned)`],
              ["Personal quest", c.personalQuest],
-             ["Perks", c.perks.length ? c.perks.join("; ") : ""],
+             [`Perks (${c.perks.length} of ${perksEarned(level, c.checkmarks)})`,
+              [c.perks.length ? c.perks.join("; ") : "none taken",
+               c.perks.length < perksEarned(level, c.checkmarks)
+                 ? h("div", { class: "reason small" }, `${perksEarned(level, c.checkmarks) - c.perks.length} unspent`) : null]],
              ["Items", c.items.length ? c.items.join(", ") : ""]]),
       notes(c.notes));
   };
