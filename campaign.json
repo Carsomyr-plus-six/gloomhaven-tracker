@@ -25,6 +25,10 @@
       {
         "name": "The Merchant Flees",
         "scenario": 8
+      },
+      {
+        "name": "The Power of Enhancement",
+        "scenario": 14
       }
     ],
     "unlockedClasses": [
@@ -109,6 +113,14 @@
         { "character": "Flik Flak", "xp": 14, "gold": 12 }
       ],
       "notes": "No Kaktus.\nTreasure 51 gave a random side scenario, which we never drew."
+    },
+    {
+      "number": 14,
+      "name": "Frozen Hollow",
+      "status": "completed",
+      "completed": "2026-11-13",
+      "treasures": ["26"],
+      "notes": "Treasure 26: Craig looted it and gained 20 gold."
     }
   ],
   "characters": [
@@ -165,7 +177,13 @@
       "notes": "Thorstein lives far away, so Kaktus misses some sessions."
     }
   ],
-  "sessions": [],
+  "sessions": [
+    {
+      "date": "2026-11-13",
+      "scenarios": [{ "number": 14, "result": "success" }],
+      "notes": ""
+    }
+  ],
   "events": [
     { "deck": "city", "number": 1, "notes": "Option and timing not recorded." },
     { "deck": "city", "number": 23, "notes": "Option and timing not recorded." },
