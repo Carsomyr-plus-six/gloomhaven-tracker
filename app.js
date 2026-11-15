@@ -126,9 +126,71 @@ function renderOverview(data) {
 const STATUS_LABELS = { available: "Available", completed: "Completed", blocked: "Blocked" };
 let scenarioFilter = "all";
 
+// Remembered per browser; falls back to the list if storage is unavailable.
+let scenarioView = "list";
+try { if (localStorage.getItem("scenarioView") === "tree") scenarioView = "tree"; } catch {}
+
+function setScenarioView(data, view) {
+  scenarioView = view;
+  try { localStorage.setItem("scenarioView", view); } catch {}
+  render(data, "scenarios");
+}
+
+// Jump from the tree to a scenario's card in the list.
+function showScenario(data, number) {
+  scenarioFilter = "all";
+  setScenarioView(data, "list");
+  document.getElementById(`scenario-${number}`)?.scrollIntoView({ block: "center" });
+}
+
+// Scenarios as a tree: each one sits under the scenario that unlocked it.
+function unlockTree(data, all) {
+  const numbers = new Set(all.map(s => s.number));
+  const children = new Map();
+  const roots = [];
+  for (const s of all) {
+    if (s.unlockedBy != null && numbers.has(s.unlockedBy) && s.unlockedBy !== s.number) {
+      if (!children.has(s.unlockedBy)) children.set(s.unlockedBy, []);
+      children.get(s.unlockedBy).push(s);
+    } else {
+      roots.push(s);
+    }
+  }
+
+  const seen = new Set();
+  const branch = list => h("ul", {}, list.map(s => {
+    if (seen.has(s.number)) return null;
+    seen.add(s.number);
+    const kids = children.get(s.number) || [];
+    return h("li", {},
+      h("button", { type: "button", class: `tree-node ${s.status}`, onclick: () => showScenario(data, s.number) },
+        h("span", { class: "num" }, `#${s.number}`), " ", s.name || "Untitled", " ",
+        h("span", { class: `badge ${s.status}` }, STATUS_LABELS[s.status] || s.status)),
+      kids.length ? branch(kids) : null);
+  }));
+
+  return h("div", { class: "tree" }, branch(roots));
+}
+
 function renderScenarios(data) {
   const all = [...data.scenarios].sort((a, b) => a.number - b.number);
   if (!all.length) return [h("h2", {}, "Scenarios"), empty("No scenarios recorded yet.")];
+
+  const views = h("div", { class: "filters", role: "group", "aria-label": "Scenario view" },
+    [["list", "List"], ["tree", "Unlock tree"]].map(([view, label]) =>
+      h("button", {
+        type: "button",
+        "aria-pressed": String(scenarioView === view),
+        onclick: () => setScenarioView(data, view),
+      }, label)));
+
+  if (scenarioView === "tree") {
+    return [
+      h("div", { class: "section-head" }, h("h2", {}, "Scenarios"), views),
+      h("p", { class: "muted small" }, "Each scenario sits under the one that unlocked it. Tap one to see its notes."),
+      unlockTree(data, all),
+    ];
+  }
 
   const counts = { all: all.length };
   for (const s of all) counts[s.status] = (counts[s.status] || 0) + 1;
@@ -145,9 +207,9 @@ function renderScenarios(data) {
   const name = n => all.find(s => s.number === n)?.name;
 
   return [
-    h("h2", {}, "Scenarios"),
+    h("div", { class: "section-head" }, h("h2", {}, "Scenarios"), views),
     filters,
-    h("div", { class: "stack" }, shown.map(s => h("article", { class: "card scenario" },
+    h("div", { class: "stack" }, shown.map(s => h("article", { class: "card scenario", id: `scenario-${s.number}` },
       h("span", { class: "num" }, `#${s.number}`),
       h("h3", {}, s.name || "Untitled"),
       h("span", { class: `badge ${s.status}` }, STATUS_LABELS[s.status] || s.status),
