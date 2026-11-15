@@ -103,7 +103,12 @@
       "treasures": [
         "51"
       ],
-      "notes": "Played by Azorica, Craig and Flik Flak (no Kaktus).\nTreasure 51 gave a random side scenario, which we never drew."
+      "results": [
+        { "character": "Azorica", "xp": 16, "gold": 3 },
+        { "character": "Craig", "xp": 20, "gold": 6 },
+        { "character": "Flik Flak", "xp": 14, "gold": 12 }
+      ],
+      "notes": "No Kaktus.\nCity event 21: chose B.\nRoad event 65 added to the road deck (we think).\nTreasure 51 gave a random side scenario, which we never drew."
     }
   ],
   "characters": [
