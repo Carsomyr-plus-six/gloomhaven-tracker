@@ -586,6 +586,10 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .perk-nudge { align-items: center; padding: 9px 12px; border-radius: var(--r-md); font-weight: 600; color: var(--brass); }
 .perk-nudge .icon { margin: 0; font-size: var(--t-lg); }
 .char-notes { padding-top: 14px; border-top: 1px solid var(--line-soft); }
+/* The attack modifier deck: one chip per kind of card, with its count. */
+.deck-cards { display: flex; flex-wrap: wrap; gap: 6px; }
+.deck-cards li { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--line); border-radius: var(--r-pill); font-size: var(--t-sm); }
+.deck-cards b { font-weight: 700; color: var(--fg-3); }
 .char-notes .notes { font-size: var(--t-sm); color: var(--fg-3); }
 
 /* --- Scenarios ------------------------------------------------------------ */
@@ -1087,7 +1091,7 @@ dialog.who > .btn { width: 100%; justify-content: center; }
   .block-head .xp-next { font-size: var(--t-md); }
   .char-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   /* Every part of the sheet below the XP sits in a card of its own. */
-  .char-stats > div, .goal-block, .perk-block, .item-block, .char-notes { --under: var(--surface); padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+  .char-stats > div, .goal-block, .perk-block, .deck-block, .item-block, .char-notes { --under: var(--surface); padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
   .gold { font-size: var(--d-lg); line-height: 1.1; }
   .quest { font-size: var(--t-xl); line-height: 1.25; }
   .quest-meter { height: 5px; margin-top: 8px; }
