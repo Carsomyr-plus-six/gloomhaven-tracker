@@ -31,7 +31,7 @@ The top of the Overview walks through the evening in the order it runs: a city e
 At the table, open **Sessions** and choose **Record a session** (or **Record the evening** on the Overview). Fill in:
 - the date and who played
 - each scenario attempted, with its level, the result, and for each character the XP on their dial, the coins they picked up and their battle goal checkmarks
-- the treasures looted and who looted them
+- the treasures looted and who looted them, and who takes any item the scenario gives as a reward
 - the events drawn, with the option
 - characters retiring, with the class their personal quest unlocks (picked by its icon, so nothing is spoiled), and new characters joining
 - items bought or sold, perks taken, and donations to the Sanctuary (10 gold each, once per player per visit)
@@ -80,7 +80,7 @@ Then open http://127.0.0.1:8000/. Stop the server with Ctrl+C.
 
 **party**: `name`, `location`, `achievements`, `notes`.
 
-**city**: `donations` (total gold given to the Sanctuary; the Overview counts down to the 100 gold that opens Envelope B), `envelopeB` (`true` once you've opened Envelope B; from then on the page follows what it says about donations, as Gloomhaven Secretariat counts it), `globalAchievements`, `unlockedClasses` (a list of class names), `itemDesigns` (items added to the shop permanently).
+**city**: `donations` (total gold given to the Sanctuary; the Overview counts down to the 100 gold that opens Envelope B), `envelopeB` (`true` once you've opened Envelope B; from then on the page follows what it says about donations, as Gloomhaven Secretariat counts it), `globalAchievements`, `unlockedClasses` (a list of class names), `itemDesigns` (items added to the shop permanently), `returnedItems` (written by the page: copies of items the shop doesn't otherwise sell, back in its supply because someone sold one or retired with it; buying one takes it out again).
 
 Achievements, item designs and unlocked classes are mostly worked out, so these lists are usually empty. The page takes them from scenario rewards, event outcomes and treasures; the starting classes are always unlocked; a new City Rule or Artifact replaces the old one; and lost party achievements are dropped. List something here only when nothing else records it, such as a class unlocked by a retirement. The Overview says when an entry is already worked out.
 
@@ -98,7 +98,7 @@ Reputation and prosperity aren't written down: the page adds them up from the re
 { "number": 2, "name": "Barrow Lair", "status": "completed", "completed": "2026-10-04", "treasures": ["07"], "notes": "" }
 ```
 
-The page looks up what each treasure gave: item designs go to the shop and unlocked scenarios open. A treasure can also be written out to say who looted it and, for a random side scenario or item design, what you drew. Until a random one is drawn, the Campaign record reminds you; `"drawn": false` says it never was and won't be, and stops the reminder.
+The page looks up what each treasure gave: item designs go to the shop and unlocked scenarios open. A treasure that names an item gives one copy to whoever looted it, not to the shop (rulebook p. 14), so say who in the treasure (`"character"`) and list the item on their sheet; until someone is named or a sheet has it, the page asks. A treasure can also be written out to say who looted it and, for a random side scenario or item design, what you drew. Until a random one is drawn, the Campaign record reminds you; `"drawn": false` says it never was and won't be, and stops the reminder.
 
 ```json
 "treasures": [{ "number": "07", "character": "Craig", "drew": 52 }, { "number": "11", "drew": "Item name" }]
