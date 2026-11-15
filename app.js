@@ -475,7 +475,8 @@ function renderEvents(data) {
       h("strong", {}, e.label),
       h("span", {}, detail || (e.notes ? null : "Option not recorded"),
         e.notes ? h("div", { class: detail ? "small muted" : null }, e.notes) : null),
-      h("span", { class: `fate ${e.fate || "open"}` }, e.fate ? capitalize(e.fate) : "Needs an answer"));
+      h("span", { class: `fate ${e.fate || "open"}` },
+        e.fate ? [gameIcon(`event-${e.fate}`), capitalize(e.fate)] : "Needs an answer"));
   };
 
   return [

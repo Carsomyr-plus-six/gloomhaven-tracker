@@ -57,6 +57,9 @@ ICONS = {
     "shield": ("General Icons.pdf", 10),
     "refresh": ("General Icons.pdf", 22),
     "checkmark": ("General Icons.pdf", 23),
+    # What happens to an event card: torn up, or back into the deck
+    "event-removed": ("Event Card Icons.pdf", 1),
+    "event-returned": ("Event Card Icons.pdf", 3),
     # Item slots
     "slot-body": ("Equip Slots.pdf", 1),
     "slot-head": ("Equip Slots.pdf", 2),
@@ -84,10 +87,10 @@ ICONS = {
     "class-three-spears": ("Class Icons and Augments.pdf", 16),
     "class-scoundrel": ("Class Icons and Augments.pdf", 17),
 }
-# The single-colour icons above (checkmark, slots, classes) stay black: the
+# The single-colour icons above (checkmark, event, slots, classes) stay black: the
 # page uses them as masks and fills them with the colour around them. Their
 # white details become see-through cut-outs so the mask keeps them.
-MASKS = {name for name in ICONS if name == "checkmark" or name.startswith(("slot-", "class-"))}
+MASKS = {name for name in ICONS if name == "checkmark" or name.startswith(("event-", "slot-", "class-"))}
 
 TEXT_COLOR = "#ece6d8"   # --fg in styles.css
 RECOLOR = {"heal": {"#000000": TEXT_COLOR}, "shield": {"#000000": TEXT_COLOR},

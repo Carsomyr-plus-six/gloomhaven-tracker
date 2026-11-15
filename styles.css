@@ -559,7 +559,8 @@ main {
 .drawn > li { display: flex; align-items: center; gap: 12px; min-height: 46px; padding: 6px 0; border-bottom: 1px solid var(--line-soft); font-size: 14px; }
 .drawn strong { flex: none; width: 76px; font-weight: 600; }
 .drawn > li > span:nth-child(2) { flex: 1; min-width: 0; color: #b9c0b9; }
-.fate { flex: none; font-size: 13px; font-weight: 600; color: var(--muted); }
+.fate { flex: none; display: inline-flex; align-items: center; font-size: 13px; font-weight: 600; color: var(--muted); }
+.fate .gicon { width: 1.3em; height: 1.3em; margin-right: 0.35em; }
 .fate.removed { color: var(--fg); }
 .fate.open { color: var(--brass); }
 
