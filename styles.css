@@ -12,6 +12,7 @@
   --line: #2a3531;
   --line-soft: #222c28;
   --line-strong: #46544e;
+  --box: #64746d;         /* an empty box to tick: perks, battle goals, copies (3:1 on any surface) */
   --surface-3: #27312d;   /* a toggle that is switched on */
   --fg: #ece6d8;
   --fg-2: #d6d0c2;
@@ -138,6 +139,10 @@ button { font: inherit; color: inherit; }
 .hex.quiet { --ring: var(--line-strong); --fill: var(--under); --ink: var(--fg-3); }
 /* A level to reach, or the normal one on the scenario level ladder. */
 .hex.goal { --ring: var(--brass-edge); --fill: var(--brass-bg); --ink: var(--brass); }
+/* Sessions: a failed attempt, and a casual replay of one already completed
+   (quieter than the first clear, which keeps the full verdigris ring). */
+.hex.failed { --ring: var(--ember-line); --fill: var(--under); --ink: var(--ember); }
+.hex.replay { --ring: var(--line-strong); --fill: var(--under); --ink: var(--verdigris); }
 
 /* --- Top bar (wide) ------------------------------------------------------- */
 .topbar {
@@ -338,7 +343,7 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 .tonight-done { margin-left: auto; color: var(--verdigris); }
 .tonight-done .icon { font-size: var(--t-lg); stroke-width: 2.4; }
 .enhancer-record { align-self: flex-start; }
-.btn.tonight-record { align-self: stretch; justify-content: center; padding-inline: 18px; border-radius: var(--r-md); }
+.btn.tonight-record { align-self: center; justify-content: center; padding-inline: 18px; }
 .hero-side { grid-area: side; align-self: start; min-width: 0; display: flex; flex-direction: column; gap: 28px; }
 .ready { min-width: 0; }
 .ready-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
@@ -362,6 +367,7 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 .ready-card > span:last-child { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .ready-name { font: 700 var(--t-xl)/1.1 var(--display); }
 .ready-from { font-size: var(--t-xs); color: var(--fg-3); }
+.ready-tried { display: block; font-size: var(--t-xs); color: var(--ember); }
 
 /* Reputation and prosperity side by side, the matching pair they are, and
    the scenario level across both. */
@@ -377,10 +383,14 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 .todo .block-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .todo .block-head > span { font-size: var(--t-sm); color: var(--fg-3); }
 .todo .rows li { font-size: var(--t-md); }
+/* Stops someone playing: first, in ember (blocked), with a lock. */
+.todo .rows li.urgent > span:first-child { font-weight: 600; color: var(--ember); }
+.todo .rows li.urgent .icon { margin-right: 6px; vertical-align: -2px; stroke-width: 2.2; }
 .todo-go { flex: none; padding: 8px 0 8px 12px; font-size: var(--t-sm); font-weight: 600; color: var(--fg-2); }
 .todo-acts { flex: none; display: flex; align-items: center; gap: 4px; }
-/* Doing the thing, right from the list: brass, as it settles something waiting. */
-.todo-do { padding: 6px 12px; border: 1px solid var(--brass-line); border-radius: var(--r-pill); background: var(--brass-bg); color: var(--brass); font-size: var(--t-sm); font-weight: 600; cursor: pointer; }
+/* Doing the thing, right from the list: brass, as it settles something waiting.
+   The one secondary button: an outlined brass pill (.btn.primary is the main one). */
+.todo-do { padding: 6px 12px; border: 1px solid var(--brass-edge); border-radius: var(--r-pill); background: var(--brass-bg); color: var(--brass); font-size: var(--t-sm); font-weight: 600; cursor: pointer; }
 .todo-do:hover { border-color: var(--brass); }
 /* Who is playing: an even grid, four across when the tile has room for
    names that long, two otherwise, so a chip never sits alone. */
@@ -457,9 +467,11 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 .tab-me { display: none; }
 
 /* A box that does something: "Record it" for a perk to choose. */
-button.nudge { width: 100%; font-family: inherit; line-height: inherit; text-align: left; cursor: pointer; }
-button.nudge:hover { border-color: var(--brass); }
-.nudge-go { margin-left: auto; font-size: var(--t-sm); text-decoration: underline; text-underline-offset: 0.2em; }
+button.nudge { width: 100%; align-items: center; font-family: inherit; line-height: inherit; text-align: left; cursor: pointer; }
+button.nudge > .icon { margin-top: 0; }
+button.nudge:hover, button.nudge:hover .nudge-go { border-color: var(--brass); }
+/* Drawn as .todo-do, the secondary button, as it does the same job. */
+.nudge-go { flex: none; margin: -4px -4px -4px auto; padding: 4px 12px; border: 1px solid var(--brass-edge); border-radius: var(--r-pill); font-size: var(--t-sm); font-weight: 600; color: var(--brass); }
 
 /* A class icon in a thin hexagon, the icon half the hexagon's size. */
 .class-hex { --size: 24px; position: relative; flex: none; display: block; width: var(--size); height: var(--size); }
@@ -499,10 +511,12 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 
 /* --- Characters ----------------------------------------------------------- */
 .char-switch, .switch-shop { display: none; }
-/* In rows, so the sheets read across in the party's order, as they do
-   everywhere else; a short card leaves a gap under it rather than jumbling
-   the order. */
+/* The sheets read across in the party's order, as they do everywhere else.
+   Once packGrids() in app.js has measured them (.packed), the rows are 1px
+   tall and each card spans its own height plus the gap, so a sheet slots in
+   under the shortest one above rather than leaving a hole beside a long one. */
 .char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; align-items: start; }
+.char-grid.packed { grid-auto-rows: 1px; row-gap: 0; }
 .subhead { font: 700 var(--d-sm)/1.1 var(--display); margin-top: 16px; }
 .char-card {
   --under: var(--surface);
@@ -515,6 +529,8 @@ dialog.who > .btn { width: 100%; justify-content: center; }
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
 }
+/* Not playing for now: dashed, as an away character is in the party picker. */
+.char-card.inactive { border-style: dashed; border-color: var(--line-strong); }
 .char-head { display: flex; align-items: center; gap: 14px; }
 .char-level { flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .char-level .hex { --w: 52px; }
@@ -535,7 +551,16 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .char-stats > div:first-child { flex: none; }
 .gold { font-size: var(--d-md); line-height: 1.15; color: var(--brass); }
 .quest { font-size: var(--t-lg); font-weight: 600; padding-top: 6px; }
-.quest-meter { height: 4px; margin-top: 6px; }
+/* One bar per step of the quest, each as long as its target. */
+.quest-meter { display: flex; gap: 3px; margin-top: 6px; }
+.quest-meter .meter { flex: 1 1 0; height: 4px; }
+.quest-stat { min-width: 0; display: flex; flex-direction: column; }
+/* Secret until tapped: the progress, or "Show" with an eye. */
+.quest-reveal { display: flex; flex-direction: column; align-items: stretch; min-width: 96px; margin: 0; padding: 0;
+  border: 0; background: none; text-align: left; cursor: pointer; }
+.quest-hidden { display: inline-flex; align-items: center; gap: 6px; color: var(--fg-3); font-weight: 500; }
+.quest-hidden .icon { font-size: var(--t-lg); stroke-width: 2; }
+.quest-reveal:hover .quest-hidden { color: var(--fg); }
 .goals { display: flex; justify-content: space-between; gap: 6px; }
 .goals > span { display: flex; min-width: 0; gap: 3px; padding: 3px; border-radius: var(--r-sm); border: 1px solid transparent; }
 .goals > span { position: relative; }
@@ -547,7 +572,7 @@ dialog.who > .btn { width: 100%; justify-content: center; }
   transform: translate(-50%, -50%); color: var(--brass);
   filter: drop-shadow(0 0 1.5px var(--under, var(--surface)));
 }
-.goals i { width: 9px; height: 14px; border-radius: var(--r-xs); border: 1.5px solid var(--line-strong); }
+.goals i { width: 9px; height: 14px; border-radius: var(--r-xs); border: 1.5px solid var(--box); }
 .goals i.on { background: var(--brass); border-color: var(--brass); }
 .perks > li, .item-list > li { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line-soft); font-size: var(--t-md); }
 .perks > li:last-child, .item-list > li:last-child { border-bottom: 0; }
@@ -562,7 +587,7 @@ dialog.who > .btn { width: 100%; justify-content: center; }
    for two keeps most perk texts lined up. */
 .perk-boxes { flex: none; display: inline-flex; gap: 3px; min-width: calc(var(--boxes, 2) * 14px - 3px); }
 .perk-box { box-sizing: border-box; width: 11px; height: 11px; border-radius: var(--r-xs); background: var(--verdigris); }
-.perk-box.unticked { background: none; border: 1.5px solid var(--line-strong); }
+.perk-box.unticked { background: none; border: 1.5px solid var(--box); }
 /* A game icon standing in for a keyword in perk text. */
 .glyph { width: 1.25em; height: 1.25em; vertical-align: -0.28em; }
 /* A single-colour game icon (class, item slot, checkmark): the SVG is a
@@ -588,8 +613,16 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .char-notes { padding-top: 14px; border-top: 1px solid var(--line-soft); }
 /* The attack modifier deck: one chip per kind of card, with its count. */
 .deck-cards { display: flex; flex-wrap: wrap; gap: 6px; }
-.deck-cards li { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--line); border-radius: var(--r-pill); font-size: var(--t-sm); }
-.deck-cards b { font-weight: 700; color: var(--fg-3); }
+.deck-cards li { display: inline-flex; align-items: center; gap: 7px; padding: 3px 4px 3px 10px; border: 1px solid var(--line); border-radius: var(--r-pill); font-size: var(--t-sm); font-weight: 600; }
+/* The count, in a badge of its own. */
+.deck-cards b { min-width: 20px; height: 20px; padding: 0 5px; display: inline-grid; place-items: center; border-radius: var(--r-pill);
+  background: var(--surface-3); font-size: var(--t-xs); font-weight: 700; color: var(--fg-2); }
+/* Worse than +0 steps back; better than +0 has a firmer edge. */
+.deck-cards .bad { background: var(--bar); color: var(--muted); }
+.deck-cards .good { border-color: var(--line-strong); }
+/* Bless, from a donation: brass, dashed, as it's for the next scenario only. */
+.deck-cards .bless { border: 1px dashed var(--brass-edge); background: var(--brass-bg); color: var(--brass); }
+.deck-cards .bless b { background: var(--brass-line); color: var(--brass); }
 .char-notes .notes { font-size: var(--t-sm); color: var(--fg-3); }
 
 /* --- Scenarios ------------------------------------------------------------ */
@@ -636,10 +669,13 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .ink-completed { color: var(--verdigris); }
 .ink-available { color: var(--brass); }
 .ink-blocked { color: var(--ember); }
+.ink-failed { font-weight: 600; color: var(--ember); }
+.ink-replay { font-weight: 600; color: var(--verdigris); }
 
 /* The list: one row per scenario, opening in place. */
-/* Narrow enough that a row's arrow sits near its name. */
-.scenario-list { display: flex; flex-direction: column; gap: 4px; max-width: 680px; }
+/* Columns narrow enough that a row's arrow sits near its name, as many as
+   fill the width (three at most); an opened row leaves its neighbour be. */
+.scenario-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, max(320px, calc((100% - 32px) / 3))), 1fr)); gap: 4px 16px; align-items: start; }
 .row { border: 1px solid transparent; border-radius: var(--r-lg); scroll-margin-top: 96px; }
 .row.open { --under: var(--surface); background: var(--surface); border-color: var(--line); }
 .row-head {
@@ -704,6 +740,7 @@ dialog.who > .btn { width: 100%; justify-content: center; }
    the tree runs past the edge: a sign there's more to scroll to. */
 .map-scroll {
   overflow-x: auto; padding: 28px;
+  scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent;
   -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);
   mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);
 }
@@ -771,6 +808,7 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .result .icon { font-size: var(--t-xl); stroke-width: 2.6; }
 .result.success { color: var(--verdigris); }
 .result.failure { color: var(--ember); }
+.result.replay { color: var(--fg-3); }
 .haul .results { border-top: 0; }
 .haul .results > li { min-height: 44px; border-color: var(--line-soft); font-size: var(--t-base); }
 .haul .results > li:last-child { border-bottom: 0; }
@@ -794,7 +832,8 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 /* A question about that event, asked on its row. */
 .drawn .ask { display: flex; align-items: flex-start; gap: 6px; margin-top: 3px; font-size: var(--t-sm); font-weight: 600; color: var(--brass); }
 .drawn .ask .icon { margin-top: 2px; font-size: var(--t-md); stroke-width: 2; }
-.fate .gicon { width: 1.6em; height: 1.6em; margin-right: 0; }
+.fate .gicon { width: 1.6em; height: 1.6em; margin-right: 6px; }
+.fate-word { font-size: var(--t-xs); }
 .fate.removed { color: var(--fg); }
 .fate.open { color: var(--brass); }
 
@@ -859,6 +898,17 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .field > span { font-size: var(--t-xs); font-weight: 600; color: var(--muted); }
 .field.short { width: 92px; }
+/* A personal quest box, with its current progress behind a tap under it. */
+.pq-field { width: 132px; display: flex; flex-direction: column; gap: 4px; }
+.pq-now { align-self: flex-start; display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 0 2px;
+  border: 0; background: none; font-size: var(--t-xs); font-weight: 600; color: var(--fg-3); cursor: pointer; }
+.pq-now .icon { font-size: var(--t-md); stroke-width: 2; }
+.pq-now:hover { color: var(--fg); }
+.quiet-chip { display: inline-flex; align-items: center; gap: 6px; color: var(--fg-3); background: none; border-style: dashed; cursor: pointer; }
+.quiet-chip .icon { font-size: var(--t-md); stroke-width: 2; }
+/* A number box with suggestions: the suggestion arrow only, no spinner over it. */
+input[type="number"][list]::-webkit-inner-spin-button, input[type="number"][list]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; }
 .field.wide { flex: 1 1 220px; }
 .field input, .field select, .rec-block textarea {
   min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--r-md);
@@ -873,7 +923,10 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 /* Cards in a row share a height, so the grid reads as tidy blocks. */
 .shop { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px; align-items: stretch; }
 .shop .card { display: flex; flex-direction: column; gap: 6px; }
-.shop .price { flex: none; font-weight: 600; color: var(--brass); }
+/* Gold is gold-coloured, but a column of brass prices would drown out the
+   brass that asks for something; so only the word is. */
+.shop .price { flex: none; font-weight: 600; color: var(--fg); }
+.shop .price .unit { font-weight: 500; color: var(--brass); }
 .shop .price-col { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 /* Buy, for this phone's character: a small brass pill under the price, its
    tap area reaching past its edges. */
@@ -887,9 +940,9 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .shop .buy.sell:hover { border-color: var(--fg-3); }
 /* An item the shopper carries: its name reads as theirs. */
 .shop .owned strong { color: var(--fg); }
-.shop .sold-out strong, .shop .sold-out .price { color: var(--muted); }
+.shop .sold-out strong, .shop .sold-out .price, .shop .sold-out .price .unit { color: var(--muted); }
 /* This phone's character can't afford it. */
-.shop .too-dear .price { color: var(--muted); }
+.shop .too-dear .price, .shop .too-dear .price .unit { color: var(--muted); }
 /* Who is shopping: a row of character chips. */
 .shop-for { display: flex; flex-direction: column; gap: 8px; }
 .shop-for .filters button .gicon { margin: 0; color: inherit; }
@@ -904,7 +957,7 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .shop-me strong { font-weight: 700; color: var(--brass); }
 /* One mark per copy: empty in the shop, the holder's class icon once carried. */
 .copies { display: inline-flex; gap: 3px; margin-right: 8px; vertical-align: -3px; }
-.copies > i { display: inline-flex; align-items: center; justify-content: center; width: 12px; height: 17px; border-radius: 2px; border: 1.5px solid var(--line-strong); }
+.copies > i { display: inline-flex; align-items: center; justify-content: center; width: 12px; height: 17px; border-radius: 2px; border: 1.5px solid var(--box); }
 .copies > i.held { border-color: transparent; background: var(--surface-3); }
 .copies .gicon { width: 10px; height: 10px; margin: 0; color: var(--fg-2); }
 .shop .tag { white-space: nowrap; margin-left: 8px; padding: 1px 8px; border-radius: var(--r-pill); background: var(--surface-2); font-size: var(--t-xs); font-weight: 600; color: var(--fg-3); }
@@ -1094,7 +1147,8 @@ dialog.who > .btn { width: 100%; justify-content: center; }
   .char-stats > div, .goal-block, .perk-block, .deck-block, .item-block, .char-notes { --under: var(--surface); padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
   .gold { font-size: var(--d-lg); line-height: 1.1; }
   .quest { font-size: var(--t-xl); line-height: 1.25; }
-  .quest-meter { height: 5px; margin-top: 8px; }
+  .quest-meter { margin-top: 8px; }
+  .quest-meter .meter { height: 5px; }
   .goal-block { gap: 12px; }
   .goals > span { padding: 4px; }
   .goals i { width: 11px; height: 16px; }
@@ -1113,7 +1167,7 @@ dialog.who > .btn { width: 100%; justify-content: center; }
   .facts dt { width: 92px; }
   .results .num { width: 58px; }
   .legend, .map { display: none; }
-  .tree-rows { display: flex; }
+  .tree-rows { display: flex; flex-direction: column; }
 
   .decks { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   /* Event rows: the label and what became of the card on one line, the
