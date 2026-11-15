@@ -269,31 +269,57 @@ function ledgerFoot(t, unit) {
       h("span", { class: "num" }, `${rangeText(e.range)}${unit}`)))));
 }
 
-// The track marks where shop prices change (every 4 points past ±3), shades
-// the stretch with today's prices, and labels the next step in brass.
+// The track is cut into the stretches that share a shop price (the price
+// changes every 4 points past ±3). Today's stretch is lit, a brass hexagon
+// stands on the reputation, an outline spans what it could be while events
+// are open, and the next step's price is labelled in brass under it.
 function reputationTile(party, ledger) {
   const rep = party.reputation;
   const modifier = shopModifier(rep);
   const next = nextShopStep(rep);
-  const at = r => `${Math.max(0, Math.min(100, (r + 20) / 40 * 100))}%`;
-  const place = (el, r) => { el.style.left = at(r); return el; };
-  let lo = rep, hi = rep;
-  while (lo > -20 && shopModifier(lo - 1) === modifier) lo--;
-  while (hi < 20 && shopModifier(hi + 1) === modifier) hi++;
-  const band = place(h("b", { class: "band" }), lo);
-  band.style.width = `${(hi - lo) / 40 * 100}%`;
-  const steps = [3, 7, 11, 15, 19].flatMap(r => [-r, r]).map(r => place(h("i", { class: next?.at === r ? "next" : null }), r));
+  // 41 places, −20 to +20: a value sits in the middle of its place, and a
+  // stretch runs from its first place's left edge to its last's right edge.
+  const clamp = r => Math.max(-20, Math.min(20, r));
+  const edge = r => (r + 20) / 41 * 100;
+  const span = (el, from, to) => {
+    el.style.left = `${edge(from)}%`;
+    el.style.width = `${edge(to + 1) - edge(from)}%`;
+    return el;
+  };
+  const zones = [];
+  for (let r = -20; r <= 20; r++) {
+    const last = zones.at(-1);
+    if (last && shopModifier(r) === last.modifier) last.to = r;
+    else zones.push({ from: r, to: r, modifier: shopModifier(r) });
+  }
+  const range = ledger?.reputation?.range;
+  const maybe = range && !isExact(range) ? span(h("b", { class: "maybe" }), clamp(range.lo), clamp(range.hi)) : null;
+  const marker = svg("0 0 20 22", '<path d="M10 1.5l8 4.6v9.8l-8 4.6-8-4.6V6.1z"/>', { class: "marker", "aria-hidden": "true" });
+  marker.style.left = `${(edge(rep) + edge(rep + 1)) / 2}%`;
   const said = `Reputation ${signed(rep)}: shop ${modifier === 0 ? "prices normal" : priceText(modifier)}${next ? `, ${priceText(next.modifier)} from ${signed(next.at)}` : ""}.`;
-  // The next step's label; the ends give way to it when it's near them.
-  const near = next && Math.abs(next.at) > 14;
+  // The next step's label sits under its step. The end label on its side
+  // gives way to it, and right by an end it lines up with the end instead,
+  // so it stays on the tile, even a narrow phone one.
+  const near = next && Math.abs(next.at) >= 7;
+  const atEnd = next && Math.abs(next.at) >= 14;
+  const step = next ? h("span", { class: `step${atEnd ? (next.at < 0 ? " start" : " end") : ""}` },
+    next.modifier === 0 ? "Normal" : `${signed(next.modifier)} gold`) : null;
+  if (step && !atEnd) step.style.left = `${edge(next.at)}%`;
   return h("div", { class: "card tile" },
     h("div", { class: "tile-top" }, h("span", { class: "label" }, "Reputation"), h("span", { class: "figure" }, signed(rep))),
     h("div", { role: "img", "aria-label": said },
-      h("div", { class: "track" }, band, steps, place(h("span", { class: "marker" }), rep)),
+      h("div", { class: "track" },
+        maybe,
+        zones.map(z => {
+          const el = span(h("i", { class: z.modifier === modifier ? "now" : next?.at === z.from ? "next" : null }), z.from, z.to);
+          el.style.width = `calc(${el.style.width} - var(--gap))`;
+          return el;
+        }),
+        marker),
       h("div", { class: "track-scale", "aria-hidden": "true" },
         near && next.at < 0 ? null : h("span", {}, "−20"),
-        next ? place(h("span", { class: "step" }, `${signed(next.modifier)} gold`), next.at) : null,
-        near && next.at > 0 ? null : h("span", {}, "+20"))),
+        step,
+        near && next.at > 0 ? null : h("span", { class: "end" }, "+20"))),
     h("div", { class: "tile-foot" },
       h("strong", {}, modifier === 0 ? "Prices normal" : `Prices ${signed(modifier)} gold`)),
     ledgerFoot(ledger?.reputation, ""));
@@ -397,7 +423,7 @@ function furtherDown(links) {
     h("span", {}, "Further down:"), links.map(([href, label]) => h("a", { href }, label)));
 }
 
-// A few hexes behind the party name, on phones.
+// A few hexes behind the party name, one of them lit.
 function heroDecor() {
   const at = (cx, cy) => [[0, -26], [22.5, -13], [22.5, 13], [0, 26], [-22.5, 13], [-22.5, -13]]
     .map(([dx, dy]) => `${cx + dx},${cy + dy}`).join(" ");
@@ -1775,8 +1801,9 @@ function askWho(data) {
     h("p", {}, "This phone will open on their sheet. You can change it on the Characters tab."),
     h("div", { class: "who-list" }, active.map(c =>
       h("button", { type: "button", class: "who-row", "aria-label": `${c.name}, level ${characterStats(c).level} ${c.class}`, onclick: answer(c.name) },
-        hex(characterStats(c).level, "level"),
-        h("span", { class: "party-who" }, h("strong", {}, c.name), h("span", {}, classIcon(c.class), c.class))))),
+        // The frame the Characters tab will show once they're picked.
+        classHex(c.class),
+        h("span", { class: "party-who" }, h("strong", {}, c.name), h("span", {}, `Level ${characterStats(c).level} ${c.class}`))))),
     h("button", { type: "button", class: "btn quiet", onclick: answer("") }, "Just looking"));
   document.body.append(dialog);
   dialog.showModal();
@@ -1800,11 +1827,14 @@ function myTab(data) {
   a.querySelector(".tab-me")?.remove();
   const mine = data.characters.find(c => !c.retired && c.name === me);
   a.classList.toggle("mine", Boolean(mine));
-  // A thin hexagon, like the other tabs' outline icons, with the class icon
-  // small inside it: the class icon alone is a solid shape, far heavier.
-  if (mine) a.append(h("span", { class: "tab-me" },
-    h("span", { class: "tab-hex" }, svg("0 0 24 24", '<path d="M12 2.6l8.2 4.7v9.4L12 21.4l-8.2-4.7V7.3z"/>', { "aria-hidden": "true" }), classIcon(mine.class)),
-    h("span", {}, mine.name)));
+  if (mine) a.append(h("span", { class: "tab-me" }, classHex(mine.class), h("span", {}, mine.name)));
+}
+
+// A class icon, small inside a thin hexagon, like the tabs' outline icons:
+// the class icon alone is a solid shape, far heavier.
+function classHex(cls) {
+  return h("span", { class: "class-hex" },
+    svg("0 0 24 24", '<path d="M12 2.6l8.2 4.7v9.4L12 21.4l-8.2-4.7V7.3z"/>', { "aria-hidden": "true" }), classIcon(cls));
 }
 
 // Battle-goal checkmarks, drawn as on the character sheet: six groups of
