@@ -670,6 +670,9 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 .rec-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 12px; }
 .rec-who { flex: 0 0 100%; font-size: var(--t-md); }
 .rec-note { align-self: center; }
+/* What a character's row comes to, after bonus XP and coins. */
+.rec-gain { align-self: flex-end; min-height: 44px; display: inline-flex; align-items: center; font-size: var(--t-sm); font-weight: 600; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.rec-icon .gicon { width: 28px; height: 28px; margin: 0; color: var(--fg-2); }
 .rec-results { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
 .rec-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
 .rec-block > .btn, .rec-results > .btn { align-self: flex-start; }
@@ -739,6 +742,8 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
   .todo-acts { gap: 16px; }
   .todo-go { padding-left: 0; }
   .rec-pin { top: 0; }
+  /* Under the boxes rather than beside them: no need to match their height. */
+  .rec-gain { min-height: 0; }
   .ledger summary, .deck summary, .open-perks summary { padding-block: 13px; margin-block: -9px; }
   .panel { gap: 16px; scroll-margin-top: 16px; }
   .panel.off, .site-footer.off { display: none; }
