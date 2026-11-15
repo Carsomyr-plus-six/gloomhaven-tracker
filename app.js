@@ -1852,6 +1852,16 @@ function goalBoxes(checkmarks) {
     }));
 }
 
+// Personal quest progress written as "2/15" gets a thin bar under it; any
+// other wording ("2? (noted as II)") stays as written, with no bar.
+function questMeter(text) {
+  const m = String(text).match(/^\s*(\d+)\s*\/\s*(\d+)\s*$/);
+  if (!m || !Number(m[2])) return null;
+  const bar = meter(Math.min(1, Number(m[1]) / Number(m[2])));
+  bar.classList.add("quest-meter");
+  return bar;
+}
+
 function renderCharacters(data) {
   if (!data.characters.length) return [sectionHead("Characters"),
     h("div", { class: "empty" }, h("p", {}, "No characters yet."),
@@ -1864,7 +1874,17 @@ function renderCharacters(data) {
     const st = characterStats(c);
     // The same perk taken twice shows once, with a count.
     const check = perkCheck(c);
-    const perks = check.rows;
+    // While a perk waits to be chosen, the whole class list in the sheet's
+    // order, taken boxes filled and untaken perks quiet, as the paper sheet
+    // reads; otherwise just the perks taken. Perks not on the sheet come last.
+    const choosing = st.unspent && check.known;
+    const taken = r => ({ text: r.text, count: r.count, total: r.match ? r.match.count : r.count, note: r.note, quiet: r.quiet });
+    const perks = choosing
+      ? [...classPerks(c.class).map(p => {
+          const row = check.rows.find(r => r.match === p);
+          return row ? taken(row) : { text: p.text, count: 0, total: p.count, open: true };
+        }), ...check.rows.filter(r => !r.match).map(taken)]
+      : check.rows.map(taken);
     const itemProblems = itemCheck(c, st.level);
     return h("article", { class: `char-card${order.indexOf(c) === characterIndex ? " current" : ""}`, "data-char": c.name },
       h("header", { class: "char-head" },
@@ -1885,13 +1905,12 @@ function renderCharacters(data) {
         c.personalQuest ? h("div", {},
           h("span", { class: "label" }, "Personal quest"),
           h("span", { class: "quest" }, c.personalQuest),
-          h("span", { class: "quest-hint" }, "Secret, progress only")) : null),
+          questMeter(c.personalQuest)) : null),
       h("div", { class: "block goal-block" },
         h("div", { class: "block-head" },
-          h("span", { class: "label" }, gameIcon("checkmark"), "Battle goals")),
+          h("span", { class: "label" }, "Battle goals")),
         goalBoxes(c.checkmarks)),
-      h("div", { class: "block", style: `--boxes: ${Math.max(2, ...perks.map(p => Math.max(p.count, p.match?.count || 0)),
-                                                         ...(st.unspent ? check.open.map(p => p.count) : []))}` },
+      h("div", { class: "block perk-block", style: `--boxes: ${Math.max(2, ...perks.map(p => Math.max(p.count, p.total)))}` },
         h("div", { class: "block-head" },
           h("span", { class: "label" }, "Perks"),
         ),
@@ -1904,27 +1923,27 @@ function renderCharacters(data) {
             ? nudge("check", `${draftedPerks(c.name) === 1 ? "Perk" : "Perks"} picked`, "In the session being recorded; it counts once that's saved.", "saved")
             : null,
         perks.length
-          ? h("ul", { class: "perks" }, perks.map(p => h("li", { class: p.note && !p.quiet ? "unsure" : null },
-              // Its boxes, as ticked on the sheet; the game's checkmark is
-              // kept for battle goals, so the card shows only one kind of tick.
-              p.note && !p.quiet ? icon("question") : perkBoxes(p.count, p.match ? p.match.count - p.count : 0),
-              h("span", { class: "perk-text" }, perkText(p.text), p.note ? h("span", { class: "note" }, p.note) : null),
-              p.note && !p.quiet && p.count > 1 ? h("span", { class: "times" }, `×${p.count}`) : null)))
+          ? h("ul", { class: "perks" }, perks.map(p => {
+              const unsure = p.note && !p.quiet;
+              return h("li", { class: unsure ? "unsure" : p.open ? "open" : null },
+                // Its boxes, as ticked on the sheet; the game's checkmark is
+                // kept for battle goals, so the card shows only one kind of tick.
+                unsure ? icon("question") : perkBoxes(p.count, Math.max(0, p.total - p.count)),
+                h("span", { class: "perk-text" }, perkText(p.text), p.note ? h("span", { class: "note" }, p.note) : null),
+                unsure && p.count > 1 ? h("span", { class: "times" }, `×${p.count}`) : null);
+            }))
           : h("span", { class: "small muted" }, st.earned ? "None taken yet."
               // Only a level 1 character with under 3 checkmarks has none earned.
-              : `None yet: the first comes at level 2, or with ${plural(3 - c.checkmarks % 3, "more battle-goal checkmark")}.`),
-        st.unspent && check.open.length ? h("details", { class: "open-perks", open: true },
-          h("summary", {}, `Perks still open on the ${c.class} sheet`),
-          h("ul", {}, check.open.map(p => h("li", {},
-            perkBoxes(p.count - p.left, p.left), h("span", {}, perkText(p.text)))))) : null),
-      c.items.length ? h("div", { class: "block" },
+              : `None yet: the first comes at level 2, or with ${plural(3 - c.checkmarks % 3, "more battle-goal checkmark")}.`)),
+      // Items as a plain list, each with its slot: they aren't buttons.
+      c.items.length ? h("div", { class: "block item-block" },
         h("div", { class: "block-head" }, h("span", { class: "label" }, "Items"), slotStrip(c, st.level)),
         itemProblems.map(text => nudge("question", "Too many items", text)),
-        h("div", { class: "chips" }, c.items.map(i => {
+        h("ul", { class: "item-list" }, c.items.map(i => {
           const slot = itemSlot(i);
-          return h("span", { class: "chip" }, slot ? gameIcon(`slot-${slot}`) : null, i);
+          return h("li", {}, slot ? gameIcon(`slot-${slot}`) : h("span", { class: "slot-blank", "aria-hidden": "true" }), i);
         }))) : null,
-      notes(c.notes, "char-notes"));
+      c.notes ? h("div", { class: "block char-notes" }, h("span", { class: "label" }, "Notes"), notes(c.notes)) : null);
   };
 
   const active = order.filter(c => !c.retired);
@@ -1952,8 +1971,10 @@ function renderCharacters(data) {
 
   return [
     sectionHead("Characters", [`${active.length} active`, retired.length ? `${retired.length} retired` : null].filter(Boolean).join(" · ")),
-    furtherDown([["#shop", "Shop"]]),
-    switcher,
+    // Phones: the Shop, further down this tab, as a small link on the line
+    // under the row, so the sheet starts with the characters.
+    h("div", { class: "switch-wrap" }, switcher,
+      h("a", { class: "switch-shop", href: "#shop", "aria-label": "Shop, further down" }, "Shop", icon("chevron"))),
     active.length ? h("div", { class: "char-grid" }, active.map(card)) : empty("No active characters."),
     active.length ? meLine(data) : null,
     retired.length ? [h("h3", { class: "subhead" }, "Retired"), h("div", { class: "char-grid" }, retired.map(card))] : null,

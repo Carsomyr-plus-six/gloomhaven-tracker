@@ -456,13 +456,11 @@ dialog.who > p { margin-top: 6px; font-size: var(--t-md); color: var(--fg-3); }
 dialog.who > .btn { width: 100%; justify-content: center; }
 
 /* --- Characters ----------------------------------------------------------- */
-.char-switch { display: none; }
-/* Columns rather than a grid: a long sheet (one with perks still open, say)
-   doesn't leave a gap beside the short ones, and a short card fills in under
-   another instead of sitting alone on a row. 340px leaves items room to share
-   a line. */
-.char-grid { columns: 340px; column-gap: 16px; }
-.char-grid > .char-card { break-inside: avoid; margin-bottom: 16px; }
+.char-switch, .switch-shop { display: none; }
+/* In rows, so the sheets read across in the party's order, as they do
+   everywhere else; a short card leaves a gap under it rather than jumbling
+   the order. */
+.char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; align-items: start; }
 .subhead { font: 700 var(--d-sm)/1.1 var(--display); margin-top: 16px; }
 .char-card {
   --under: var(--surface);
@@ -495,7 +493,7 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .char-stats > div:first-child { flex: none; }
 .gold { font-size: var(--d-md); line-height: 1.15; color: var(--brass); }
 .quest { font-size: var(--t-lg); font-weight: 600; padding-top: 6px; }
-.quest-hint { display: none; font-size: var(--t-xs); color: var(--muted); }
+.quest-meter { height: 4px; margin-top: 6px; }
 .goals { display: flex; justify-content: space-between; gap: 6px; }
 .goals > span { display: flex; min-width: 0; gap: 3px; padding: 3px; border-radius: var(--r-sm); border: 1px solid transparent; }
 .goals > span { position: relative; }
@@ -509,7 +507,12 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 }
 .goals i { width: 9px; height: 14px; border-radius: var(--r-xs); border: 1.5px solid var(--line-strong); }
 .goals i.on { background: var(--brass); border-color: var(--brass); }
-.perks > li { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line-soft); font-size: var(--t-md); }
+.perks > li, .item-list > li { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line-soft); font-size: var(--t-md); }
+.perks > li:last-child, .item-list > li:last-child { border-bottom: 0; }
+/* A perk still open on the sheet, while one is being chosen: there, but quiet. */
+.perks > li.open { color: var(--fg-3); }
+.item-list > li { gap: 10px; }
+.item-list .gicon, .slot-blank { flex: none; width: 1.15em; height: 1.15em; margin: 0; color: var(--fg-3); }
 .perks .perk-text { flex: 1; }
 .perks .icon { font-size: var(--t-md); color: var(--verdigris); stroke-width: 2.8; }
 .perks .unsure .icon { color: var(--brass); stroke-width: 2.2; }
@@ -537,12 +540,11 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .char-head p .gicon { color: var(--fg-3); }
 .results .marks .gicon { margin-right: 0; }
 .perks .note { display: block; margin-top: 2px; font-size: var(--t-xs); color: var(--muted); }
-.open-perks summary { font-size: var(--t-sm); color: var(--fg-3); cursor: pointer; padding: 6px 0 2px; }
-.open-perks li { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line-soft); font-size: var(--t-md); }
 .times { flex: none; padding: 1px 8px; border-radius: var(--r-pill); background: var(--surface-2); font-size: var(--t-xs); font-weight: 600; color: var(--fg-3); }
 .perk-nudge { align-items: center; padding: 9px 12px; border-radius: var(--r-md); font-weight: 600; color: var(--brass); }
 .perk-nudge .icon { margin: 0; font-size: var(--t-lg); }
-.char-notes { padding-top: 14px; border-top: 1px solid var(--line-soft); font-size: var(--t-sm); color: var(--fg-3); }
+.char-notes { padding-top: 14px; border-top: 1px solid var(--line-soft); }
+.char-notes .notes { font-size: var(--t-sm); color: var(--fg-3); }
 
 /* --- Scenarios ------------------------------------------------------------ */
 .segmented { display: flex; padding: 3px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-pill); }
@@ -868,7 +870,7 @@ dialog.who > .btn { width: 100%; justify-content: center; }
   .rec-pin { top: 0; }
   /* Under the boxes rather than beside them: no need to match their height. */
   .rec-gain { min-height: 0; }
-  .ledger summary, .deck summary, .open-perks summary { padding-block: 13px; margin-block: -9px; }
+  .ledger summary, .deck summary { padding-block: 13px; margin-block: -9px; }
   .panel { gap: 16px; scroll-margin-top: 16px; }
   .panel.off, .site-footer.off { display: none; }
   .pair { display: contents; }
@@ -925,6 +927,16 @@ dialog.who > .btn { width: 100%; justify-content: center; }
      party scrolls sideways rather than cutting names short. */
   .char-switch { display: flex; margin: -12px -8px 0; padding-bottom: 10px; border-bottom: 1px solid var(--line-soft); overflow-x: auto; scrollbar-width: none; }
   .char-switch::-webkit-scrollbar { display: none; }
+  /* The Shop, further down, sitting on the line under the row; its tap
+     area reaches above and below the line. */
+  .switch-wrap { position: relative; }
+  .switch-shop {
+    position: absolute; right: 0; bottom: -9px; display: inline-flex; align-items: center; gap: 2px;
+    padding-left: 8px; background: var(--bg); line-height: 18px;
+    font-size: var(--t-xs); font-weight: 600; letter-spacing: 0.04em; color: var(--fg-3); text-decoration: none;
+  }
+  .switch-shop .icon { width: 14px; height: 14px; }
+  .switch-shop::after { content: ""; position: absolute; inset: -13px 0; }
   .char-switch button {
     flex: 1 0 72px;
     min-width: 0;
@@ -960,8 +972,7 @@ dialog.who > .btn { width: 100%; justify-content: center; }
   /* A perk to choose: a small brass hex, cut out of the page around it. */
   .char-switch .dot { position: absolute; top: -1px; right: -5px; width: 14px; height: 16px; background: var(--bg); clip-path: var(--hexagon); }
   .char-switch .dot::after { content: ""; position: absolute; inset: 2.3px 2px; background: var(--brass); clip-path: var(--hexagon); }
-  .char-grid { display: block; columns: auto; }
-  .char-grid > .char-card { margin-bottom: 0; }
+  .char-grid { display: block; }
   .char-card { --under: var(--bg); gap: 20px; padding: 6px 0 0; background: none; border: 0; border-radius: 0; }
   .char-card:not(.current) { display: none; }
   .char-head { flex-direction: row-reverse; justify-content: space-between; gap: 16px; }
@@ -974,18 +985,18 @@ dialog.who > .btn { width: 100%; justify-content: center; }
   .xp-now { font-size: var(--t-base); }
   .block-head .xp-next { font-size: var(--t-md); }
   .char-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-  .char-stats > div, .goal-block { --under: var(--surface); padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+  /* Every part of the sheet below the XP sits in a card of its own. */
+  .char-stats > div, .goal-block, .perk-block, .item-block, .char-notes { --under: var(--surface); padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
   .gold { font-size: var(--d-lg); line-height: 1.1; }
   .quest { font-size: var(--t-xl); line-height: 1.25; }
-  .quest-hint { display: block; }
+  .quest-meter { height: 5px; margin-top: 8px; }
   .goal-block { gap: 12px; }
   .goals > span { padding: 4px; }
   .goals i { width: 11px; height: 16px; }
-  .perks > li { min-height: 44px; font-size: var(--t-base); }
+  .perks > li, .item-list > li { min-height: 44px; font-size: var(--t-base); }
   .perks .icon { font-size: var(--t-lg); }
   .perk-nudge { padding: 12px 14px; border-radius: var(--r-md); }
-  .char-card .chip { padding: 8px 14px; border-radius: var(--r-md); background: var(--surface); font-size: var(--t-md); }
-  .char-notes { padding-top: 0; border-top: 0; font-size: var(--t-md); color: var(--fg-2); }
+  .char-notes .notes { font-size: var(--t-md); color: var(--fg-2); }
 
   /* Scenarios */
   .filters { flex-wrap: nowrap; overflow-x: auto; margin: 0 -20px; padding: 0 20px; scrollbar-width: none; }
