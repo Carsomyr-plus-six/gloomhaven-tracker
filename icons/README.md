@@ -6,6 +6,8 @@ They were changed for this site. Each page was converted from PDF to SVG, croppe
 
 These files are therefore licensed **CC BY-NC-SA 4.0**, not under the AGPL-3.0 that covers the rest of this repository. You may use them for non-commercial purposes with credit, and anything you make from them must carry the same licence.
 
+The pack has no pull icon. `pull` is the `push` icon mirrored, so its arrow points back, as in the game. `rolling` is the green diamond with a U-turn arrow from the pack's status effect icons.
+
 They are generated, so don't edit them by hand. To remake them from the pack, run:
 
 ```
