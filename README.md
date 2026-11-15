@@ -20,6 +20,8 @@ It runs on GitHub Pages, so it works on phones and desktops without installing a
 | `tools/update_scenario_data.py` | Regenerates the three reference files: `py tools/update_scenario_data.py` |
 | `icons/` | Game icons from the Gloomhaven Creator Pack: elements and conditions in perk text, class icons, item slots, the battle-goal checkmark, and whether an event card was removed or returned. Generated, don't edit by hand. Licensed CC BY-NC-SA 4.0, not AGPL; see `icons/README.md`. |
 | `tools/creator_pack_icons.py` | Remakes `icons/` from the Creator Pack zip: `py tools/creator_pack_icons.py "path/to/Creator Pack V2.zip"` (needs `pypdf`). |
+| `favicon.svg`, `icon-192.png`, `apple-touch-icon.png` | The site's own icon, the brass hexagon from the top bar, for browser tabs, bookmarks and phone home screens. Not from the Creator Pack. |
+| `tools/site_icons.py` | Redraws the two PNG icons: `py tools/site_icons.py` (needs `Pillow`). |
 | `examples/sample-campaign.json` | Made-up data for testing. View it at `?data=examples/sample-campaign.json`; it keeps its own character choice and draft, apart from the real campaign's. |
 
 ## Recording a session

@@ -203,6 +203,11 @@ main {
   gap: 72px;
 }
 .status { color: var(--muted); }
+/* While the campaign loads: a brass hex, breathing. */
+.status:not(.error) { display: flex; align-items: center; gap: 10px; }
+.status:not(.error)::before { content: ""; flex: none; width: 14px; height: 16px; background: var(--brass); clip-path: var(--hexagon); animation: breathe 1.4s ease-in-out infinite alternate; }
+@keyframes breathe { from { opacity: 0.25; } to { opacity: 0.9; } }
+@media (prefers-reduced-motion: reduce) { .status:not(.error)::before { animation: none; opacity: 0.6; } }
 .status.error {
   max-width: 640px;
   display: flex;
@@ -307,7 +312,12 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 .party-name { position: relative; font: 700 clamp(54px, 8vw, 116px) / 0.95 var(--display); letter-spacing: 0.01em; overflow-wrap: break-word; hyphens: auto; }
 /* A long party name gets a smaller size, so it takes two or three lines, not five. */
 .party-name.long { font-size: clamp(40px, 5.5vw, 80px); }
-.hero-decor { display: none; position: absolute; top: -46px; right: -54px; width: 182px; height: 132px; fill: none; stroke: var(--line-soft); stroke-width: 1.5; }
+/* A few hexes at the far end of the party name's row, fading towards it. */
+.hero-decor {
+  position: absolute; bottom: 0; right: 0; width: 228px; height: 165px;
+  fill: none; stroke: var(--line-soft); stroke-width: 1;
+  -webkit-mask-image: linear-gradient(to left, #000 45%, transparent); mask-image: linear-gradient(to left, #000 45%, transparent);
+}
 .hero-decor .lit { fill: rgba(226, 176, 74, 0.1); stroke: var(--brass-line); }
 
 .hero-side { grid-area: side; align-self: start; min-width: 0; display: flex; flex-direction: column; gap: 28px; }
@@ -359,24 +369,32 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 .ledger ul { list-style: none; margin: 6px 0 0; padding: 0; }
 .ledger li { display: flex; justify-content: space-between; gap: 12px; font-size: var(--t-sm); padding: 3px 0; border-top: 1px solid var(--line); }
 
-.track { position: relative; height: 6px; border-radius: var(--r-pill); background: var(--line); }
-/* Where prices change, the stretch with today's prices, and the next step. */
-.track > i { position: absolute; top: -2px; width: 1.5px; height: 10px; margin-left: -0.75px; background: var(--line-strong); }
-.track > i.next { top: -4px; height: 14px; background: var(--brass); }
-.track > .band { position: absolute; top: 0; bottom: 0; border-radius: var(--r-pill); background: var(--line-strong); }
-.track::before { content: ""; position: absolute; left: 50%; top: -3px; width: 1px; height: 12px; background: var(--line-strong); }
+/* The stretches that share a shop price, with a gap between each. */
+.track { --gap: 3px; position: relative; height: 8px; margin: 7px 0 9px; }
+.track > i { position: absolute; top: 0; bottom: 0; margin-left: calc(var(--gap) / 2); border-radius: var(--r-xs); background: var(--line); }
+/* Today's prices, and the stretch the next step opens, edged in brass. */
+.track > i.now { background: var(--brass-edge); }
+.track > i.next { background: var(--brass-bg); box-shadow: inset 0 0 0 1px var(--brass-line); }
+/* What reputation could be while events are open: a thin brass rule under the track. */
+.track > .maybe { position: absolute; bottom: -6px; height: 2px; border-radius: var(--r-pill); background: var(--brass-edge); }
 .track > .marker {
   position: absolute;
-  top: -4px;
-  width: 14px;
-  height: 14px;
-  margin-left: -7px;
-  border-radius: 50%;
-  background: var(--brass);
-  border: 3px solid var(--surface);
+  top: 50%;
+  width: 20px;
+  height: 22px;
+  transform: translate(-50%, -50%);
+  fill: var(--brass);
+  stroke: var(--surface);
+  stroke-width: 3px;
+  paint-order: stroke;
+  overflow: visible;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.5));
 }
-.track-scale { position: relative; display: flex; justify-content: space-between; min-height: 1.4em; margin-top: 4px; font-size: var(--t-xs); color: var(--muted); }
+.track-scale { position: relative; display: flex; justify-content: space-between; min-height: 1.4em; margin-top: 2px; font-size: var(--t-xs); color: var(--muted); }
 .track-scale .step { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; font-weight: 600; color: var(--brass); }
+.track-scale .end { margin-left: auto; }
+.track-scale .step.start { left: 0; transform: none; }
+.track-scale .step.end { right: 0; transform: none; }
 
 .ticks { display: flex; gap: 6px; padding: 1px 0 5px; }
 .sanctuary { display: flex; flex-direction: column; gap: 5px; }
@@ -400,6 +418,12 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 button.nudge { width: 100%; font-family: inherit; line-height: inherit; text-align: left; cursor: pointer; }
 button.nudge:hover { border-color: var(--brass); }
 .nudge-go { margin-left: auto; font-size: var(--t-sm); text-decoration: underline; text-underline-offset: 0.2em; }
+
+/* A class icon in a thin hexagon, the icon half the hexagon's size. */
+.class-hex { --size: 24px; position: relative; flex: none; display: block; width: var(--size); height: var(--size); }
+.class-hex > svg { display: block; position: absolute; inset: 0; width: 100%; height: 100%;
+  fill: none; stroke: currentColor; stroke-width: var(--stroke, 1.7); stroke-linejoin: round; }
+.class-hex .gicon { position: absolute; inset: 25%; width: 50%; height: 50%; margin: 0; }
 
 /* Which character this phone's player plays: a sheet from the bottom. */
 dialog.who {
@@ -425,6 +449,7 @@ dialog.who > p { margin-top: 6px; font-size: var(--t-md); color: var(--fg-3); }
 }
 .who-row:last-child { border-bottom: 0; }
 .who-row:hover, .who-row:focus-visible { background: var(--surface-2); }
+.who-row .class-hex { --size: 46px; --stroke: 1.1; color: var(--fg-2); }
 .who-row .party-who { display: flex; flex-direction: column; gap: 1px; }
 .who-row .party-who strong { font-size: var(--t-lg); font-weight: 600; }
 .who-row .party-who span { font-size: var(--t-sm); color: var(--muted); }
@@ -763,7 +788,9 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 }
 .field input:focus, .field select:focus, .rec-block textarea:focus { outline: 2px solid var(--brass); outline-offset: 1px; }
 .rec-block textarea { width: 100%; resize: vertical; }
-.rec-summary ul { list-style: disc; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; font-size: var(--t-md); }
+.rec-summary ul { padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: var(--t-md); }
+.rec-summary li { position: relative; }
+.rec-summary li::before { content: ""; position: absolute; left: -15px; top: 0.5em; width: 7px; height: 8px; background: var(--fg-3); clip-path: var(--hexagon); }
 
 .shop { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px; align-items: start; }
 .shop .card { display: flex; flex-direction: column; gap: 6px; }
@@ -791,7 +818,11 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .enhancer-cost .rows .num { flex: none; color: var(--fg-3); }
 .party-notes { max-width: 880px; display: flex; flex-direction: column; gap: 10px; }
 
-.site-footer { padding-top: 24px; border-top: 1px solid var(--line-soft); color: var(--muted); font-size: var(--t-sm); }
+.site-footer { position: relative; padding-top: 24px; border-top: 1px solid var(--line-soft); color: var(--muted); font-size: var(--t-sm); }
+/* The end of the page: a small brass-edged hex sitting on the rule. */
+.site-footer::before, .site-footer::after { content: ""; position: absolute; left: 50%; clip-path: var(--hexagon); }
+.site-footer::before { top: -8px; width: 14px; height: 16px; margin-left: -7px; background: var(--brass-line); }
+.site-footer::after { top: -6.5px; width: 11px; height: 13px; margin-left: -5.5px; background: var(--bg); }
 .site-footer a { color: inherit; }
 
 /* --- Phones: tabs at the bottom, one tab at a time ------------------------ */
@@ -846,7 +877,7 @@ dialog.who > .btn { width: 100%; justify-content: center; }
   .card { padding: 14px; }
 
   .hero { display: flex; flex-direction: column; align-items: stretch; gap: 28px; }
-  .hero-decor { display: block; }
+  .hero-decor { top: -46px; bottom: auto; right: -54px; width: 182px; height: 132px; stroke-width: 1.5; -webkit-mask-image: none; mask-image: none; }
   .hero-side { display: contents; }
   .ready { align-self: stretch; order: 1; }
   .tiles { order: 2; }
@@ -862,6 +893,8 @@ dialog.who > .btn { width: 100%; justify-content: center; }
   .ready-from { font-size: var(--t-xs); color: var(--muted); }
   .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .tile { gap: 10px; }
+  .track { --gap: 2px; }
+  .track > .marker { width: 17px; height: 19px; }
   .tile-top .figure { font-size: var(--d-md); }
   .tile-foot { flex-direction: column; }
   .tile-foot strong { font-size: var(--t-md); }
@@ -918,14 +951,15 @@ dialog.who > .btn { width: 100%; justify-content: center; }
   /* The Characters tab shows this phone's character instead. */
   .tabs a.mine > svg, .tabs a.mine > span:not(.tab-me) { display: none; }
   .tabs a.mine .tab-me { display: contents; }
-  .tab-hex { position: relative; display: block; width: 24px; height: 24px; }
-  .tab-hex .gicon { position: absolute; inset: 6px; width: 12px; height: 12px; margin: 0; }
+  .tab-me .class-hex { --size: 24px; }
   .tab-me > span:last-child { max-width: 100%; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .char-switch button[aria-pressed="true"] { color: var(--fg); }
   .char-switch button[aria-pressed="true"] .hex { --ring: var(--fg); --fill: var(--fg); --ink: var(--bg); }
   .char-switch button.retired:not([aria-pressed="true"]) { opacity: 0.55; }
   .switch-sep { flex: none; align-self: center; width: 1px; height: 44px; margin: 0 4px; background: var(--line); }
-  .char-switch .dot { position: absolute; top: 0; right: -4px; width: 12px; height: 12px; border-radius: 50%; background: var(--brass); border: 2px solid var(--bg); }
+  /* A perk to choose: a small brass hex, cut out of the page around it. */
+  .char-switch .dot { position: absolute; top: -1px; right: -5px; width: 14px; height: 16px; background: var(--bg); clip-path: var(--hexagon); }
+  .char-switch .dot::after { content: ""; position: absolute; inset: 2.3px 2px; background: var(--brass); clip-path: var(--hexagon); }
   .char-grid { display: block; columns: auto; }
   .char-grid > .char-card { margin-bottom: 0; }
   .char-card { --under: var(--bg); gap: 20px; padding: 6px 0 0; background: none; border: 0; border-radius: 0; }
