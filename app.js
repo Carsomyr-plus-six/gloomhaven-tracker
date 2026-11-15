@@ -146,7 +146,7 @@ function renderEventDecks(data) {
     ev.history.length ? [
       h("div", { class: "muted small", style: "margin-top:12px" }, "Events drawn"),
       h("ul", { class: "plain" }, ev.history.map(e => h("li", {},
-        `${e.label}: option ${e.option}`,
+        e.option ? `${e.label}: option ${e.option}` : e.label,
         h("span", { class: "muted small" }, [
           e.fate ? ` · ${e.fate}` : null,
           e.adds.length ? ` · added ${e.adds.map(([d, n]) => eventLabel(d, n)).join(", ")}` : null,
@@ -268,24 +268,41 @@ function deriveEvents(data, evRef) {
 
   for (const e of data.events) {
     const label = eventLabel(e.deck, e.number);
-    const outcomes = evRef?.events?.[e.deck]?.[String(e.number)]?.[e.option] || [];
-    const outcome = e.outcome ? outcomes[e.outcome - 1]
+    const options = evRef?.events?.[e.deck]?.[String(e.number)] || {};
+    // Without a known option, consider every outcome of every option.
+    const outcomes = e.option ? options[e.option] || [] : Object.values(options).flat();
+    const outcome = e.option && e.outcome ? outcomes[e.outcome - 1]
                   : outcomes.length === 1 ? outcomes[0] : null;
 
     // Removed or returned: the campaign entry wins, then the outcome, then
-    // all outcomes agreeing.
+    // all possible outcomes agreeing.
     const fates = new Set(outcomes.map(o => o.card));
     const fate = e.card || outcome?.card || (fates.size === 1 ? [...fates][0] : null);
-    if (fate === "removed") remove(e.deck, e.number, `${label}, option ${e.option}`);
-    if (!fate) questions.push(`${label}: check whether the card was removed or returned to the deck.`);
+    if (fate === "removed") remove(e.deck, e.number, e.option ? `${label}, option ${e.option}` : label);
 
-    const adds = outcome?.adds || [];
+    // With no outcome pinned down, cards added or scenarios unlocked count
+    // only if every possible outcome agrees.
+    const same = key => {
+      const all = outcomes.map(o => JSON.stringify(o[key] || []));
+      return new Set(all).size === 1 ? JSON.parse(all[0]) : [];
+    };
+    const adds = outcome ? outcome.adds || [] : same("adds");
     for (const [deck, number] of adds) add(deck, number, `from ${label}`);
-    for (const n of outcome?.unlocks || []) unlocks.push({ number: n, source: `${label} event` });
+    for (const n of outcome ? outcome.unlocks || [] : same("unlocks")) unlocks.push({ number: n, source: `${label} event` });
 
-    if (!outcome && outcomes.length > 1) {
-      const choices = outcomes.map((o, i) => `${i + 1}: ${describeCondition(o.condition)}`).join("; ");
-      questions.push(`${label}, option ${e.option}: which outcome? (${choices})`);
+    // Settled: the card's fate is known and every possible outcome agrees on
+    // what it adds and unlocks, so there is nothing to ask.
+    const settled = Boolean(fate) && (Boolean(outcome) ||
+      new Set(outcomes.map(o => JSON.stringify([o.adds || [], o.unlocks || []]))).size <= 1);
+    if (!settled) {
+      if (!e.option) {
+        questions.push(`${label}: which option did you choose, and who was there? It decides what happened to the card.`);
+      } else if (!outcome && outcomes.length > 1) {
+        const choices = outcomes.map((o, i) => `${i + 1}: ${describeCondition(o.condition)}`).join("; ");
+        questions.push(`${label}, option ${e.option}: which outcome? (${choices})`);
+      } else {
+        questions.push(`${label}: check whether the card was removed or returned to the deck.`);
+      }
     }
     for (const [deck, number] of outcome?.mayAdd || []) {
       questions.push(`${label}: ${eventLabel(deck, number)} may have been added, depending on the characters present.`);
