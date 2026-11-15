@@ -18,6 +18,8 @@ It runs on GitHub Pages, so it works on phones and desktops without installing a
 | `data/gloomhaven-events.json` | Reference data for city and road events: starting decks, and each option's outcomes: the condition, what happens to the card, and the effects (reputation, prosperity, gold, XP, achievements, cards added, scenarios unlocked), plus each class's unlock and retirement events and its perks (worded as on the character sheet, with their boxes). No event text. Generated, **contains spoilers**. |
 | `data/gloomhaven-items.json` | Reference data for the 150 items: name, cost, copies, slot, and the prosperity that puts them in the shop. No item text. Generated, **contains spoilers**. |
 | `tools/update_scenario_data.py` | Regenerates the three reference files: `py tools/update_scenario_data.py` |
+| `icons/` | Game icons from the Gloomhaven Creator Pack: elements and conditions in perk text, class icons, item slots, the battle-goal checkmark. Generated, don't edit by hand. Licensed CC BY-NC-SA 4.0, not AGPL; see `icons/README.md`. |
+| `tools/creator_pack_icons.py` | Remakes `icons/` from the Creator Pack zip: `py tools/creator_pack_icons.py "path/to/Creator Pack V2.zip"` (needs `pypdf`). |
 | `examples/sample-campaign.json` | Made-up data for testing. View it at `?data=examples/sample-campaign.json`. |
 
 ## Recording a session
@@ -138,5 +140,7 @@ An event that gives a random item design takes `"drew": "Item name"` once you've
 ## Credits and license
 
 Scenario and event data comes from [Gloomhaven Secretariat](https://github.com/Lurkars/gloomhavensecretariat) by Lurkars and contributors, licensed under the GNU Affero General Public License v3.0. This project uses the same license; see [LICENSE](LICENSE).
+
+The icons in `icons/` come from the [Gloomhaven Creator Pack](https://boardgamegeek.com/thread/1733586/files-for-creation) by Isaac Childres / Cephalofair Games, shared under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/). They have been converted to SVG, cropped, and in three cases recoloured. They stay under CC BY-NC-SA 4.0, not the AGPL; see [icons/README.md](icons/README.md).
 
 This is an unofficial fan project. Gloomhaven and its content are © Cephalofair Games.
