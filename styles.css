@@ -366,8 +366,10 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 .todo-do:hover { border-color: var(--brass); }
 /* Who is playing: an even grid, four across when the tile has room for
    names that long, two otherwise, so a chip never sits alone. */
-.filters.party-pick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
-@container level (min-width: 360px) { .filters.party-pick { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.filters.party-pick { display: grid; grid-template-columns: repeat(var(--narrow, 2), minmax(0, 1fr)); gap: 6px; }
+@container level (min-width: 360px) { .filters.party-pick { grid-template-columns: repeat(var(--wide, 4), minmax(0, 1fr)); } }
+/* Someone inactive, there to be picked for a night: quieter until picked. */
+.filters.party-pick button.away:not([aria-pressed="true"]) { border-style: dashed; opacity: 0.7; }
 .filters.party-pick button { min-width: 0; justify-content: center; gap: 6px; padding: 0 8px; font-size: var(--t-sm); }
 .party-pick .pick-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; opacity: 1; }
 /* The difficulty, across the tile in equal parts. */
@@ -735,6 +737,12 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .played > li:last-child { border-bottom: 0; }
 .played .hex { --w: 36px; }
 .played-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+/* A played scenario opens on the Scenarios tab. */
+.played-link { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; align-self: stretch; color: inherit; text-decoration: none; }
+.played-link:hover .played-text strong { text-decoration: underline; text-underline-offset: 0.2em; }
+/* A scenario mentioned in passing, as a link. */
+.scenario-link { color: inherit; text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 0.2em; }
+.scenario-link:hover { text-decoration-color: var(--fg-3); }
 .played-text strong { font-size: var(--t-lg); font-weight: 600; }
 .played-text span { font-size: var(--t-xs); color: var(--muted); }
 .result { flex: none; display: flex; align-items: center; }
@@ -807,6 +815,10 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .rec-icon .gicon { width: 28px; height: 28px; margin: 0; color: var(--fg-2); }
 .rec-results { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
 .rec-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+/* An event's row, with what it did under it. */
+.rec-event { display: flex; flex-direction: column; gap: 6px; }
+.rec-event + .rec-event { padding-top: 12px; border-top: 1px solid var(--line-soft); }
+[data-ev-note]:empty { display: none; }
 /* A scenario's name under its number; nothing until there's a number. */
 [data-sc-name]:empty { display: none; }
 /* The scenarios the party can play, to tap into an empty number box. */
@@ -977,6 +989,8 @@ dialog.who > .btn { width: 100%; justify-content: center; }
   .party-head { display: flex; align-items: baseline; justify-content: space-between; }
   .party-row { display: flex; align-items: center; gap: 12px; min-height: 68px; padding: 10px 0; border-bottom: 1px solid var(--line-soft); color: var(--fg); text-decoration: none; }
   .party-row:last-child { border-bottom: 0; }
+  /* Sitting out for now: there, but quieter. */
+  .party-row.inactive { opacity: 0.6; }
   .party-row:hover { color: var(--fg); }
   .party-who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
   .party-who strong { font-size: var(--t-lg); font-weight: 600; }
@@ -1033,7 +1047,7 @@ dialog.who > .btn { width: 100%; justify-content: center; }
   .tab-me > span:last-child { max-width: 100%; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .char-switch button[aria-pressed="true"] { color: var(--fg); }
   .char-switch button[aria-pressed="true"] .hex { --ring: var(--fg); --fill: var(--fg); --ink: var(--bg); }
-  .char-switch button.retired:not([aria-pressed="true"]) { opacity: 0.55; }
+  .char-switch button:is(.retired, .inactive):not([aria-pressed="true"]) { opacity: 0.55; }
   .switch-sep { flex: none; align-self: center; width: 1px; height: 44px; margin: 0 4px; background: var(--line); }
   /* A perk to choose: a small brass hex, cut out of the page around it. */
   .char-switch .dot { position: absolute; top: -1px; right: -5px; width: 14px; height: 16px; background: var(--bg); clip-path: var(--hexagon); }
