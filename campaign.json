@@ -88,7 +88,12 @@
         "38",
         "46"
       ],
-      "notes": "First scenario without Kaktus: Azorica, Craig and Flik Flak.\nTreasure 38 gave the Ring of Skulls design.\nTreasure 46 was a trap (3 damage and poisoned), with no lasting effect."
+      "results": [
+        { "character": "Azorica", "xp": 15, "gold": 10, "checkmarks": 1 },
+        { "character": "Craig", "xp": 14, "gold": 10, "checkmarks": 1 },
+        { "character": "Flik Flak", "xp": 17, "gold": 12, "checkmarks": 1 }
+      ],
+      "notes": "First scenario without Kaktus.\nAll three completed their battle goals.\nTreasure 38 gave the Ring of Skulls design.\nTreasure 46 was a trap (3 damage and poisoned), with no lasting effect."
     },
     {
       "number": 8,
