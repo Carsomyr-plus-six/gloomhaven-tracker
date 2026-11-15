@@ -517,7 +517,7 @@ function todoItems(data) {
   const add = (text, href, onclick, action, place) => items.push({ text, href, onclick, action, place });
   const order = characterOrder(data);
 
-  if (draft) add("What's been recorded on this phone isn't saved yet: download it from Sessions and commit it.", "#sessions");
+  if (draftChanges(draft, data)) add("What's been recorded on this phone isn't saved yet: download it from Sessions and commit it.", "#sessions");
 
   // No one adventuring yet (a new campaign): nothing can happen until there is.
   if (!order.some(c => !c.retired) && !draft?.newCharacters?.some(x => x.name)) {
@@ -583,15 +583,45 @@ function addNewcomer(data) {
   draft.newCharacters ||= [];
   let i = draft.newCharacters.findIndex(x => !x.name);
   if (i < 0) { draft.newCharacters.push({ name: "", class: "", level: "1", playing: true }); i = draft.newCharacters.length - 1; }
+  showInRecorder(data, `new-${i}-n`);
+}
+
+// Open the recorder and bring one of its boxes into view, with focus. It
+// waits for the switch to Sessions, which on a phone starts the tab from its
+// top, and jumps rather than glides, so nothing scrolls it away again.
+function showInRecorder(data, key) {
   recorderOpen = true;
   saveDraft();
   render(data);
-  location.hash = "sessions";
-  setTimeout(() => {
-    const box = document.querySelector(`[data-key="new-${i}-n"]`);
-    box?.scrollIntoView({ block: "center" });
+  const go = () => setTimeout(() => {
+    const box = document.querySelector(`[data-key="${CSS.escape(key)}"]`);
+    box?.scrollIntoView({ block: "center", behavior: "instant" });
     box?.focus({ preventScroll: true });
-  }, 80);
+  }, 0);
+  if (location.hash === "#sessions") go();
+  else { window.addEventListener("hashchange", go, { once: true }); location.hash = "sessions"; }
+}
+
+// "Buy" in the Shop: a purchase in the draft, shown in the recorder.
+function recordBuy(data, name, item) {
+  if (!draft) draft = newDraft(data);
+  let i = draft.buys.findIndex(b => b.character === name && b.item === item);
+  if (i < 0) { draft.buys.push({ character: name, item }); i = draft.buys.length - 1; }
+  showInRecorder(data, `buy-${i}-i`);
+}
+
+// "Record it" on a scenario you can play: the scenario in the draft, at
+// tonight's level, ready for what each character gained.
+function recordScenario(data, number) {
+  if (!draft) draft = newDraft(data);
+  let i = draft.scenarios.findIndex(x => num(x.number) === number);
+  if (i < 0) {
+    const party = data.characters.filter(c => !c.retired && draft.party.includes(c.name));
+    draft.scenarios.push({ ...newScenario(data, party), number: String(number) });
+    i = draft.scenarios.length - 1;
+  }
+  const first = data.characters.find(c => !c.retired && draft.party.includes(c.name));
+  showInRecorder(data, first ? `sc-${i}-${first.name}-xp` : `sc-${i}-r`);
 }
 
 // "Record it": open the recorder with a perk row for this character, ready
@@ -600,16 +630,7 @@ function recordPerk(data, name) {
   if (!draft) draft = newDraft(data);
   let i = draft.perks.findIndex(p => p.character === name && !p.perk);
   if (i < 0) { draft.perks.push({ character: name, perk: "" }); i = draft.perks.length - 1; }
-  recorderOpen = true;
-  saveDraft();
-  render(data);
-  location.hash = "sessions";
-  // After the tab switch (phones) or the scroll to Sessions (wide screens).
-  setTimeout(() => {
-    const box = document.querySelector(`[data-key="perk-${i}-p"]`);
-    box?.scrollIntoView({ block: "center" });
-    box?.focus({ preventScroll: true });
-  }, 80);
+  showInRecorder(data, `perk-${i}-p`);
 }
 
 // Wide screens show every sheet: bring this character's into view.
@@ -1481,6 +1502,14 @@ function scenarioFacts(data, s) {
   return pairs.length ? h("dl", { class: "facts" }, pairs.map(([k, v]) => h("div", {}, h("dt", {}, k), h("dd", {}, v)))) : null;
 }
 
+// After playing a scenario that's open to play: record it, as a perk is.
+function scenarioAction(data, s) {
+  if (s.status !== "available" || !rawCampaign) return null;
+  const inDraft = draft?.scenarios?.some(x => num(x.number) === s.number);
+  return h("button", { type: "button", class: "todo-do scenario-record", "data-key": `record-sc-${s.number}`,
+    onclick: () => recordScenario(data, s.number) }, inDraft ? "Go to it in the draft" : "Record it");
+}
+
 // How far each depth of the tree is indented, in pixels.
 const TREE_STEP = 14;
 
@@ -1525,6 +1554,7 @@ function scenarioRow(data, s, depth = 0, lines = []) {
       icon("chevron")),
     open ? h("div", { class: "row-body" },
       scenarioFacts(data, s),
+      scenarioAction(data, s),
       s.results?.length ? resultsList(s.results) : null,
       notes(s.notes)) : null);
   // An opened row's details start clear of the tree's lines.
@@ -1590,7 +1620,7 @@ function unlockMap(data, all, layout) {
             h("p", {}, h("b", { class: `ink-${s.status}` }, STATUS_LABELS[s.status] || s.status),
               s.status === "available" ? " · ready to play" : null))),
         s.reasons.length ? h("div", { class: "reasons" }, s.reasons.map(r => h("span", {}, r))) : null,
-        scenarioFacts(data, s)),
+        scenarioFacts(data, s), scenarioAction(data, s)),
       s.results?.length ? h("div", {}, h("span", { class: "label" }, "What each character took home"), resultsList(s.results)) : null,
       s.notes ? h("div", {}, h("span", { class: "label" }, "Notes"), notes(s.notes)) : null) : null);
 }
@@ -2082,18 +2112,31 @@ function renderShop(data) {
   // With this phone's character picked: their gold, the room they have, and
   // on each item whether they could take it.
   const mine = data.characters.find(c => !c.retired && c.name === me);
-  const room = mine ? slotUse(mine, characterStats(mine).level) : null;
+  // What's in the draft for them counts too: bought, it takes its slot and
+  // its gold, so the Shop doesn't offer a second body item, say.
+  const drafts = mine ? (draft?.buys || []).filter(b => b.character === mine.name && b.item) : [];
+  const room = mine ? slotUse({ ...mine, items: [...mine.items, ...drafts.map(b => b.item)] }, characterStats(mine).level) : null;
+  const spent = drafts.reduce((sum, b) => sum + (shop.stock.find(i => i.name === b.item)?.price || 0), 0);
   const full = item => { const [k, n] = slotNeed(item.slot); return room && k in room.used && room.used[k] + n > room.limits[k]; };
-  const dear = item => mine && item.price > mine.gold;
+  const dear = item => mine && item.price > mine.gold - spent;
 
+  // "Buy", for this phone's character, on what they can afford and carry:
+  // it goes into the draft, as "Record it" does for a perk.
+  const drafted = item => mine && draft?.buys?.some(b => b.character === mine.name && b.item === item.name);
+  const buy = item => !mine || !rawCampaign ? null
+    : drafted(item) ? h("span", { class: "in-draft" }, "In the draft")
+    : !item.left || dear(item) || full(item) ? null
+    : h("button", { type: "button", class: "buy", "data-key": `buy-${item.id}`, "aria-label": `Buy ${item.name} for ${mine.name}`,
+        onclick: () => recordBuy(data, mine.name, item.name) }, "Buy");
   const row = item => h("li", { class: item.left ? (dear(item) ? "too-dear" : null) : "sold-out" },
     h("span", {},
       h("strong", {}, item.name, item.design ? h("span", { class: "tag" }, "design") : null),
       h("span", { class: "sub" }, copyPips(item), [
-        item.left && full(item) ? fullText(mine, item.slot) : null,
+        item.left && full(item) && !drafted(item) ? fullText(mine, item.slot) : null,
         item.held.length ? `sells for ${item.sells}` : null,
       ].filter(Boolean).join(" · "))),
-    h("span", { class: "price num" }, `${item.price} gold`));
+    // The price, with Buy under it, so prices stay in one column.
+    h("span", { class: "price-col" }, h("span", { class: "price num" }, `${item.price} gold`), buy(item)));
 
   // One mark per copy of the item: empty while it's in the shop, the
   // holder's class icon once someone carries it.
@@ -2249,13 +2292,23 @@ function dropDraft() {
   draft = null;
   try { localStorage.removeItem(DRAFT_KEY); } catch {}
 }
+// Does the draft change anything yet? An opened form, or a row added and left
+// empty, doesn't: no draft is kept for it, and nothing says one is waiting.
+function draftChanges(d, data) {
+  if (!d || !rawCampaign) return false;
+  const res = applyDraft(rawCampaign, d, data);
+  return res.evening || res.log.length > 0;
+}
 
 // Each draft has an id, which campaign.json keeps as "lastDraft" once saved:
 // that's how the page knows the draft is in the file, session or not.
 const draftId = () => Math.random().toString(36).slice(2, 10);
 
 function newDraft(data) {
-  return { id: draftId(), date: today(), title: "", party: [...defaultLevelParty(data)], notes: "",
+  // Who's playing: as picked on the Overview's scenario level, if it has been.
+  const active = new Set(data.characters.filter(c => !c.retired).map(c => c.name));
+  const party = [...(levelParty || defaultLevelParty(data))].filter(n => active.has(n));
+  return { id: draftId(), date: today(), title: "", party, notes: "",
            scenarios: [], events: [], buys: [], sells: [], perks: [], donations: [],
            retirements: [], newCharacters: [] };
 }
@@ -2519,6 +2572,17 @@ function applyDraft(raw, d, data) {
     log.push(`${p.character} takes "${p.perk}"`);
   }
   for (const c of out.characters) if (c.gold < 0) warnings.push(`${c.name} would have ${c.gold} gold.`);
+  // Items that won't fit, because of what the draft buys: a second body
+  // item, say. Problems a character already had are left to Before you play.
+  for (const name of new Set(d.buys.filter(b => b.character && b.item).map(b => b.character))) {
+    const now = out.characters.find(c => c.name === name);
+    if (!now) continue;
+    const was = data.characters.find(c => c.name === name);
+    const already = new Set(was ? itemCheck(was, stepFor(was.xp || 0, XP_FOR_LEVEL)) : []);
+    for (const problem of itemCheck(now, stepFor(now.xp || 0, XP_FOR_LEVEL))) {
+      if (!already.has(problem)) warnings.push(`${name}: ${problem.charAt(0).toLowerCase()}${problem.slice(1)}`);
+    }
+  }
 
   // The draft's id, just after "updated" (replacing an earlier one).
   const marked = {};
@@ -2563,7 +2627,10 @@ function renderRecorder(data) {
   d.newCharacters ||= [];
   // A change to the form's rows redraws it, and the Overview and sheets too:
   // they leave out what the draft already covers (a perk picked, say).
-  const rerender = () => { saveDraft(); render(data, "sessions"); render(data, "overview"); render(data, "characters"); };
+  const rerender = () => {
+    saveDraft();
+    for (const part of ["sessions", "overview", "characters", "shop", "scenarios"]) render(data, part);
+  };
   const set = (obj, key, again = false) => e => {
     obj[key] = e.target.type === "checkbox" ? e.target.checked : e.target.value;
     if (again) rerender(); else saveDraft();
@@ -2621,6 +2688,18 @@ function renderRecorder(data) {
   const buyOptions = [...partyOptions, ...newcomers.filter(c => !party.includes(c)).map(c => [c.name, c.name])];
   const available = data.scenarios.filter(s => s.status === "available").sort((a, b) => a.number - b.number);
 
+  // A scenario's name (with its rewards, on a success) under its number.
+  const scenarioNameText = s => {
+    const n = num(s.number);
+    if (!n) return "";
+    const info = scenarioRef?.scenarios?.[String(n)];
+    if (!info) return "Not a scenario number.";
+    const rewards = describeRewards(scenarioRef, info.rewards, classRef);
+    return `${info.name}${s.result === "success" && rewards.length ? ` · rewards: ${rewards.join(", ")}` : ""}`;
+  };
+  // Playable scenarios not already in this draft.
+  const pickable = i => available.filter(sc => !d.scenarios.some((x, j) => j !== i && num(x.number) === sc.number));
+
   // What a character's row adds up to, kept current as the boxes are typed in.
   const gainText = (s, r) => {
     const g = scenarioGain(s, r, data);
@@ -2628,8 +2707,6 @@ function renderRecorder(data) {
   };
   const scenarioBlock = (s, i) => {
     const n = num(s.number);
-    const info = scenarioRef?.scenarios?.[String(n)];
-    const rewards = info ? describeRewards(scenarioRef, info.rewards, classRef) : [];
     s.level ??= String(draftLevel(s, data));
     const st = scenarioStats(draftLevel(s, data));
     return h("fieldset", { class: "card rec-block" },
@@ -2638,7 +2715,14 @@ function renderRecorder(data) {
         field("Number", text(`sc-${i}-n`, s, "number", { type: "number", min: 1, max: 95, list: "rec-available", inputmode: "numeric", "aria-label": "Scenario number" }, true), "short"),
         field("Level", select(`sc-${i}-l`, s, "level", Array.from({ length: 8 }, (_, l) => [String(l), String(l)]))),
         field("Result", select(`sc-${i}-r`, s, "result", [["success", "Success"], ["failure", "Failure"]]))),
-      n ? h("p", { class: "small muted" }, info ? `${info.name}${s.result === "success" && rewards.length ? ` · rewards: ${rewards.join(", ")}` : ""}` : "Not a scenario number.") : null,
+      // Its name, kept current as you type; and while it's empty, the
+      // scenarios the party can play, to tap (phones don't list a number
+      // box's suggestions).
+      h("p", { class: "small muted", "data-sc-name": i }, scenarioNameText(s)),
+      !n && pickable(i).length ? h("div", { class: "rec-picks", "data-sc-picks": i, role: "group", "aria-label": "Playable scenarios" },
+        pickable(i).map(sc => h("button", { type: "button", class: "chip", "data-key": `sc-${i}-pick-${sc.number}`,
+          onclick: () => { s.number = String(sc.number); rerender(); focusOn(party.length ? `sc-${i}-${party[0].name}-xp` : `sc-${i}-r`); } },
+          hex(sc.number), sc.name || `#${sc.number}`))) : null,
       party.length ? h("div", { class: "rec-results" },
         h("span", { class: "label" }, "What each character gained there"),
         h("p", { class: "small muted" }, s.result === "success"
@@ -2745,6 +2829,10 @@ function renderRecorder(data) {
       try { await navigator.clipboard.writeText(json); button.textContent = "Copied"; }
       catch { button.textContent = "Couldn't copy"; }
     };
+    if (!evening && !log.length) return h("div", { class: "card rec-block rec-summary" },
+      h("h3", { class: "subtitle" }, "What changes"),
+      warnings.map(w => nudge("question", "Check", w)),
+      h("p", { class: "small muted" }, "Nothing recorded yet. What you enter above shows up here, ready to save."));
     return h("div", { class: "card rec-block rec-summary" },
       h("h3", { class: "subtitle" }, "What changes"),
       warnings.map(w => nudge("question", "Check", w)),
@@ -2770,12 +2858,22 @@ function renderRecorder(data) {
     h("button", { type: "button", class: "btn quiet", onclick: () => document.querySelector(".rec-summary")?.scrollIntoView({ block: "start" }) },
       "See what changes"));
   const refreshSummary = () => {
+    for (const el of document.querySelectorAll("[data-sc-name]")) {
+      const s = d.scenarios[num(el.dataset.scName)];
+      if (s) el.textContent = scenarioNameText(s);
+    }
+    for (const el of document.querySelectorAll("[data-sc-picks]")) {
+      el.hidden = filled(d.scenarios[num(el.dataset.scPicks)]?.number);
+    }
     for (const el of document.querySelectorAll("[data-gain]")) {
       const [i, name] = el.dataset.gain.split("|");
       const s = d.scenarios[num(i)];
       if (s) el.textContent = gainText(s, s.results[name] || {});
     }
     const res = applyDraft(rawCampaign, d, data);
+    // The button above the form says whether closing it keeps a draft.
+    const close = document.querySelector('[data-key="rec-toggle"]');
+    if (close) close.textContent = res.evening || res.log.length ? "Close the form (keep the draft)" : "Close the form";
     document.querySelector(".rec-summary")?.replaceWith(summary(res));
     document.querySelector(".rec-top")?.replaceWith(topBar(res));
   };
@@ -2864,13 +2962,15 @@ function renderSessions(data) {
   const toggle = () => {
     if (!draft) draft = newDraft(data);
     recorderOpen = !recorderOpen;
-    saveDraft();
-    render(data, "sessions");
+    // Closing a form with nothing in it leaves no draft behind.
+    if (!recorderOpen && !draftChanges(draft, data)) dropDraft(); else saveDraft();
+    render(data);
   };
   const head = h("div", { class: "section-head" },
     h("h2", {}, "Sessions"),
     rawCampaign ? h("button", { type: "button", class: `btn${recorderOpen ? "" : " primary"}`, "data-key": "rec-toggle", onclick: toggle },
-      recorderOpen ? "Close the form (keep the draft)" : draft ? "Go on recording" : "Record a session") : null);
+      recorderOpen ? (draftChanges(draft, data) ? "Close the form (keep the draft)" : "Close the form")
+        : draftChanges(draft, data) ? "Go on recording" : "Record a session") : null);
 
   // Wide screens: an open form takes the full width, Event decks below it.
   document.querySelector(".pair")?.classList.toggle("form-open", recorderOpen && Boolean(draft));
@@ -3148,6 +3248,7 @@ async function start() {
     if (mine >= 0) characterIndex = mine;
     if (phone.matches && mine >= 0 && location.hash.length <= 1) history.replaceState(null, "", "#characters");
 
+    if (draft && !draftChanges(draft, data)) dropDraft();
     render(data);
     status.remove();
     showTab();

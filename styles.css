@@ -807,6 +807,17 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .rec-icon .gicon { width: 28px; height: 28px; margin: 0; color: var(--fg-2); }
 .rec-results { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
 .rec-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+/* A scenario's name under its number; nothing until there's a number. */
+[data-sc-name]:empty { display: none; }
+/* The scenarios the party can play, to tap into an empty number box. */
+.rec-picks { display: flex; flex-wrap: wrap; gap: 6px; }
+.rec-picks[hidden] { display: none; }
+.rec-picks .chip { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 12px 4px 6px;
+  background: var(--surface); color: var(--fg); font-weight: 600; cursor: pointer; }
+.rec-picks .chip:hover { border-color: var(--fg-3); }
+.rec-picks .hex { --w: 24px; }
+/* "Record it" under a scenario you can play. */
+.scenario-record { align-self: flex-start; }
 .rec-block > .btn, .rec-results > .btn { align-self: flex-start; }
 .rec-check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 600; }
 .rec-check input { width: 20px; height: 20px; accent-color: var(--brass); }
@@ -829,6 +840,14 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .shop { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px; align-items: stretch; }
 .shop .card { display: flex; flex-direction: column; gap: 6px; }
 .shop .price { flex: none; font-weight: 600; color: var(--brass); }
+.shop .price-col { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+/* Buy, for this phone's character: a small brass pill under the price, its
+   tap area reaching past its edges. */
+.shop .buy { position: relative; padding: 2px 12px; border: 1px solid var(--brass-line); border-radius: var(--r-pill);
+  background: var(--brass-bg); color: var(--brass); font-size: var(--t-xs); font-weight: 600; cursor: pointer; }
+.shop .buy:hover { border-color: var(--brass); }
+.shop .buy::after { content: ""; position: absolute; inset: -10px -8px; }
+.shop .in-draft { font-size: var(--t-xs); font-weight: 600; color: var(--fg-3); }
 .shop .sold-out strong, .shop .sold-out .price { color: var(--muted); }
 /* This phone's character can't afford it. */
 .shop .too-dear .price { color: var(--muted); }
