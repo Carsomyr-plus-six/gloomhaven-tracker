@@ -4,41 +4,28 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Gloomhaven Campaign</title>
-  <style>
-    :root {
-      --bg: #f4efe6;
-      --fg: #2b2118;
-      --muted: #7a6a58;
-      --accent: #8b2e1f;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #1b1714;
-        --fg: #ece3d6;
-        --muted: #a8998a;
-        --accent: #d0654e;
-      }
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      padding: 16px;
-      background: var(--bg);
-      color: var(--fg);
-      font-family: Georgia, "Times New Roman", serif;
-      text-align: center;
-    }
-    h1 { margin: 0 0 8px; font-size: clamp(1.8rem, 6vw, 3rem); color: var(--accent); }
-    p { margin: 0; color: var(--muted); }
-  </style>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
 </head>
 <body>
+  <header class="site-header">
+    <h1 id="title">Gloomhaven Campaign</h1>
+    <nav class="tabs" aria-label="Sections">
+      <a href="#overview" data-tab="overview">Overview</a>
+      <a href="#scenarios" data-tab="scenarios">Scenarios</a>
+      <a href="#characters" data-tab="characters">Characters</a>
+      <a href="#sessions" data-tab="sessions">Sessions</a>
+    </nav>
+  </header>
+
   <main>
-    <h1>Gloomhaven Campaign</h1>
-    <p>Tracker under construction. Scenarios, characters and the party coming soon.</p>
+    <p id="status" class="status">Loading campaign…</p>
+    <section id="overview" class="panel" hidden></section>
+    <section id="scenarios" class="panel" hidden></section>
+    <section id="characters" class="panel" hidden></section>
+    <section id="sessions" class="panel" hidden></section>
   </main>
+
+  <footer class="site-footer" id="footer"></footer>
 </body>
 </html>

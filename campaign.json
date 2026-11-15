@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "edition": "Gloomhaven (1st edition)",
+  "updated": null,
+  "party": {
+    "name": "",
+    "reputation": 0,
+    "location": "",
+    "achievements": [],
+    "notes": ""
+  },
+  "city": {
+    "prosperityCheckmarks": 0,
+    "donations": 0,
+    "globalAchievements": [],
+    "unlockedClasses": ["Brute", "Tinkerer", "Spellweaver", "Scoundrel", "Cragheart", "Mindthief"]
+  },
+  "scenarios": [],
+  "characters": [],
+  "sessions": []
+}

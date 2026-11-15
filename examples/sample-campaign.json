@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "edition": "Gloomhaven (1st edition)",
+  "updated": "2026-11-15",
+  "party": {
+    "name": "The Sample Company",
+    "reputation": 4,
+    "location": "Gloomhaven",
+    "achievements": [
+      { "name": "Example party achievement", "scenario": 2 }
+    ],
+    "notes": "Made-up data for testing the page. Not a real campaign."
+  },
+  "city": {
+    "prosperityCheckmarks": 6,
+    "donations": 40,
+    "globalAchievements": [
+      { "name": "Example global achievement", "scenario": 2, "notes": "Gained on the second night" }
+    ],
+    "unlockedClasses": ["Brute", "Tinkerer", "Spellweaver", "Scoundrel", "Cragheart", "Mindthief"]
+  },
+  "scenarios": [
+    { "number": 1, "name": "Example Scenario One", "status": "completed", "unlockedBy": null, "completed": "2026-09-20", "notes": "First outing. Barely made it." },
+    { "number": 2, "name": "Example Scenario Two", "status": "completed", "unlockedBy": 1, "completed": "2026-10-04", "notes": "" },
+    { "number": 3, "name": "Example Scenario Three", "status": "available", "unlockedBy": 2, "completed": null, "notes": "Rumoured to be nasty." },
+    { "number": 4, "name": "Example Scenario Four", "status": "blocked", "unlockedBy": 2, "completed": null, "notes": "Blocked by a choice we made." }
+  ],
+  "characters": [
+    {
+      "name": "Grunt",
+      "class": "Brute",
+      "player": "Alex",
+      "xp": 102,
+      "gold": 35,
+      "checkmarks": 4,
+      "perks": ["Example perk"],
+      "items": ["Example item", "Another item"],
+      "personalQuest": "Example quest",
+      "retired": false,
+      "notes": ""
+    },
+    {
+      "name": "Sparks",
+      "class": "Spellweaver",
+      "player": "Sam",
+      "xp": 30,
+      "gold": 12,
+      "checkmarks": 1,
+      "perks": [],
+      "items": [],
+      "personalQuest": "",
+      "retired": false,
+      "notes": "Joined late."
+    }
+  ],
+  "sessions": [
+    {
+      "date": "2026-09-20",
+      "scenarios": [{ "number": 1, "result": "success" }],
+      "characters": ["Grunt"],
+      "notes": "Learned the rules the hard way."
+    },
+    {
+      "date": "2026-10-04",
+      "scenarios": [{ "number": 2, "result": "failure" }, { "number": 2, "result": "success" }],
+      "characters": ["Grunt", "Sparks"],
+      "notes": "Second try went much better."
+    }
+  ]
+}
