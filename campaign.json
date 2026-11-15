@@ -126,6 +126,24 @@
         { "character": "Flik Flak", "xp": 15, "gold": 15 }
       ],
       "notes": "No Kaktus.\nTreasure 26: Craig looted it and gained 20 gold."
+    },
+    {
+      "number": 13,
+      "name": "Temple of the Seer",
+      "status": "completed",
+      "completed": "2026-11-13",
+      "results": [
+        { "character": "Azorica", "xp": 18, "gold": 0 },
+        { "character": "Craig", "xp": 19, "gold": 15 },
+        { "character": "Flik Flak", "xp": 29, "gold": 0 }
+      ],
+      "notes": "No Kaktus. Played the same evening as #14.\nChose #15 as our new location (over #17 and #20)."
+    },
+    {
+      "number": 15,
+      "status": "available",
+      "unlockedBy": 13,
+      "notes": "Chosen as the reward from #13."
     }
   ],
   "characters": [
@@ -185,7 +203,7 @@
   "sessions": [
     {
       "date": "2026-11-13",
-      "scenarios": [{ "number": 14, "result": "success" }],
+      "scenarios": [{ "number": 14, "result": "success" }, { "number": 13, "result": "success" }],
       "characters": ["Azorica", "Craig", "Flik Flak"],
       "notes": ""
     }
@@ -198,7 +216,8 @@
     { "deck": "road", "number": 28, "notes": "Option and timing not recorded." },
     { "deck": "city", "number": 21, "option": "B", "scenario": 8 },
     { "deck": "road", "number": 15, "scenario": 14, "notes": "On the way to #14. Option not recorded." },
-    { "deck": "city", "number": 13, "scenario": 13, "notes": "Back in town after #14. Option not recorded." }
+    { "deck": "city", "number": 13, "scenario": 13, "notes": "Back in town after #14. Option not recorded." },
+    { "deck": "road", "number": 1, "scenario": 13, "notes": "On the way to #13. Option not recorded." }
   ],
   "eventDecks": {
     "added": [],
