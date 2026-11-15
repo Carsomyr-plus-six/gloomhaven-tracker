@@ -116,7 +116,10 @@ function renderOverview(data) {
       h("div", { class: "card" }, h("h3", {}, "Unlocked classes"),
         city.unlockedClasses.length
           ? h("ul", { class: "plain" }, city.unlockedClasses.map(c => h("li", {}, c)))
-          : h("p", { class: "muted small" }, "None listed."))),
+          : h("p", { class: "muted small" }, "None listed.")),
+      h("div", { class: "card" }, h("h3", {}, "Item designs"),
+        h("p", { class: "muted small" }, "Added to the shop for good."),
+        achievementList(city.itemDesigns))),
   ];
 }
 
@@ -236,7 +239,7 @@ function showTab() {
 // Fill in anything missing, so older or partial files still display.
 function withDefaults(raw) {
   const party = { name: "", reputation: 0, location: "", achievements: [], notes: "", ...raw.party };
-  const city = { prosperityCheckmarks: 0, donations: 0, globalAchievements: [], unlockedClasses: [], ...raw.city };
+  const city = { prosperityCheckmarks: 0, donations: 0, globalAchievements: [], unlockedClasses: [], itemDesigns: [], ...raw.city };
   return {
     ...raw,
     party,

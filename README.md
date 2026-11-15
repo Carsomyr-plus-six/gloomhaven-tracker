@@ -32,9 +32,9 @@ Then open http://127.0.0.1:8000/. Stop the server with Ctrl+C.
 
 **party**: `name`, `reputation` (a number, can be negative), `location`, `achievements`, `notes`.
 
-**city**: `prosperityCheckmarks` (the total; the page works out the prosperity level), `donations` (total gold given to the Sanctuary), `globalAchievements`, `unlockedClasses` (a list of class names).
+**city**: `prosperityCheckmarks` (the total; the page works out the prosperity level), `donations` (total gold given to the Sanctuary), `globalAchievements`, `unlockedClasses` (a list of class names), `itemDesigns` (items added to the shop permanently).
 
-Achievements, party or global, look like this. Only `name` is required:
+Achievements, party or global, and item designs look like this. Only `name` is required:
 
 ```json
 { "name": "Achievement name", "scenario": 2, "notes": "Optional" }

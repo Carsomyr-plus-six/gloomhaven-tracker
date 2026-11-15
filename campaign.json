@@ -7,15 +7,19 @@
     "reputation": 0,
     "location": "",
     "achievements": [
-      { "name": "First Steps", "scenario": 1 }
+      { "name": "First Steps", "scenario": 1 },
+      { "name": "Jekserah's Plans", "scenario": 3 }
     ],
     "notes": "Unclaimed: a random side scenario from treasure 07 (scenario #1)."
   },
   "city": {
-    "prosperityCheckmarks": 1,
+    "prosperityCheckmarks": 2,
     "donations": 0,
     "globalAchievements": [],
-    "unlockedClasses": ["Brute", "Tinkerer", "Spellweaver", "Scoundrel", "Cragheart", "Mindthief"]
+    "unlockedClasses": ["Brute", "Tinkerer", "Spellweaver", "Scoundrel", "Cragheart", "Mindthief"],
+    "itemDesigns": [
+      { "name": "Horned Helm", "scenario": 3, "notes": "From treasure 65" }
+    ]
   },
   "scenarios": [
     {
@@ -39,16 +43,33 @@
     {
       "number": 3,
       "name": "Inox Encampment",
-      "status": "available",
+      "status": "completed",
       "unlockedBy": 2,
       "completed": null,
-      "notes": ""
+      "treasures": ["65"],
+      "notes": "New evening, after #1 and #2.\nRewards: 15 gold each, +1 prosperity, party achievement Jekserah's Plans.\nTreasure 65 gave the Horned Helm design."
     },
     {
       "number": 4,
       "name": "Crypt of the Damned",
       "status": "available",
       "unlockedBy": 2,
+      "completed": null,
+      "notes": ""
+    },
+    {
+      "number": 8,
+      "name": "Gloomhaven Warehouse",
+      "status": "available",
+      "unlockedBy": 3,
+      "completed": null,
+      "notes": ""
+    },
+    {
+      "number": 9,
+      "name": "Diamond Mine",
+      "status": "available",
+      "unlockedBy": 3,
       "completed": null,
       "notes": ""
     }
