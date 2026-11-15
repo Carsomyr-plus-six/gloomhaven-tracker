@@ -354,7 +354,7 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 .tile-foot { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; }
 .tile-foot strong { font-size: var(--t-base); font-weight: 600; }
 .tile-foot span { font-size: var(--t-sm); color: var(--muted); }
-.level-tile { grid-column: 1 / -1; }
+.level-tile { grid-column: 1 / -1; container: level / inline-size; }
 .todo { display: flex; flex-direction: column; gap: 8px; }
 .todo .block-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .todo .block-head > span { font-size: var(--t-sm); color: var(--fg-3); }
@@ -364,18 +364,28 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 /* Doing the thing, right from the list: brass, as it settles something waiting. */
 .todo-do { padding: 6px 12px; border: 1px solid var(--brass-line); border-radius: var(--r-pill); background: var(--brass-bg); color: var(--brass); font-size: var(--t-sm); font-weight: 600; cursor: pointer; }
 .todo-do:hover { border-color: var(--brass); }
-.level-tile .segmented { align-self: flex-start; }
+/* Who is playing: an even grid, four across when the tile has room for
+   names that long, two otherwise, so a chip never sits alone. */
+.filters.party-pick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+@container level (min-width: 360px) { .filters.party-pick { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.filters.party-pick button { min-width: 0; justify-content: center; gap: 6px; padding: 0 8px; font-size: var(--t-sm); }
+.party-pick .pick-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; opacity: 1; }
+/* The difficulty, across the tile in equal parts. */
+.level-tile .segmented { align-self: stretch; }
+.level-tile .segmented button { flex: 1 1 0; min-width: 0; padding: 0 4px; font-size: var(--t-sm); }
 /* Scenario levels 0 to 7, spread across the tile. */
-.ladder { display: flex; justify-content: space-between; gap: 4px; }
+.ladder { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
 .ladder .hex { --w: 28px; }
+/* Tonight's level: the tile's figure. */
+.ladder .hex.now { --w: 46px; }
 .ladder .hex.quiet { --ring: var(--line); --ink: var(--muted); }
 /* What the level means at the table, ruled like a reference card. */
 .level-stats {
-  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px;
   overflow: hidden; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--line);
 }
-.level-stats > div { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; background: var(--surface); }
-.level-stats .label { white-space: nowrap; }
+.level-stats > div { display: flex; flex-direction: column; justify-content: space-between; gap: 2px; padding: 9px 12px; background: var(--surface); }
+
 .level-stats .num { font-size: var(--d-sm); line-height: 1.15; }
 .ledger summary { font-size: var(--t-sm); color: var(--fg-3); cursor: pointer; padding: 2px 0; }
 .ledger ul { list-style: none; margin: 6px 0 0; padding: 0; }
