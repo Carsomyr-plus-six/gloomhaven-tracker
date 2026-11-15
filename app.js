@@ -262,7 +262,8 @@ function ledgerFoot(t, unit) {
   if (!t?.entries.length) return null;
   return h("details", { class: "ledger" },
     h("summary", {}, isExact(t.range) ? `From ${plural(t.entries.length, "source")}`
-                                      : `Could be ${rangeText(t.range)}: ${t.unsure.join(", ")} not settled`),
+      : `Could be ${rangeText(t.range)}: ${[t.unsure.length ? `${t.unsure.join(", ")} not settled` : null,
+                                           t.unknown?.length ? `${t.unknown.join(", ")} not known` : null].filter(Boolean).join("; ")}`),
     h("ul", {}, t.entries.map(e => h("li", {},
       h("span", {}, e.label),
       h("span", { class: "num" }, `${rangeText(e.range)}${unit}`)))));
@@ -935,7 +936,8 @@ function deriveCampaign(data, ref, evRef) {
   const history = [];
   const questions = [];
   const unlocks = [];
-  const track = () => ({ value: 0, range: exact(0), entries: [], unsure: [] });
+  // unsure: what could still be settled; unknown: what never will be.
+  const track = () => ({ value: 0, range: exact(0), entries: [], unsure: [], unknown: [] });
   const totals = { reputation: track(), prosperity: track() };
 
   // The campaign record. Each list maps an id to { name, count, where }.
@@ -983,13 +985,13 @@ function deriveCampaign(data, ref, evRef) {
     decks[deck]?.delete(number);
     removed[deck]?.set(number, source);
   };
-  const gain = (key, range, label) => {
+  const gain = (key, range, label, forGood = false) => {
     if (!range.lo && !range.hi) return;
     const t = totals[key];
     t.range = plus(t.range, range);
     t.value += settledPart(range);
     t.entries.push({ label, range });
-    if (!isExact(range)) t.unsure.push(label);
+    if (!isExact(range)) (forGood ? t.unknown : t.unsure).push(label);
   };
 
   // The order things happened: completed scenarios as campaign.json lists
@@ -1043,7 +1045,7 @@ function deriveCampaign(data, ref, evRef) {
     }
 
     for (const k of ["reputation", "prosperity"]) {
-      if (found.length) gain(k, found.map(o => o[k]).reduce(either), label);
+      if (found.length) gain(k, found.map(o => o[k]).reduce(either), label, Boolean(e.unknown && !e.option));
     }
 
     // What to ask, if anything is still open.
@@ -1743,7 +1745,11 @@ function myTab(data) {
   a.querySelector(".tab-me")?.remove();
   const mine = data.characters.find(c => !c.retired && c.name === me);
   a.classList.toggle("mine", Boolean(mine));
-  if (mine) a.append(h("span", { class: "tab-me" }, classIcon(mine.class), h("span", {}, mine.name)));
+  // A thin hexagon, like the other tabs' outline icons, with the class icon
+  // small inside it: the class icon alone is a solid shape, far heavier.
+  if (mine) a.append(h("span", { class: "tab-me" },
+    h("span", { class: "tab-hex" }, svg("0 0 24 24", '<path d="M12 2.6l8.2 4.7v9.4L12 21.4l-8.2-4.7V7.3z"/>', { "aria-hidden": "true" }), classIcon(mine.class)),
+    h("span", {}, mine.name)));
 }
 
 // Battle-goal checkmarks, drawn as on the character sheet: six groups of
@@ -1794,7 +1800,8 @@ function renderCharacters(data) {
           h("span", { class: "label" }, gameIcon("checkmark"), "Battle goals"),
           h("span", {}, `${plural(c.checkmarks, "checkmark")} · ${plural(fromGoals, "perk")}`)),
         goalBoxes(c.checkmarks)),
-      h("div", { class: "block" },
+      h("div", { class: "block", style: `--boxes: ${Math.max(2, ...perks.map(p => Math.max(p.count, p.match?.count || 0)),
+                                                         ...(st.unspent ? check.open.map(p => p.count) : []))}` },
         h("div", { class: "block-head" },
           h("span", { class: "label" }, "Perks"),
           st.earned || c.perks.length ? h("span", {}, `${c.perks.length} of ${st.earned} taken`) : null),
@@ -1933,10 +1940,10 @@ function renderShop(data) {
 
   const row = item => h("li", { class: item.left ? (dear(item) ? "too-dear" : null) : "sold-out" },
     h("span", {},
-      h("strong", {}, item.name, item.design ? h("span", { class: "tag" }, "design") : null,
-        item.left && full(item) ? h("span", { class: "tag" }, "slot full") : null),
+      h("strong", {}, item.name, item.design ? h("span", { class: "tag" }, "design") : null),
       h("span", { class: "sub" }, [
         item.left ? `${copies(item.left)} left` : "Sold out",
+        item.left && full(item) ? fullText(mine, item.slot) : null,
         item.held.length ? `${item.held.join(", ")} ${item.held.length === 1 ? "has" : "have"} ${item.held.length === 1 ? "one" : "them"} · sells for ${item.sells}` : null,
       ].filter(Boolean).join(" · "))),
     h("span", { class: "price num" }, `${item.price} gold`));
@@ -1946,9 +1953,8 @@ function renderShop(data) {
 
   return [
     sectionHead("Shop", `Prosperity ${shop.level} · ${priceNote}`),
-    mine ? h("p", { class: "shop-me" }, h("strong", {}, `${mine.name} has ${mine.gold} gold`), `, and ${freeRoom(room)}.`) : null,
-    shop.pricesUnsure ? nudge("question", "Prices may be off",
-      `Reputation could be ${rangeText(shop.range)}, which would change prices. Settle the open events on the Overview.`) : null,
+    mine ? h("p", { class: "shop-me" }, `${mine.name} has `, h("strong", {}, `${mine.gold} gold`), `, and ${freeRoom(room)}.`) : null,
+    shop.pricesUnsure ? pricesNote(shop, data.ledger?.reputation) : null,
     shop.questions.map(q => nudge("question", "Check an item", q)),
     h("div", { class: "shop" }, groups.map(([slot, label, list]) =>
       h("div", { class: "card" },
@@ -1957,6 +1963,29 @@ function renderShop(data) {
     shop.coming ? h("p", { class: "aside" }, `${plural(shop.coming, "more item")} arrive${shop.coming === 1 ? "s" : ""} at prosperity ${shop.level + 1}.`) : null,
     enhancer(data),
   ];
+}
+
+// Prices that may be off because reputation isn't certain. If something can
+// still be settled, say where; if what's open can never be known, just say
+// how far off prices could be, quietly, as there's nothing to do about it.
+function pricesNote(shop, rep) {
+  if (rep?.unsure.length || !rep?.unknown?.length) {
+    return nudge("question", "Prices may be off",
+      `Reputation could be ${rangeText(shop.range)}, which would change prices. Settle the open events on the Overview.`);
+  }
+  const lower = shop.modifier - shopModifier(shop.range.hi);
+  const higher = shopModifier(shop.range.lo) - shop.modifier;
+  const could = [lower > 0 ? `${lower} gold lower` : null, higher > 0 ? `${higher} gold higher` : null].filter(Boolean).join(" or ");
+  const names = rep.unknown.join(", ").replace(/, ([^,]*)$/, " and $1");
+  return nudge("question", "Prices could differ",
+    `Reputation could be ${rangeText(shop.range)}, as ${names} ${rep.unknown.length === 1 ? "isn't" : "aren't"} known, so prices may be ${could}.`, "note");
+}
+
+// Why an item wouldn't fit: the slot it needs is taken.
+function fullText(c, slot) {
+  if (slot === "onehand" || slot === "twohand") return `${c.name}'s hands are full`;
+  if (slot === "small") return `${c.name} has no room for another small item`;
+  return `${c.name}'s ${slot} slot is full`;
 }
 
 // The room left in a character's slots, in words.
