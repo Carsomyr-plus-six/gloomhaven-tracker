@@ -220,6 +220,12 @@
   ],
   "sessions": [
     {
+      "title": "Early sessions",
+      "date": null,
+      "scenarios": [],
+      "notes": "Some failed attempts before #4; details unknown.\nBoth Flik Flak's and Craig's sheets show more XP gains than completed scenarios before #4."
+    },
+    {
       "date": "2026-11-13",
       "scenarios": [{ "number": 14, "result": "success" }, { "number": 13, "result": "success" }],
       "characters": ["Azorica", "Craig", "Flik Flak"],

@@ -73,7 +73,7 @@ Add an entry that isn't completed only when the reference data can't know about 
 }
 ```
 
-**sessions**: one entry per evening of play. `result` is `success` or `failure`.
+**sessions**: one entry per evening of play. `result` is `success` or `failure`. An optional `title` names a session, for example one without a date.
 
 ```json
 {

@@ -520,7 +520,7 @@ function renderSessions(data) {
   return [
     h("h2", {}, "Sessions"),
     h("div", { class: "stack" }, sorted.map(s => h("article", { class: "card" },
-      h("h3", {}, formatDate(s.date) || "Undated session"),
+      h("h3", {}, [s.title, formatDate(s.date)].filter(Boolean).join(" · ") || "Undated session"),
       h("ul", { class: "plain" }, s.scenarios.map(sc => h("li", {},
         `#${sc.number}${name(sc.number) ? ` ${name(sc.number)}` : ""} `,
         h("span", { class: `badge ${sc.result}` }, sc.result === "success" ? "Success" : "Failure")))),
