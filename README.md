@@ -41,7 +41,7 @@ The page does the end-of-scenario sums itself:
 - **Level-ups.** Anyone who passes a level is told to add an ability card and take a perk. Until the next session, **Before you play** reminds them about the card.
 - **New characters.** A new character starts at any level up to the prosperity level, with that level's XP and 15 gold per level plus 15. They play that evening's scenarios unless marked as sitting it out, and can loot, buy items and take perks in the same session. A new campaign starts from an empty file: **Add the party's characters**, on the Overview or the Characters tab, opens the form for them.
 
-It lists every change, with anything that looks wrong, before you save: an event that isn't in its deck, or a treasure already looted, is most likely a mistyped number. A bar at the top of the form says how many things there are to check.
+It lists every change, with anything that looks wrong, before you save: an event that isn't in its deck, or a treasure already looted, is most likely a mistyped number; an item bought for a slot that's already full won't fit. A bar at the top of the form says how many things there are to check.
 
 The form starts with whoever is picked to play on the Overview's scenario level. In a scenario's number box, the scenarios the party can play are there to tap, and the scenario's name shows as you type.
 

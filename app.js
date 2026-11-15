@@ -2112,22 +2112,27 @@ function renderShop(data) {
   // With this phone's character picked: their gold, the room they have, and
   // on each item whether they could take it.
   const mine = data.characters.find(c => !c.retired && c.name === me);
-  const room = mine ? slotUse(mine, characterStats(mine).level) : null;
+  // What's in the draft for them counts too: bought, it takes its slot and
+  // its gold, so the Shop doesn't offer a second body item, say.
+  const drafts = mine ? (draft?.buys || []).filter(b => b.character === mine.name && b.item) : [];
+  const room = mine ? slotUse({ ...mine, items: [...mine.items, ...drafts.map(b => b.item)] }, characterStats(mine).level) : null;
+  const spent = drafts.reduce((sum, b) => sum + (shop.stock.find(i => i.name === b.item)?.price || 0), 0);
   const full = item => { const [k, n] = slotNeed(item.slot); return room && k in room.used && room.used[k] + n > room.limits[k]; };
-  const dear = item => mine && item.price > mine.gold;
+  const dear = item => mine && item.price > mine.gold - spent;
 
   // "Buy", for this phone's character, on what they can afford and carry:
   // it goes into the draft, as "Record it" does for a perk.
   const drafted = item => mine && draft?.buys?.some(b => b.character === mine.name && b.item === item.name);
-  const buy = item => !mine || !rawCampaign || !item.left || dear(item) || full(item) ? null
+  const buy = item => !mine || !rawCampaign ? null
     : drafted(item) ? h("span", { class: "in-draft" }, "In the draft")
+    : !item.left || dear(item) || full(item) ? null
     : h("button", { type: "button", class: "buy", "data-key": `buy-${item.id}`, "aria-label": `Buy ${item.name} for ${mine.name}`,
         onclick: () => recordBuy(data, mine.name, item.name) }, "Buy");
   const row = item => h("li", { class: item.left ? (dear(item) ? "too-dear" : null) : "sold-out" },
     h("span", {},
       h("strong", {}, item.name, item.design ? h("span", { class: "tag" }, "design") : null),
       h("span", { class: "sub" }, copyPips(item), [
-        item.left && full(item) ? fullText(mine, item.slot) : null,
+        item.left && full(item) && !drafted(item) ? fullText(mine, item.slot) : null,
         item.held.length ? `sells for ${item.sells}` : null,
       ].filter(Boolean).join(" · "))),
     // The price, with Buy under it, so prices stay in one column.
@@ -2567,6 +2572,17 @@ function applyDraft(raw, d, data) {
     log.push(`${p.character} takes "${p.perk}"`);
   }
   for (const c of out.characters) if (c.gold < 0) warnings.push(`${c.name} would have ${c.gold} gold.`);
+  // Items that won't fit, because of what the draft buys: a second body
+  // item, say. Problems a character already had are left to Before you play.
+  for (const name of new Set(d.buys.filter(b => b.character && b.item).map(b => b.character))) {
+    const now = out.characters.find(c => c.name === name);
+    if (!now) continue;
+    const was = data.characters.find(c => c.name === name);
+    const already = new Set(was ? itemCheck(was, stepFor(was.xp || 0, XP_FOR_LEVEL)) : []);
+    for (const problem of itemCheck(now, stepFor(now.xp || 0, XP_FOR_LEVEL))) {
+      if (!already.has(problem)) warnings.push(`${name}: ${problem.charAt(0).toLowerCase()}${problem.slice(1)}`);
+    }
+  }
 
   // The draft's id, just after "updated" (replacing an earlier one).
   const marked = {};
