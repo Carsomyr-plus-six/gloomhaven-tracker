@@ -168,14 +168,21 @@
       "name": "Craig",
       "class": "Cragheart",
       "player": "Eirik",
-      "xp": 0,
-      "gold": 30,
-      "checkmarks": 0,
-      "perks": [],
-      "items": [],
-      "personalQuest": "",
+      "xp": 170,
+      "gold": 94,
+      "checkmarks": 9,
+      "perks": [
+        "Remove four +0 cards",
+        "Replace one -1 card with one +1 card",
+        "Replace one -1 card with one +1 card",
+        "Replace one -1 card with one +1 card",
+        "Add two MUDDLE cards (exact wording to check)",
+        "Ignore negative scenario effects"
+      ],
+      "items": ["Minor Power Potion", "Boots of Striding", "Minor Stamina Potion", "Horned Helm"],
+      "personalQuest": "2? (noted as II)",
       "retired": false,
-      "notes": ""
+      "notes": "Sheet has \"BG: (5 count)\" written under the personal quest tracker, meaning unclear."
     },
     {
       "name": "Flik Flak",
