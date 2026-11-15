@@ -32,7 +32,7 @@
       "gold": 35,
       "checkmarks": 4,
       "perks": ["Example perk"],
-      "items": ["Example item", "Another item"],
+      "items": ["Boots of Striding", "Minor Healing Potion"],
       "personalQuest": "Example quest",
       "retired": false,
       "notes": ""

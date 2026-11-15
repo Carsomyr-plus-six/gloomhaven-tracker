@@ -31,9 +31,9 @@
       "status": "completed",
       "completed": null,
       "treasures": [
-        "67"
+        { "number": "67", "character": "Kaktus" }
       ],
-      "notes": "Played the same day as #1.\nTreasure 67 gave 10 gold to whoever looted it (not sure who)."
+      "notes": "Played the same day as #1.\nTreasure 67 gave 10 gold to Kaktus. It was first read as item 67 (Balanced Blade); fixed 2026-11-15."
     },
     {
       "number": 3,
@@ -171,13 +171,13 @@
       "class": "Scoundrel",
       "player": "Thorstein",
       "xp": 59,
-      "gold": 46,
+      "gold": 56,
       "checkmarks": 2,
       "perks": [],
-      "items": ["Leather Armor", "Minor Stamina Potion", "Balanced Blade", "Iron Helmet"],
+      "items": ["Leather Armor", "Minor Stamina Potion", "Iron Helmet"],
       "personalQuest": "5?",
       "retired": false,
-      "notes": "Thorstein lives far away, so Kaktus misses some sessions."
+      "notes": "Thorstein lives far away, so Kaktus misses some sessions.\nHad a Balanced Blade (item 67) from treasure 67 on #2, taken by mistake: treasure 67 gives 10 gold. Blade returned and 10 gold added on 2026-11-15."
     }
   ],
   "sessions": [

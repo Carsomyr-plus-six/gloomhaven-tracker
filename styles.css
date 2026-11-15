@@ -516,6 +516,12 @@ main {
 .record .chip { font-size: 14px; }
 .rows .sub { display: block; font-size: 13px; color: var(--muted); }
 .rows .where { flex: none; font-size: 13px; color: var(--muted); }
+
+.shop { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px; align-items: start; }
+.shop .card { display: flex; flex-direction: column; gap: 6px; padding: 18px 20px; }
+.shop .price { flex: none; font-weight: 600; color: var(--brass); }
+.shop .sold-out strong, .shop .sold-out .price { color: var(--muted); }
+.shop .tag { margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); font-size: 12px; font-weight: 600; color: var(--fg-3); }
 .party-notes { max-width: 880px; display: flex; flex-direction: column; gap: 10px; }
 
 .site-footer { padding-top: 24px; border-top: 1px solid var(--line-soft); color: var(--muted); font-size: 13px; }
