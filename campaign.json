@@ -16,7 +16,7 @@
         "scenario": 3
       }
     ],
-    "notes": "Unclaimed: a random side scenario from treasure 07 (scenario #1).\nUnclaimed: a random side scenario from treasure 51 (scenario #8)."
+    "notes": "Unclaimed: a random side scenario from treasure 07 (scenario #1).\nUnclaimed: a random side scenario from treasure 51 (scenario #8).\nReputation and prosperity are worked out from scenario rewards. Events drawn without a recorded option may have moved reputation a point or two, and city event 29 may have added a prosperity checkmark."
   },
   "city": {
     "prosperityCheckmarks": 2,
