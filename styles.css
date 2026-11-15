@@ -305,34 +305,47 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 .hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
-  grid-template-areas: "head head" "tiles side";
+  grid-template-areas: "head head" "tonight tonight" "tiles side";
   gap: 28px 48px;
   align-items: end;
 }
 .hero-head { grid-area: head; position: relative; display: flex; flex-direction: column; gap: 8px; }
 .eyebrow { position: relative; }
-.party-name { position: relative; font: 700 clamp(54px, 8vw, 116px) / 0.95 var(--display); letter-spacing: 0.01em; overflow-wrap: break-word; hyphens: auto; }
+/* The title, not the news: sized so the evening's information fits above the fold. */
+.party-name { position: relative; font: 700 clamp(44px, 5.2vw, 76px) / 0.95 var(--display); letter-spacing: 0.01em; overflow-wrap: break-word; hyphens: auto; }
 /* A long party name gets a smaller size, so it takes two or three lines, not five. */
-.party-name.long { font-size: clamp(40px, 5.5vw, 80px); }
+.party-name.long { font-size: clamp(36px, 4vw, 56px); }
 /* A few hexes at the far end of the party name's row, fading towards it. */
 .hero-decor {
-  position: absolute; bottom: 0; right: 0; width: 228px; height: 165px;
+  position: absolute; bottom: -8px; right: 0; width: 182px; height: 132px;
   fill: none; stroke: var(--line-soft); stroke-width: 1;
   -webkit-mask-image: linear-gradient(to left, #000 45%, transparent); mask-image: linear-gradient(to left, #000 45%, transparent);
 }
 .hero-decor .lit { fill: rgba(226, 176, 74, 0.1); stroke: var(--brass-line); }
 
+/* The evening in four steps, then recording it. */
+.tonight { grid-area: tonight; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; gap: 8px; margin-top: -8px; }
+.tonight-step {
+  display: flex; align-items: center; gap: 10px; min-width: 0; padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); color: var(--fg); text-decoration: none;
+}
+.tonight-step:hover { border-color: var(--fg-3); color: var(--fg); }
+.tonight-step .hex { --w: 24px; --fill: var(--surface); }
+.tonight-step > span:last-child { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.tonight-value { font-size: var(--t-sm); font-weight: 600; line-height: 1.3; }
+.tonight-record { align-self: stretch; justify-content: center; padding-inline: 18px; border-radius: var(--r-md); }
 .hero-side { grid-area: side; align-self: start; min-width: 0; display: flex; flex-direction: column; gap: 28px; }
 .ready { min-width: 0; }
-.ready-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.ready-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
 .ready-head a { font-size: var(--t-sm); font-weight: 600; color: var(--fg-2); padding: 8px 0; }
-.ready-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 16px; }
+/* Compact rows: the names, not the cards, are the point. */
+.ready-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 8px; }
 .ready-card {
   display: flex;
   align-items: center;
-  gap: 16px;
-  min-height: 104px;
-  padding: 18px;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 14px 8px 10px;
   background: var(--brass-bg);
   border: 1px solid var(--brass-line);
   border-radius: var(--r-lg);
@@ -340,10 +353,10 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
   text-decoration: none;
 }
 .ready-card:hover { border-color: var(--brass); color: var(--fg); }
-.ready-card .hex { --w: 56px; }
+.ready-card .hex { --w: 38px; }
 .ready-card > span:last-child { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.ready-name { font: 700 var(--d-sm)/1.05 var(--display); }
-.ready-from { font-size: var(--t-sm); color: var(--fg-3); }
+.ready-name { font: 700 var(--t-xl)/1.1 var(--display); }
+.ready-from { font-size: var(--t-xs); color: var(--fg-3); }
 
 /* Reputation and prosperity side by side, the matching pair they are, and
    the scenario level across both. */
@@ -957,6 +970,9 @@ dialog.who > .btn { width: 100%; justify-content: center; }
   .card { padding: 14px; }
 
   .hero { display: flex; flex-direction: column; align-items: stretch; gap: 28px; }
+  .tonight { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 0; }
+  .tonight-step { min-height: 56px; }
+  .tonight-record { grid-column: 1 / -1; min-height: 44px; }
   .hero-decor { top: -46px; bottom: auto; right: -54px; width: 182px; height: 132px; stroke-width: 1.5; -webkit-mask-image: none; mask-image: none; }
   .hero-side { display: contents; }
   .ready { align-self: stretch; order: 1; }

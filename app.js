@@ -503,11 +503,15 @@ function renderOverview(data) {
         locationText(party.location) ? h("div", { class: "eyebrow" }, locationText(party.location)) : null,
         h("h1", { class: (party.name || "").length > 22 ? "party-name long" : "party-name" }, party.name || "Unnamed party"),
         furtherDown([["#events", "Event decks"], ["#record", "Campaign record"]])),
-      // Tiles first: the left column reads first on wide screens. The right
-      // column pairs what to play with what to sort out before playing.
+      // The evening, step by step, with a way to record it at the end.
+      tonightStrip(data),
+      // Tiles first: the left column reads first on wide screens, the
+      // scenario level leading, as the table is set up by it. The right
+      // column puts what to sort out before playing above what to play.
       // Phones show Ready to play, then the tiles, then the list (styles.css).
-      h("div", { class: "tiles" }, reputationTile(party, data.ledger), prosperityTile(city, data.ledger), levelTile(data)),
+      h("div", { class: "tiles" }, levelTile(data), reputationTile(party, data.ledger), prosperityTile(city, data.ledger)),
       h("div", { class: "hero-side" },
+        todoList(data),
         h("div", { class: "ready" },
           h("div", { class: "ready-head" },
             h("h2", {}, "Ready to play"),
@@ -519,10 +523,29 @@ function renderOverview(data) {
                   h("span", {},
                     h("span", { class: "ready-name" }, s.name || "Untitled"),
                     from(s) ? h("span", { class: "ready-from" }, from(s)) : null))))
-            : empty("Nothing is unlocked to play right now.")),
-        todoList(data))),
+            : empty("Nothing is unlocked to play right now.")))),
     partyList(data),
   ];
+}
+
+// An evening of Gloomhaven, in the order it runs: a city event, the town
+// (shop, perks, the Sanctuary), a road event, then the scenario. Each step
+// links to where it's handled; the strip ends with recording the evening.
+function tonightStrip(data) {
+  const t = tonight(data);
+  const decks = data.eventState?.decks;
+  const shop = data.shop;
+  const step = (n, label, value, href) => h("a", { class: "tonight-step", href },
+    hex(n, "quiet"), h("span", {}, h("span", { class: "label" }, label), h("span", { class: "tonight-value" }, value)));
+  const recording = draftChanges(draft, data);
+  return h("nav", { class: "tonight", "aria-label": "Tonight, step by step" },
+    step(1, "City event", decks ? `${decks.city.size} in the deck` : "Draw one", "#events"),
+    step(2, "In town", shop ? (shop.modifier === 0 ? "Normal prices" : `Prices ${signed(shop.modifier)} gold`) : "Shop, perks, Sanctuary", "#shop"),
+    step(3, "Road event", decks ? `${decks.road.size} in the deck` : "Draw one", "#events"),
+    step(4, "Scenario", t ? `Level ${t.level} · deal battle goals` : "Pick who is playing", "#scenarios"),
+    rawCampaign ? h("button", { type: "button", class: `btn${recording ? "" : " primary"} tonight-record`, "data-key": "tonight-record",
+      onclick: () => { if (!draft) draft = newDraft(data); showInRecorder(data, "rec-date"); } },
+      recording ? "Go on recording" : "Record the evening") : null);
 }
 
 // Everything waiting on the party before the next scenario, gathered from

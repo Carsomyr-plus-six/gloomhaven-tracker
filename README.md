@@ -26,7 +26,9 @@ It runs on GitHub Pages, so it works on phones and desktops without installing a
 
 ## Recording a session
 
-At the table, open **Sessions** and choose **Record a session**. Fill in:
+The top of the Overview walks through the evening in the order it runs: a city event, the town (shop prices, perks, the Sanctuary), a road event, then the scenario at tonight's level, each linking to where it's handled. **Record the evening** at the end of that row opens the form.
+
+At the table, open **Sessions** and choose **Record a session** (or **Record the evening** on the Overview). Fill in:
 - the date and who played
 - each scenario attempted, with its level, the result, and for each character the XP on their dial, the coins they picked up and their battle goal checkmarks
 - the treasures looted and who looted them
