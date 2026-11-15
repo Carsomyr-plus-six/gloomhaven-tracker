@@ -436,7 +436,7 @@ function todoItems(data) {
 
   // Who passed a level in the last session: a new ability card to pick. It
   // stays until the next session is recorded, as there's nowhere to tick it.
-  const levelUps = data.sessions.at(-1)?.levelUps || [];
+  const levelUps = lastLevelUps(data);
 
   for (const c of order.filter(c => !c.retired)) {
     const st = characterStats(c);
@@ -469,6 +469,10 @@ function todoItems(data) {
   if (!data.city.envelopeB && data.city.donations >= ENVELOPE_B_DONATIONS) add("Donations have reached 100 gold: Envelope B can be opened.", "#overview");
   return items;
 }
+
+// Who passed a level in the last session, and to which: each owes a new
+// ability card until the next session is recorded.
+function lastLevelUps(data) { return data.sessions.at(-1)?.levelUps || []; }
 
 // What each "Before you play" link says: the section it goes to.
 const TODO_PLACES = { "#characters": "Characters", "#shop": "Shop", "#sessions": "Sessions",
@@ -1636,7 +1640,8 @@ function perkCheck(c) {
 
 // Slots: one head, body and legs item; two hands (a two-handed item takes
 // both); small items up to half the character's level, rounded up.
-function itemCheck(c, level) {
+// What a character's items take up, and the room they have at their level.
+function slotUse(c, level) {
   const byName = new Map(Object.values(itemsRef?.items || {}).map(i => [i.name.toLowerCase(), i]));
   const used = { head: 0, body: 0, legs: 0, hands: 0, small: 0 };
   for (const name of c.items) {
@@ -1645,7 +1650,13 @@ function itemCheck(c, level) {
     else if (slot === "twohand") used.hands += 2;
     else if (slot in used) used[slot] += 1;
   }
-  const limits = { head: 1, body: 1, legs: 1, hands: 2, small: Math.ceil(level / 2) };
+  return { used, limits: { head: 1, body: 1, legs: 1, hands: 2, small: Math.ceil(level / 2) } };
+}
+// How much of that room an item takes, by the slot the item cards print.
+const slotNeed = slot => slot === "onehand" ? ["hands", 1] : slot === "twohand" ? ["hands", 2] : [slot, 1];
+
+function itemCheck(c, level) {
+  const { used, limits } = slotUse(c, level);
   const names = { head: "head items", body: "body items", legs: "legs items", hands: "hands' worth of items", small: "small items" };
   return Object.keys(limits).filter(k => used[k] > limits[k])
     .map(k => `Carries ${used[k]} ${names[k]}, but has room for ${limits[k]}${k === "small" ? ` at level ${level}` : ""}.`);
@@ -1658,6 +1669,68 @@ let characterIndex = 0;   // which sheet a phone shows
 function pickCharacter(data, index) {
   characterIndex = index;
   render(data, "characters");
+}
+
+// A phone at the table belongs to one player. The first time, it asks which
+// character they play, and from then on opens on that sheet. Kept in this
+// browser only: a name, or "" for "just looking"; nothing yet means ask.
+const ME_KEY = "myCharacter";
+let me = null;
+try { me = localStorage.getItem(ME_KEY); } catch {}
+
+function chooseMe(data, name) {
+  me = name;
+  try { localStorage.setItem(ME_KEY, name); } catch {}
+  const index = characterOrder(data).findIndex(c => c.name === name);
+  if (index >= 0) characterIndex = index;
+  render(data, "characters");
+  render(data, "shop");
+  myTab(data);
+  if (!name) return;
+  // To their sheet; hashchange does the rest, unless it's already showing.
+  if (location.hash === "#characters") window.scrollTo({ top: 0, behavior: "instant" });
+  else location.hash = "characters";
+}
+
+// The question, as a sheet over the page. Escape puts it off until next time.
+function askWho(data) {
+  const active = characterOrder(data).filter(c => !c.retired);
+  if (!active.length || document.querySelector("dialog.who[open]")) return;
+  document.querySelector("dialog.who")?.remove();
+  // Removed at once: the close event can come late, and a closed sheet left
+  // in the page would stop Change from asking again.
+  const answer = name => () => { dialog.close(); dialog.remove(); chooseMe(data, name); };
+  const dialog = h("dialog", { class: "who", "aria-labelledby": "who-title", onclose: () => dialog.remove() },
+    h("h2", { id: "who-title" }, "Who are you playing?"),
+    h("p", {}, "This phone will open on their sheet. You can change it on the Characters tab."),
+    h("div", { class: "who-list" }, active.map(c =>
+      h("button", { type: "button", class: "who-row", "aria-label": `${c.name}, level ${characterStats(c).level} ${c.class}`, onclick: answer(c.name) },
+        hex(characterStats(c).level, "level"),
+        h("span", { class: "party-who" }, h("strong", {}, c.name), h("span", {}, classIcon(c.class), c.class))))),
+    h("button", { type: "button", class: "btn quiet", onclick: answer("") }, "Just looking"));
+  document.body.append(dialog);
+  dialog.showModal();
+}
+
+// Under the sheet (phones): a way to change who this phone opens on. The
+// "You" in the row of characters already says who that is.
+function meLine(data) {
+  const mine = data.characters.find(c => !c.retired && c.name === me);
+  return h("p", { class: "me-line" },
+    h("span", {}, mine ? `Not ${mine.name}?` : "This phone opens on the Overview."),
+    h("button", { type: "button", "data-key": "me-change", onclick: () => askWho(data) },
+      mine ? "Change who this phone opens on" : "Pick your character"));
+}
+
+// The bottom tab shows this phone's character, as it's their home. Phones
+// only (styles.css); the words "Characters" stay for wide screens.
+function myTab(data) {
+  const a = document.querySelector('.tabs a[data-tab="characters"]');
+  if (!a) return;
+  a.querySelector(".tab-me")?.remove();
+  const mine = data.characters.find(c => !c.retired && c.name === me);
+  a.classList.toggle("mine", Boolean(mine));
+  if (mine) a.append(h("span", { class: "tab-me" }, classIcon(mine.class), h("span", {}, mine.name)));
 }
 
 // Battle-goal checkmarks, drawn as on the character sheet: six groups of
@@ -1695,6 +1768,8 @@ function renderCharacters(data) {
         st.toNext ? h("div", { class: "xp-scale num" },
           h("span", {}, `Level ${st.level} at ${XP_FOR_LEVEL[st.level - 1]}`),
           h("span", {}, `Level ${st.level + 1} at ${st.toNext.next}`)) : null),
+      c.retired ? null : lastLevelUps(data).filter(u => u.character === c.name).map(u =>
+        nudge("plus", `Reached level ${u.level} last session`, `Add an ability card of level ${u.level} or lower.`)),
       h("div", { class: "char-stats" },
         h("div", {}, h("span", { class: "label" }, "Gold"), h("span", { class: "gold num" }, c.gold)),
         c.personalQuest ? h("div", {},
@@ -1710,7 +1785,11 @@ function renderCharacters(data) {
         h("div", { class: "block-head" },
           h("span", { class: "label" }, "Perks"),
           st.earned || c.perks.length ? h("span", {}, `${c.perks.length} of ${st.earned} taken`) : null),
-        st.unspent ? nudge("plus", `${plural(st.unspent, "perk")} to choose`, null, "perk-nudge") : null,
+        // Records the perk straight from the sheet, as "Before you play" does.
+        st.unspent ? (rawCampaign && !c.retired
+          ? h("button", { type: "button", class: "nudge perk-nudge", "data-key": `perk-record-${c.name}`, onclick: () => recordPerk(data, c.name) },
+              icon("plus"), h("span", {}, `${plural(st.unspent, "perk")} to choose`), h("span", { class: "nudge-go" }, "Record it"))
+          : nudge("plus", `${plural(st.unspent, "perk")} to choose`, null, "perk-nudge")) : null,
         perks.length
           ? h("ul", { class: "perks" }, perks.map(p => h("li", { class: p.note && !p.quiet ? "unsure" : null },
               // Its boxes, as ticked on the sheet; the game's checkmark is
@@ -1744,16 +1823,18 @@ function renderCharacters(data) {
   const switcher = h("div", { class: "char-switch", role: "group", "aria-label": "Choose a character" },
     order.map((c, i) => {
       const st = characterStats(c);
+      const mine = !c.retired && c.name === me;
       return [c.retired && !order[i - 1]?.retired ? h("span", { class: "switch-sep", "aria-hidden": "true" }) : null,
         h("button", {
           type: "button", "data-key": `char-${i}`, class: c.retired ? "retired" : null,
           "aria-pressed": String(i === characterIndex),
-          "aria-label": c.retired ? `${c.name}, retired` : null,
+          "aria-label": c.retired ? `${c.name}, retired` : mine ? `${c.name}, you` : null,
           onclick: () => pickCharacter(data, i),
         },
         h("span", {}, hex(st.level, "quiet"),
           st.unspent ? h("span", { class: "dot", role: "img", "aria-label": "Has a perk to choose" }) : null),
-        h("span", {}, c.name))];
+        h("span", { class: "switch-name" }, c.name),
+        mine ? h("span", { class: "you", "aria-hidden": "true" }, "You") : null)];
     }));
 
   return [
@@ -1761,6 +1842,7 @@ function renderCharacters(data) {
     furtherDown([["#shop", "Shop"]]),
     switcher,
     active.length ? h("div", { class: "char-grid" }, active.map(card)) : empty("No active characters."),
+    active.length ? meLine(data) : null,
     retired.length ? [h("h3", { class: "subhead" }, "Retired"), h("div", { class: "char-grid" }, retired.map(card))] : null,
   ];
 }
@@ -1826,9 +1908,17 @@ function renderShop(data) {
   if (!shop) return null;
   const copies = n => `${n} ${n === 1 ? "copy" : "copies"}`;
 
-  const row = item => h("li", { class: item.left ? null : "sold-out" },
+  // With this phone's character picked: their gold, the room they have, and
+  // on each item whether they could take it.
+  const mine = data.characters.find(c => !c.retired && c.name === me);
+  const room = mine ? slotUse(mine, characterStats(mine).level) : null;
+  const full = item => { const [k, n] = slotNeed(item.slot); return room && k in room.used && room.used[k] + n > room.limits[k]; };
+  const dear = item => mine && item.price > mine.gold;
+
+  const row = item => h("li", { class: item.left ? (dear(item) ? "too-dear" : null) : "sold-out" },
     h("span", {},
-      h("strong", {}, item.name, item.design ? h("span", { class: "tag" }, "design") : null),
+      h("strong", {}, item.name, item.design ? h("span", { class: "tag" }, "design") : null,
+        item.left && full(item) ? h("span", { class: "tag" }, "slot full") : null),
       h("span", { class: "sub" }, [
         item.left ? `${copies(item.left)} left` : "Sold out",
         item.held.length ? `${item.held.join(", ")} ${item.held.length === 1 ? "has" : "have"} ${item.held.length === 1 ? "one" : "them"} · sells for ${item.sells}` : null,
@@ -1840,6 +1930,7 @@ function renderShop(data) {
 
   return [
     sectionHead("Shop", `Prosperity ${shop.level} · ${priceNote}`),
+    mine ? h("p", { class: "shop-me" }, h("strong", {}, `${mine.name} has ${mine.gold} gold`), `, and ${freeRoom(room)}.`) : null,
     shop.pricesUnsure ? nudge("question", "Prices may be off",
       `Reputation could be ${rangeText(shop.range)}, which would change prices. Settle the open events on the Overview.`) : null,
     shop.questions.map(q => nudge("question", "Check an item", q)),
@@ -1850,6 +1941,16 @@ function renderShop(data) {
     shop.coming ? h("p", { class: "aside" }, `${plural(shop.coming, "more item")} arrive${shop.coming === 1 ? "s" : ""} at prosperity ${shop.level + 1}.`) : null,
     enhancer(data),
   ];
+}
+
+// The room left in a character's slots, in words.
+function freeRoom({ used, limits }) {
+  const free = [
+    ...["head", "body", "legs"].filter(k => used[k] < limits[k]),
+    limits.hands - used.hands > 0 ? (limits.hands - used.hands === 2 ? "two hands" : "one hand") : null,
+    limits.small - used.small > 0 ? plural(limits.small - used.small, "small item") : null,
+  ].filter(Boolean);
+  return free.length ? `room for ${free.join(", ").replace(/, ([^,]*)$/, " and $1")}` : "no free slots";
 }
 
 // The Enhancer: what a sticker costs, from what's printed on the card. Not
@@ -2724,9 +2825,25 @@ async function start() {
       h("a", { href: "https://creativecommons.org/licenses/by-nc-sa/4.0/" }, "CC BY-NC-SA 4.0"), "), converted to SVG. ",
       "Unofficial fan project; Gloomhaven is © Cephalofair Games.");
 
+    // A phone opens on its player's sheet, unless the link was to somewhere else.
+    const mine = characterOrder(data).findIndex(c => !c.retired && c.name === me);
+    if (mine >= 0) characterIndex = mine;
+    if (phone.matches && mine >= 0 && location.hash.length <= 1) history.replaceState(null, "", "#characters");
+
     render(data);
     status.remove();
     showTab();
+    // Not asked yet, or their character has since retired: ask.
+    if (phone.matches && me !== "" && mine < 0) askWho(data);
+    myTab(data);
+    // The Characters tab is this phone's home: from anywhere, even another
+    // character's sheet, it goes back to its player's sheet.
+    document.querySelector('.tabs a[data-tab="characters"]')?.addEventListener("click", () => {
+      const i = characterOrder(data).findIndex(c => !c.retired && c.name === me);
+      if (!phone.matches || i < 0) return;
+      if (characterIndex !== i) { characterIndex = i; render(data, "characters"); }
+      if (location.hash === "#characters") window.scrollTo({ top: 0, behavior: "instant" });
+    });
     window.addEventListener("hashchange", onNavigate);
     phone.addEventListener("change", showTab);
     // Arriving on a link to a section: go there now that it exists.

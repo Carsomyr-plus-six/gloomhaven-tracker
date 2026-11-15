@@ -362,6 +362,43 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 .party { display: none; }
 /* Phones only: links to the sections far down the same tab. */
 .jump { display: none; }
+/* Phones only: which sheet this phone opens on. */
+.me-line { display: none; }
+.tab-me { display: none; }
+
+/* A box that does something: "Record it" for a perk to choose. */
+button.nudge { width: 100%; font-family: inherit; line-height: inherit; text-align: left; cursor: pointer; }
+button.nudge:hover { border-color: var(--brass); }
+.nudge-go { margin-left: auto; font-size: var(--t-sm); text-decoration: underline; text-underline-offset: 0.2em; }
+
+/* Which character this phone's player plays: a sheet from the bottom. */
+dialog.who {
+  --under: var(--surface);
+  width: min(100%, 520px);
+  max-width: 100%;
+  max-height: 85vh;
+  margin: auto auto 0;
+  padding: 24px 20px calc(16px + env(safe-area-inset-bottom, 0px));
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  background: var(--surface);
+  color: var(--fg);
+}
+dialog.who::backdrop { background: rgb(0 0 0 / 0.6); }
+dialog.who h2 { font: 700 var(--d-md)/1.1 var(--display); }
+dialog.who > p { margin-top: 6px; font-size: var(--t-md); color: var(--fg-3); }
+.who-list { display: flex; flex-direction: column; margin: 16px 0 8px; }
+.who-row {
+  display: flex; align-items: center; gap: 12px; min-height: 68px; padding: 10px 4px;
+  border: 0; border-bottom: 1px solid var(--line-soft); background: none; color: var(--fg); text-align: left; cursor: pointer;
+}
+.who-row:last-child { border-bottom: 0; }
+.who-row:hover, .who-row:focus-visible { background: var(--surface-2); }
+.who-row .party-who { display: flex; flex-direction: column; gap: 1px; }
+.who-row .party-who strong { font-size: var(--t-lg); font-weight: 600; }
+.who-row .party-who span { font-size: var(--t-sm); color: var(--muted); }
+dialog.who > .btn { width: 100%; justify-content: center; }
 
 /* --- Characters ----------------------------------------------------------- */
 .char-switch { display: none; }
@@ -695,6 +732,10 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 .shop .card { display: flex; flex-direction: column; gap: 6px; }
 .shop .price { flex: none; font-weight: 600; color: var(--brass); }
 .shop .sold-out strong, .shop .sold-out .price { color: var(--muted); }
+/* This phone's character can't afford it. */
+.shop .too-dear .price { color: var(--muted); }
+.shop-me { font-size: var(--t-md); color: var(--fg-3); }
+.shop-me strong { font-weight: 600; color: var(--fg); }
 .shop .tag { margin-left: 8px; padding: 1px 8px; border-radius: var(--r-pill); background: var(--surface-2); font-size: var(--t-xs); font-weight: 600; color: var(--fg-3); }
 /* The Enhancer: the form on the left, the cost and how it adds up on the right. */
 .enhancer-wrap { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
@@ -787,6 +828,8 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 
   .jump { position: relative; display: flex; flex-wrap: wrap; align-items: center; column-gap: 16px; font-size: var(--t-sm); color: var(--muted); }
   .jump a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; color: var(--fg-2); }
+  .me-line { display: flex; flex-wrap: wrap; align-items: center; column-gap: 8px; padding-top: 8px; border-top: 1px solid var(--line-soft); font-size: var(--t-sm); color: var(--muted); }
+  .me-line button { min-height: 44px; padding: 0; border: 0; background: none; color: var(--fg-2); font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 0.2em; text-decoration-color: var(--line-strong); cursor: pointer; }
   .party { display: flex; flex-direction: column; gap: 4px; }
   .party-head { display: flex; align-items: baseline; justify-content: space-between; }
   .party-row { display: flex; align-items: center; gap: 12px; min-height: 68px; padding: 10px 0; border-bottom: 1px solid var(--line-soft); color: var(--fg); text-decoration: none; }
@@ -824,7 +867,17 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
     cursor: pointer;
   }
   .char-switch button > span:first-child { position: relative; display: flex; }
-  .char-switch button > span:last-child { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .char-switch .switch-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* This phone's own character. */
+  /* Hexes line up along the top, so a "You" under one name doesn't lift it. */
+  .char-switch button { justify-content: flex-start; padding-top: 6px; }
+  .char-switch .you { margin-top: -3px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-3); }
+  .char-switch button[aria-pressed="true"] .you { color: var(--fg-2); }
+  /* The Characters tab shows this phone's character instead. */
+  .tabs a.mine > svg, .tabs a.mine > span:not(.tab-me) { display: none; }
+  .tabs a.mine .tab-me { display: contents; }
+  .tab-me .gicon { width: 24px; height: 24px; margin: 0; }
+  .tab-me > span { max-width: 100%; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .char-switch button[aria-pressed="true"] { color: var(--fg); }
   .char-switch button[aria-pressed="true"] .hex { --ring: var(--fg); --fill: var(--fg); --ink: var(--bg); }
   .char-switch button.retired:not([aria-pressed="true"]) { opacity: 0.55; }
