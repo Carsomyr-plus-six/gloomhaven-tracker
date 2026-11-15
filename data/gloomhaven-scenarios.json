@@ -70,6 +70,9 @@
    },
    "links": [
     "2"
+   ],
+   "treasures": [
+    "7"
    ]
   },
   "2": {
@@ -94,7 +97,10 @@
     "gold": 10,
     "prosperity": 1
    },
-   "boss": true
+   "boss": true,
+   "treasures": [
+    "67"
+   ]
   },
   "3": {
    "name": "Inox Encampment",
@@ -115,13 +121,20 @@
     ],
     "gold": 15,
     "prosperity": 1
-   }
+   },
+   "treasures": [
+    "65"
+   ]
   },
   "4": {
    "name": "Crypt of the Damned",
    "unlocks": [
     "5",
     "6"
+   ],
+   "treasures": [
+    "38",
+    "46"
    ]
   },
   "5": {
@@ -133,6 +146,10 @@
    ],
    "links": [
     "10"
+   ],
+   "treasures": [
+    "4",
+    "28"
    ]
   },
   "6": {
@@ -146,7 +163,10 @@
      "dark-bounty"
     ],
     "gold": 5
-   }
+   },
+   "treasures": [
+    "50"
+   ]
   },
   "7": {
    "name": "Vibrant Grotto",
@@ -203,7 +223,10 @@
     ],
     "reputation": 2
    },
-   "boss": true
+   "boss": true,
+   "treasures": [
+    "51"
+   ]
   },
   "9": {
    "name": "Diamond Mine",
@@ -250,6 +273,9 @@
    },
    "links": [
     "21"
+   ],
+   "treasures": [
+    "11"
    ]
   },
   "11": {
@@ -280,7 +306,10 @@
      "113"
     ]
    },
-   "boss": true
+   "boss": true,
+   "treasures": [
+    "5"
+   ]
   },
   "12": {
    "name": "Gloomhaven Square B",
@@ -308,7 +337,10 @@
      "113"
     ]
    },
-   "boss": true
+   "boss": true,
+   "treasures": [
+    "34"
+   ]
   },
   "13": {
    "name": "Temple of the Seer",
@@ -318,7 +350,10 @@
      "17",
      "20"
     ]
-   }
+   },
+   "treasures": [
+    "10"
+   ]
   },
   "14": {
    "name": "Frozen Hollow",
@@ -326,7 +361,10 @@
     "globalAchievements": [
      "the-power-of-enhancement"
     ]
-   }
+   },
+   "treasures": [
+    "26"
+   ]
   },
   "15": {
    "name": "Shrine of Strength",
@@ -342,13 +380,19 @@
    ],
    "links": [
     "24"
+   ],
+   "treasures": [
+    "1"
    ]
   },
   "17": {
    "name": "Lost Island",
    "rewards": {
     "gold": 25
-   }
+   },
+   "treasures": [
+    "71"
+   ]
   },
   "18": {
    "name": "Abandoned Sewers",
@@ -357,6 +401,9 @@
     "23",
     "26",
     "43"
+   ],
+   "treasures": [
+    "63"
    ]
   },
   "19": {
@@ -381,7 +428,10 @@
      "stonebreakers-censer"
     ],
     "prosperity": 1
-   }
+   },
+   "treasures": [
+    "17"
+   ]
   },
   "20": {
    "name": "Necromancer's Sanctum",
@@ -407,7 +457,10 @@
     "reputation": 2,
     "prosperity": 1
    },
-   "boss": true
+   "boss": true,
+   "treasures": [
+    "60"
+   ]
   },
   "21": {
    "name": "Infernal Throne",
@@ -433,7 +486,10 @@
      "city:78"
     ]
    },
-   "boss": true
+   "boss": true,
+   "treasures": [
+    "15"
+   ]
   },
   "22": {
    "name": "Temple of the Elements",
@@ -466,7 +522,10 @@
     "globalAchievements": [
      "artifact-recovered"
     ]
-   }
+   },
+   "treasures": [
+    "21"
+   ]
   },
   "23": {
    "name": "Deep Ruins",
@@ -480,7 +539,11 @@
     "partyAchievements": [
      "through-the-ruins"
     ]
-   }
+   },
+   "treasures": [
+    "39",
+    "72"
+   ]
   },
   "24": {
    "name": "Echo Chamber",
@@ -492,7 +555,10 @@
     "partyAchievements": [
      "the-voices-command"
     ]
-   }
+   },
+   "treasures": [
+    "70"
+   ]
   },
   "25": {
    "name": "Icecrag Ascent",
@@ -507,6 +573,9 @@
    },
    "links": [
     "34"
+   ],
+   "treasures": [
+    "58"
    ]
   },
   "26": {
@@ -541,7 +610,10 @@
     "gold": 10,
     "reputation": 1,
     "prosperity": 2
-   }
+   },
+   "treasures": [
+    "66"
+   ]
   },
   "27": {
    "name": "Ruinous Rift",
@@ -601,6 +673,9 @@
    },
    "links": [
     "29"
+   ],
+   "treasures": [
+    "32"
    ]
   },
   "29": {
@@ -622,7 +697,10 @@
      "the-edge-of-darkness"
     ],
     "experience": 15
-   }
+   },
+   "treasures": [
+    "41"
+   ]
   },
   "30": {
    "name": "Shrine of the Depths",
@@ -678,7 +756,10 @@
     "globalAchievements": [
      "artifact-cleansed"
     ]
-   }
+   },
+   "treasures": [
+    "69"
+   ]
   },
   "32": {
    "name": "Decrepit Wood",
@@ -756,7 +837,10 @@
     "reputation": 2,
     "prosperity": 1
    },
-   "boss": true
+   "boss": true,
+   "treasures": [
+    "23"
+   ]
   },
   "35": {
    "name": "Gloomhaven Battlements A",
@@ -796,7 +880,10 @@
      "city:79"
     ]
    },
-   "boss": true
+   "boss": true,
+   "treasures": [
+    "61"
+   ]
   },
   "36": {
    "name": "Gloomhaven Battlements B",
@@ -833,7 +920,10 @@
      "city:78"
     ]
    },
-   "boss": true
+   "boss": true,
+   "treasures": [
+    "2"
+   ]
   },
   "37": {
    "name": "Doom Trench",
@@ -856,7 +946,10 @@
     "partyAchievements": [
      "through-the-trench"
     ]
-   }
+   },
+   "treasures": [
+    "49"
+   ]
   },
   "38": {
    "name": "Slave Pens",
@@ -872,6 +965,9 @@
    },
    "links": [
     "44"
+   ],
+   "treasures": [
+    "29"
    ]
   },
   "39": {
@@ -888,6 +984,9 @@
    },
    "links": [
     "46"
+   ],
+   "treasures": [
+    "73"
    ]
   },
   "40": {
@@ -910,6 +1009,9 @@
    },
    "links": [
     "41"
+   ],
+   "treasures": [
+    "47"
    ]
   },
   "41": {
@@ -937,7 +1039,10 @@
     "experience": 25,
     "prosperity": 2,
     "battleGoals": 2
-   }
+   },
+   "treasures": [
+    "24"
+   ]
   },
   "42": {
    "name": "Realm of the Voice",
@@ -969,7 +1074,11 @@
     "lostPartyAchievements": [
      "the-voices-command"
     ]
-   }
+   },
+   "treasures": [
+    "30",
+    "55"
+   ]
   },
   "43": {
    "name": "Drake Nest",
@@ -989,7 +1098,10 @@
     "globalAchievements": [
      "water-breathing"
     ]
-   }
+   },
+   "treasures": [
+    "35"
+   ]
   },
   "44": {
    "name": "Tribal Assault",
@@ -1031,7 +1143,10 @@
    "rewards": {
     "gold": 20,
     "reputation": -2
-   }
+   },
+   "treasures": [
+    "74"
+   ]
   },
   "46": {
    "name": "Nightmare Peak",
@@ -1055,7 +1170,10 @@
      "end-of-corruption"
     ]
    },
-   "boss": true
+   "boss": true,
+   "treasures": [
+    "48"
+   ]
   },
   "47": {
    "name": "Lair of the Unseeing Eye",
@@ -1079,7 +1197,11 @@
      "end-of-corruption"
     ]
    },
-   "boss": true
+   "boss": true,
+   "treasures": [
+    "18",
+    "57"
+   ]
   },
   "48": {
    "name": "Shadow Weald",
@@ -1103,7 +1225,10 @@
      "end-of-corruption"
     ]
    },
-   "boss": true
+   "boss": true,
+   "treasures": [
+    "64"
+   ]
   },
   "49": {
    "name": "Rebel's Stand",
@@ -1129,7 +1254,10 @@
     "gold": 50,
     "reputation": -3
    },
-   "boss": true
+   "boss": true,
+   "treasures": [
+    "44"
+   ]
   },
   "50": {
    "name": "Ghost Fortress",
@@ -1174,7 +1302,10 @@
      "road:69"
     ]
    },
-   "boss": true
+   "boss": true,
+   "treasures": [
+    "56"
+   ]
   },
   "52": {
    "name": "Noxious Cellar",
@@ -1196,7 +1327,10 @@
       "The Seeker of Xorn receives item. The Seeker cannot sell this item."
      ]
     }
-   }
+   },
+   "treasures": [
+    "31"
+   ]
   },
   "54": {
    "name": "Palace of Ice",
@@ -1208,7 +1342,10 @@
     "custom": "%data.scenario.rewards.gh.54%",
     "characterRetirement": "510",
     "unlockCharacter": "squidface"
-   }
+   },
+   "treasures": [
+    "25"
+   ]
   },
   "55": {
    "name": "Foggy Thicket",
@@ -1229,7 +1366,10 @@
     "reputation": 2,
     "characterRetirement": "521",
     "unlockCharacter": "angry-face"
-   }
+   },
+   "treasures": [
+    "45"
+   ]
   },
   "57": {
    "name": "Investigation",
@@ -1239,7 +1379,11 @@
    "rewards": {
     "reputation": 1
    },
-   "boss": true
+   "boss": true,
+   "treasures": [
+    "3",
+    "22"
+   ]
   },
   "58": {
    "name": "Bloody Shack",
@@ -1284,13 +1428,19 @@
     "characterRetirement": "529",
     "unlockCharacter": "eclipse"
    },
-   "boss": true
+   "boss": true,
+   "treasures": [
+    "59"
+   ]
   },
   "63": {
    "name": "Magma Pit",
    "rewards": {
     "gold": 15
-   }
+   },
+   "treasures": [
+    "12"
+   ]
   },
   "64": {
    "name": "Underwater Lagoon",
@@ -1308,7 +1458,10 @@
    ],
    "rewards": {
     "experience": 10
-   }
+   },
+   "treasures": [
+    "9"
+   ]
   },
   "65": {
    "name": "Sulfur Mine",
@@ -1327,7 +1480,11 @@
     "globalAchievements": [
      "ancient-technology"
     ]
-   }
+   },
+   "treasures": [
+    "16",
+    "36"
+   ]
   },
   "67": {
    "name": "Arcane Library",
@@ -1338,7 +1495,10 @@
     "items": [
      "132"
     ]
-   }
+   },
+   "treasures": [
+    "14"
+   ]
   },
   "68": {
    "name": "Toxic Moor",
@@ -1346,7 +1506,10 @@
     "items": [
      "27:2"
     ]
-   }
+   },
+   "treasures": [
+    "33"
+   ]
   },
   "69": {
    "name": "Well of the Unfortunate",
@@ -1358,7 +1521,10 @@
    "name": "Chained Isle",
    "rewards": {
     "prosperity": 2
-   }
+   },
+   "treasures": [
+    "6"
+   ]
   },
   "71": {
    "name": "Windswept Highlands",
@@ -1393,7 +1559,10 @@
    "rewards": {
     "gold": 10,
     "prosperity": 2
-   }
+   },
+   "treasures": [
+    "20"
+   ]
   },
   "75": {
    "name": "Overgrown Graveyard",
@@ -1407,10 +1576,16 @@
    "rewards": {
     "gold": 60
    },
-   "boss": true
+   "boss": true,
+   "treasures": [
+    "53"
+   ]
   },
   "76": {
-   "name": "Harrower Hive"
+   "name": "Harrower Hive",
+   "treasures": [
+    "75"
+   ]
   },
   "77": {
    "name": "Vault of Secrets",
@@ -1436,7 +1611,10 @@
    "rewards": {
     "gold": 15
    },
-   "boss": true
+   "boss": true,
+   "treasures": [
+    "52"
+   ]
   },
   "80": {
    "name": "Vigil Keep",
@@ -1449,10 +1627,16 @@
    "rewards": {
     "experience": 10
    },
-   "boss": true
+   "boss": true,
+   "treasures": [
+    "68"
+   ]
   },
   "82": {
-   "name": "Burning Mountain"
+   "name": "Burning Mountain",
+   "treasures": [
+    "62"
+   ]
   },
   "83": {
    "name": "Shadows Within",
@@ -1481,7 +1665,10 @@
     "items": [
      "133"
     ]
-   }
+   },
+   "treasures": [
+    "42"
+   ]
   },
   "85": {
    "name": "Sun Temple",
@@ -1521,7 +1708,10 @@
     "reputation": 1,
     "prosperity": 1
    },
-   "boss": true
+   "boss": true,
+   "treasures": [
+    "40"
+   ]
   },
   "88": {
    "name": "Plane of Water",
@@ -1545,7 +1735,11 @@
      "120"
     ]
    },
-   "boss": true
+   "boss": true,
+   "treasures": [
+    "8",
+    "37"
+   ]
   },
   "89": {
    "name": "Syndicate Hideout",
@@ -1558,7 +1752,12 @@
    ],
    "rewards": {
     "collectiveGold": 50
-   }
+   },
+   "treasures": [
+    "13",
+    "27",
+    "43"
+   ]
   },
   "90": {
    "name": "Demonic Rift",
@@ -1566,7 +1765,10 @@
     "items": [
      "128"
     ]
-   }
+   },
+   "treasures": [
+    "19"
+   ]
   },
   "91": {
    "name": "Wild Melee",
@@ -1599,7 +1801,10 @@
    ],
    "rewards": {
     "experience": 10
-   }
+   },
+   "treasures": [
+    "54"
+   ]
   },
   "94": {
    "name": "Vermling Nest",

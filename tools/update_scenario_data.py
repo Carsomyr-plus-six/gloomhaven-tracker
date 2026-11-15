@@ -19,7 +19,7 @@ Keeps only what the tracker needs and writes three files:
   secret: campaign.json never says which card anyone holds.
 
 Each scenario also notes whether it has a boss (from the monster files), as
-a personal quest counts boss scenarios.
+a personal quest counts boss scenarios, and the treasure tiles on its map.
 
 Source: https://github.com/Lurkars/gloomhavensecretariat (AGPL-3.0)
 
@@ -332,6 +332,10 @@ def main():
         scenario = {field: data[field] for field in FIELDS if data.get(field)}
         if bosses & monsters[number]:
             scenario["boss"] = True
+        # The treasure tiles on its map, so the form can offer them.
+        tiles = {str(tile) for room in data.get("rooms", []) for tile in room.get("treasures", []) if str(tile).isdigit()}
+        if tiles:
+            scenario["treasures"] = sorted(tiles, key=int)
         if "requirements" in scenario:
             scenario["requirements"] = normalize_requirements(scenario["requirements"], labels)
         scenarios[str(number)] = scenario
