@@ -231,7 +231,7 @@ function reputationTile(party, ledger) {
   const marker = h("span");
   marker.style.left = `${Math.max(0, Math.min(100, (party.reputation + 20) / 40 * 100))}%`;
   return h("div", { class: "card tile" },
-    h("div", { class: "tile-top" }, h("span", { class: "label" }, "Reputation"), h("span", { class: "display" }, signed(party.reputation))),
+    h("div", { class: "tile-top" }, h("span", { class: "label" }, "Reputation"), h("span", { class: "figure" }, signed(party.reputation))),
     h("div", {},
       h("div", { class: "track", role: "presentation" }, marker),
       h("div", { class: "track-scale" }, h("span", {}, "−20"), h("span", {}, "0"), h("span", {}, "+20"))),
@@ -246,7 +246,7 @@ function prosperityTile(city, ledger) {
   const toNext = progressFor(city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
   const from = CHECKMARKS_FOR_PROSPERITY[level - 1];
   return h("div", { class: "card tile" },
-    h("div", { class: "tile-top" }, h("span", { class: "label" }, "Prosperity"), h("span", { class: "display" }, level)),
+    h("div", { class: "tile-top" }, h("span", { class: "label" }, "Prosperity"), h("span", { class: "figure" }, level)),
     toNext ? h("div", { class: "ticks", role: "img",
         "aria-label": `${city.prosperityCheckmarks - from} of ${toNext.next - from} checkmarks towards prosperity ${level + 1}` },
       Array.from({ length: toNext.next - from }, (_, i) => h("span", { class: i < city.prosperityCheckmarks - from ? "on" : null }))) : null,
@@ -293,7 +293,7 @@ function levelTile(data) {
   return h("div", { class: "card tile level-tile" },
     h("div", { class: "tile-top" },
       h("span", { class: "label" }, "Scenario level"),
-      h("span", { class: "display" }, playing.length ? level : "–")),
+      h("span", { class: "figure" }, playing.length ? level : "–")),
     h("div", { class: "filters", role: "group", "aria-label": "Who is playing" }, active.map(c =>
       h("button", { type: "button", "data-key": `playing-${c.name}`, "aria-pressed": String(levelParty.has(c.name)),
                     onclick: () => toggle(c.name) },
@@ -303,7 +303,7 @@ function levelTile(data) {
         h("button", { type: "button", "data-key": `difficulty-${key}`, "aria-pressed": String(difficulty === key),
                       onclick: () => { difficulty = key; render(data, "overview"); } }, label))),
       h("div", { class: "level-stats" },
-        stat("Monsters", `level ${st.monsters}`), stat("Gold per coin", st.gold),
+        stat("Monsters", `Level ${st.monsters}`), stat("Gold per coin", st.gold),
         stat("Trap damage", st.trap), stat("Bonus XP", st.xp)),
     ] : h("p", { class: "small muted" }, "Pick who is playing."),
     h("div", { class: "tile-foot" },
@@ -342,22 +342,24 @@ function renderOverview(data) {
         heroDecor(),
         h("div", { class: "eyebrow" }, eyebrowText(data.edition || "Gloomhaven", party.location)),
         h("h1", { class: (party.name || "").length > 22 ? "party-name long" : "party-name" }, party.name || "Unnamed party")),
-      // Tiles before Ready to play: the left column reads first on wide
-      // screens. Phones show Ready to play first (styles.css).
+      // Tiles first: the left column reads first on wide screens. The right
+      // column pairs what to play with what to sort out before playing.
+      // Phones show Ready to play, then the tiles, then the list (styles.css).
       h("div", { class: "tiles" }, reputationTile(party, data.ledger), prosperityTile(city, data.ledger), levelTile(data)),
-      h("div", { class: "ready" },
-        h("div", { class: "ready-head" },
-          h("h2", {}, "Ready to play"),
-          h("a", { href: "#scenarios" }, data.scenarios.length > 1 ? `All ${data.scenarios.length} scenarios` : "Scenarios")),
-        ready.length
-          ? h("div", { class: "ready-list" }, ready.map(s =>
-              h("a", { class: "ready-card", href: "#scenarios", onclick: () => openScenario(data, s.number) },
-                hex(s.number),
-                h("span", {},
-                  h("span", { class: "ready-name" }, s.name || "Untitled"),
-                  from(s) ? h("span", { class: "ready-from" }, from(s)) : null))))
-          : empty("Nothing is unlocked to play right now."))),
-    todoList(data),
+      h("div", { class: "hero-side" },
+        h("div", { class: "ready" },
+          h("div", { class: "ready-head" },
+            h("h2", {}, "Ready to play"),
+            h("a", { href: "#scenarios" }, data.scenarios.length > 1 ? `All ${data.scenarios.length} scenarios` : "Scenarios")),
+          ready.length
+            ? h("div", { class: "ready-list" }, ready.map(s =>
+                h("a", { class: "ready-card", href: "#scenarios", onclick: () => openScenario(data, s.number) },
+                  hex(s.number),
+                  h("span", {},
+                    h("span", { class: "ready-name" }, s.name || "Untitled"),
+                    from(s) ? h("span", { class: "ready-from" }, from(s)) : null))))
+            : empty("Nothing is unlocked to play right now.")),
+        todoList(data))),
     partyList(data),
   ];
 }
@@ -453,7 +455,7 @@ function renderEvents(data) {
     return h("div", { class: "card deck" },
       h("div", { class: "deck-top" },
         h("span", { class: "label" }, `${DECK_NAMES[deck]} deck`),
-        h("span", { class: "display num" }, ev.decks[deck].size)),
+        h("span", { class: "figure" }, ev.decks[deck].size)),
       summary
         ? h("details", {}, h("summary", {}, summary),
             h("ul", {}, added.map(a => line("Added", a)), removed.map(r => line("Removed", r))))
@@ -465,6 +467,18 @@ function renderEvents(data) {
     return rest.length ? nudge("question", `${label} needs an answer`, capitalize(rest.join(": "))) : nudge("question", q);
   };
 
+  // A question about a drawn event is asked on that event's row, so the
+  // list says it once; any other question stays a box above the list.
+  const asks = new Map();
+  const loose = [];
+  for (const q of ev.questions) {
+    const [label, ...rest] = q.split(": ");
+    const row = rest.length && ev.history.find(e => label === e.label || label.startsWith(`${e.label}, `));
+    if (!row) { loose.push(q); continue; }
+    const extra = label === row.label ? "" : `${capitalize(label.slice(row.label.length + 2))}: `;
+    asks.set(row, [...(asks.get(row) || []), extra + capitalize(rest.join(": "))]);
+  }
+
   const drawn = e => {
     const detail = [
       e.option ? `Option ${e.option}` : null,
@@ -475,7 +489,8 @@ function renderEvents(data) {
     return h("li", {},
       h("strong", {}, e.label),
       h("span", {}, detail || (e.notes ? null : "Option not recorded"),
-        e.notes ? h("div", { class: detail ? "small muted" : null }, e.notes) : null),
+        e.notes ? h("div", { class: detail ? "small muted" : null }, e.notes) : null,
+        (asks.get(e) || []).map(text => h("div", { class: "ask" }, icon("question"), text))),
       h("span", { class: `fate ${e.fate || "open"}` },
         e.fate ? [gameIcon(`event-${e.fate}`), capitalize(e.fate)] : "Needs an answer"));
   };
@@ -483,7 +498,7 @@ function renderEvents(data) {
   return [
     sectionHead("Event decks", ev.history.length ? `${plural(ev.history.length, "event")} drawn` : null),
     h("div", { class: "decks" }, Object.keys(DECK_NAMES).map(deckCard)),
-    ev.questions.map(question),
+    loose.map(question),
     ev.history.length ? h("ul", { class: "drawn" }, ev.history.map(drawn)) : null,
   ];
 }
@@ -1534,7 +1549,9 @@ function renderCharacters(data) {
         st.unspent ? nudge("plus", `${plural(st.unspent, "perk")} to choose`, null, "perk-nudge") : null,
         perks.length
           ? h("ul", { class: "perks" }, perks.map(p => h("li", { class: p.note && !p.quiet ? "unsure" : null },
-              icon(p.note && !p.quiet ? "question" : "check"),
+              // A filled box, as ticked on the sheet; the game's checkmark is
+              // kept for battle goals, so the card shows only one kind of tick.
+              p.note && !p.quiet ? icon("question") : h("i", { class: "perk-box", "aria-hidden": "true" }),
               h("span", {}, perkText(p.text), p.note ? h("span", { class: "note" }, p.note) : null),
               p.count > 1 ? h("span", { class: "times" }, `×${p.count}`) : null)))
           : h("span", { class: "small muted" }, st.earned ? "None taken yet."
