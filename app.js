@@ -323,11 +323,11 @@ function heroDecor() {
     { class: "hero-decor", "aria-hidden": "true" });
 }
 
-// The edition, then where the party is, unless the edition already says it
-// (no "Gloomhaven (1st edition) · Gloomhaven").
-function eyebrowText(edition, location) {
-  const here = location && !edition.toLowerCase().includes(location.trim().toLowerCase()) ? location : null;
-  return [edition, here].filter(Boolean).join(" · ");
+// Where the party is, above its name, when the campaign says somewhere more
+// particular than Gloomhaven itself. The edition is only in the footer.
+function locationText(location) {
+  const here = String(location || "").trim();
+  return here && here.toLowerCase() !== "gloomhaven" ? here : null;
 }
 
 function renderOverview(data) {
@@ -340,7 +340,7 @@ function renderOverview(data) {
     h("div", { class: "hero" },
       h("div", { class: "hero-head" },
         heroDecor(),
-        h("div", { class: "eyebrow" }, eyebrowText(data.edition || "Gloomhaven", party.location)),
+        locationText(party.location) ? h("div", { class: "eyebrow" }, locationText(party.location)) : null,
         h("h1", { class: (party.name || "").length > 22 ? "party-name long" : "party-name" }, party.name || "Unnamed party")),
       // Tiles first: the left column reads first on wide screens. The right
       // column pairs what to play with what to sort out before playing.
