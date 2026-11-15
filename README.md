@@ -43,7 +43,14 @@ The page does the end-of-scenario sums itself:
 
 It lists every change, with anything that looks wrong, before you save: an event that isn't in its deck, or a treasure already looted, is most likely a mistyped number. A bar at the top of the form says how many things there are to check.
 
-A perk to choose can also be recorded straight from **Before you play** on the Overview, or from the character's sheet: **Record it** opens the form with a perk row for that character. Once picked, the perk stops being asked for while the draft waits to be saved.
+The form starts with whoever is picked to play on the Overview's scenario level. In a scenario's number box, the scenarios the party can play are there to tap, and the scenario's name shows as you type.
+
+Some things can be recorded straight from where you see them, each opening the form at the right row:
+- **A perk to choose:** **Record it** in **Before you play** on the Overview, or on the character's sheet. Once picked, the perk stops being asked for while the draft waits to be saved.
+- **A scenario you can play:** **Record it** in its details on the Scenarios tab, at tonight's level.
+- **An item:** **Buy** in the Shop, on what this phone's character can afford and has room for. It then says "In the draft".
+
+A form opened and closed with nothing in it leaves no draft behind.
 
 Only an evening of play goes in the session log: a perk taken, an item bought or a donation made between sessions changes the characters and city, and adds no session.
 
