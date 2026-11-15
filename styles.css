@@ -270,6 +270,9 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 .nudge .how { display: block; margin-top: 4px; font-size: var(--t-sm); color: var(--fg-3); }
 /* Good news rather than something to see to. */
 .nudge.saved { background: var(--surface); border-color: var(--line-strong); }
+/* Worth knowing, but nothing to do about it. */
+.nudge.note { background: var(--surface); border-color: var(--line); }
+.nudge.note .icon, .nudge.note strong { color: var(--fg-3); }
 .nudge.saved .icon, .nudge.saved strong { color: var(--verdigris); }
 
 .meter { height: 8px; border-radius: var(--r-pill); background: var(--line); display: flex; }
@@ -409,7 +412,7 @@ dialog.who > .btn { width: 100%; justify-content: center; }
    a line. */
 .char-grid { columns: 340px; column-gap: 16px; }
 .char-grid > .char-card { break-inside: avoid; margin-bottom: 16px; }
-.subhead { font: 700 var(--d-md)/1.1 var(--display); margin-top: 16px; }
+.subhead { font: 700 var(--d-sm)/1.1 var(--display); margin-top: 16px; }
 .char-card {
   --under: var(--surface);
   scroll-margin-top: 84px;
@@ -454,7 +457,7 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .perks .unsure .icon { color: var(--brass); stroke-width: 2.2; }
 /* A perk's boxes, in front of it as on the sheet: filled when ticked. Room
    for two keeps most perk texts lined up. */
-.perk-boxes { flex: none; display: inline-flex; gap: 3px; min-width: 25px; }
+.perk-boxes { flex: none; display: inline-flex; gap: 3px; min-width: calc(var(--boxes, 2) * 14px - 3px); }
 .perk-box { box-sizing: border-box; width: 11px; height: 11px; border-radius: var(--r-xs); background: var(--verdigris); }
 .perk-box.unticked { background: none; border: 1.5px solid var(--line-strong); }
 /* A game icon standing in for a keyword in perk text. */
@@ -735,9 +738,9 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .shop .sold-out strong, .shop .sold-out .price { color: var(--muted); }
 /* This phone's character can't afford it. */
 .shop .too-dear .price { color: var(--muted); }
-.shop-me { font-size: var(--t-md); color: var(--fg-3); }
-.shop-me strong { font-weight: 600; color: var(--fg); }
-.shop .tag { margin-left: 8px; padding: 1px 8px; border-radius: var(--r-pill); background: var(--surface-2); font-size: var(--t-xs); font-weight: 600; color: var(--fg-3); }
+.shop-me { margin: 4px 0; font-size: var(--t-base); color: var(--fg-2); }
+.shop-me strong { font-weight: 700; color: var(--brass); }
+.shop .tag { white-space: nowrap; margin-left: 8px; padding: 1px 8px; border-radius: var(--r-pill); background: var(--surface-2); font-size: var(--t-xs); font-weight: 600; color: var(--fg-3); }
 /* The Enhancer: the form on the left, the cost and how it adds up on the right. */
 .enhancer-wrap { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
 .enhancer { display: grid; grid-template-columns: minmax(0, 3fr) minmax(220px, 2fr); gap: 20px 32px; align-items: start; }
@@ -877,8 +880,9 @@ dialog.who > .btn { width: 100%; justify-content: center; }
   /* The Characters tab shows this phone's character instead. */
   .tabs a.mine > svg, .tabs a.mine > span:not(.tab-me) { display: none; }
   .tabs a.mine .tab-me { display: contents; }
-  .tab-me .gicon { width: 24px; height: 24px; margin: 0; }
-  .tab-me > span { max-width: 100%; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tab-hex { position: relative; display: block; width: 24px; height: 24px; }
+  .tab-hex .gicon { position: absolute; inset: 6px; width: 12px; height: 12px; margin: 0; }
+  .tab-me > span:last-child { max-width: 100%; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .char-switch button[aria-pressed="true"] { color: var(--fg); }
   .char-switch button[aria-pressed="true"] .hex { --ring: var(--fg); --fill: var(--fg); --ink: var(--bg); }
   .char-switch button.retired:not([aria-pressed="true"]) { opacity: 0.55; }
