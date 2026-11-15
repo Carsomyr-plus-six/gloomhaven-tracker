@@ -589,6 +589,7 @@ function todoItems(data) {
   }
 
   for (const d of data.draws || []) add(`Draw ${d.what} (${d.from}).`, "#record");
+  for (const c of data.claims || []) add(`Treasure ${c.treasure} in ${c.where} gave ${c.item}: who looted it?`, "#record");
 
   // Events with no option recorded go together; other questions one by one.
   const questions = data.eventState?.questions || [];
@@ -833,6 +834,9 @@ function renderRecord(data) {
     (data.draws || []).map(d => nudge("question", `Draw ${d.what}`, [
       `From ${d.from}. Not drawn yet.`,
       d.how ? h("span", { class: "how" }, codeText(`Once drawn, record it in \`campaign.json\`: ${d.how}.`)) : null])),
+    (data.claims || []).map(c => nudge("question", `Who looted ${c.item}?`, [
+      `Treasure ${c.treasure} in ${c.where} gave it, but no one is written down as looting it, and no sheet has it.`,
+      h("span", { class: "how" }, codeText(`Record it in \`campaign.json\`: ${c.how}.`))])),
     h("div", { class: "record" },
       card("Party achievements", recordRows(party.achievements, data)),
       card("Global achievements", recordRows(city.globalAchievements, data)),
@@ -862,6 +866,15 @@ function achievementName(ref, kind, id) {
 // data/gloomhaven-items.json, once loaded: item names by number.
 let itemsRef = null;
 function itemName(id) { return itemsRef?.items?.[String(id)]?.name || `item ${id}`; }
+// Item names as the sheets write them: capitals don't matter.
+const sameItem = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
+// A scenario's reward items, one entry per copy ("27:2" is two copies).
+function rewardCopies(info) {
+  return (info?.rewards?.items || []).flatMap(id => {
+    const [n, copies] = String(id).split(":");
+    return Array.from({ length: Number(copies) || 1 }, () => itemName(n));
+  });
+}
 function itemSlot(name) {
   return Object.values(itemsRef?.items || {}).find(i => i.name.toLowerCase() === String(name).toLowerCase())?.slot || null;
 }
@@ -1131,7 +1144,10 @@ function deriveCampaign(data, ref, evRef) {
 
   // The campaign record. Each list maps an id to { name, count, where }.
   const record = { party: new Map(), global: new Map(), designs: new Map(), classes: new Map(),
-                   draws: [], treasures: new Map() };
+                   draws: [], treasures: new Map(),
+                   // Items found (treasures, scenario rewards): one copy each, to a
+                   // character, not to the shop; and those whose finder isn't known.
+                   found: [], claims: [] };
   const note = (entry, where) => { if (where && !entry.where.includes(where)) entry.where.push(where); };
   const gainAchievement = (kind, rawId, where) => {
     const id = String(rawId).split(":")[0];
@@ -1270,8 +1286,14 @@ function deriveCampaign(data, ref, evRef) {
     for (const id of r.globalAchievements || []) gainAchievement("global", id, where);
     for (const id of r.partyAchievements || []) gainAchievement("party", id, where);
     for (const id of r.lostPartyAchievements || []) loseAchievement("party", id);
-    // Items may be written "27:2" (item 27, two copies).
-    for (const id of [...(r.items || []), ...(r.itemDesigns || [])]) addDesign(String(id).split(":")[0], where);
+    // A design puts every copy in the shop; an item is one copy, given to one
+    // of the characters there (rulebook p. 49). Items may be written "27:2"
+    // (item 27, two copies).
+    for (const id of r.itemDesigns || []) addDesign(String(id).split(":")[0], where);
+    for (const id of r.items || []) {
+      const [n, copies] = String(id).split(":");
+      for (let k = 0; k < (Number(copies) || 1); k++) record.found.push({ item: itemName(n), from: where });
+    }
     for (const ev of r.events || []) { const [deck, n] = ev.split(":"); addCard(deck, Number(n), `from ${where}`); }
     if (r.unlockCharacter) unlockClass(r.unlockCharacter, where);
 
@@ -1283,7 +1305,18 @@ function deriveCampaign(data, ref, evRef) {
       const from = `treasure ${number}`;
       const parts = treasureParts(ref, number);
       for (const part of parts) {
-        if (part.type === "item" || part.type === "itemDesign") addDesign(part.value, from);
+        // A design puts every copy in the shop; a named item goes to whoever
+        // looted it, one copy (rulebook p. 14). If no one is written down as
+        // looting it, and no sheet has it, ask.
+        if (part.type === "itemDesign") addDesign(part.value, from);
+        if (part.type === "item") {
+          const item = itemName(part.value);
+          record.found.push({ item, from, character });
+          if (!character && !data.characters.some(c => (c.items || []).some(i => sameItem(i, item)))) {
+            record.claims.push({ item, treasure: number, where,
+              how: `in scenario ${where}'s \`"treasures"\`, write \`"${number}"\` as \`{ "number": "${number}", "character": "Name" }\`, and add ${item} to their \`items\` unless they've since sold it` });
+          }
+        }
         if (part.type === "scenario") unlocks.push({ number: Number(part.value), source: from });
         if (part.type === "randomScenario") {
           if (drew != null) unlocks.push({ number: Number(drew), source: from });
@@ -1362,7 +1395,8 @@ function deriveCampaign(data, ref, evRef) {
   const list = map => [...map.values()].map(a => ({ ...a, where: a.where.join(", ") }));
   return { decks, added, removed, history, questions, unlocks, totals,
            record: { party: list(record.party), global: list(record.global), designs: list(record.designs),
-                     classes: list(record.classes), draws: record.draws, treasures: record.treasures } };
+                     classes: list(record.classes), draws: record.draws, treasures: record.treasures,
+                     found: record.found, claims: record.claims } };
 }
 
 // What hangs on the choice of option: its effect on the deck and the numbers.
@@ -2142,7 +2176,10 @@ function deriveShop(data, items, ledger) {
         questions.push(`${c.name} carries ${name}, which isn't in the item list. Check the spelling against the card.`);
         continue;
       }
-      if (!inShop(item)) {
+      // An item found (treasure or reward) or bought back is carried legitimately.
+      const found = (data.foundItems || []).some(f => sameItem(f.item, item.name))
+                 || (data.city.returnedItems || []).some(n => sameItem(n, item.name));
+      if (!inShop(item) && !found) {
         const why = item.prosperity ? `the shop only has it from prosperity ${item.prosperity}` : "it only comes from a design";
         questions.push(`${c.name} carries ${item.name}, but ${why}. Check the item, or list its design in itemDesigns if the party found one.`);
       }
@@ -2152,21 +2189,33 @@ function deriveShop(data, items, ledger) {
     }
   }
 
-  const stock = all.filter(inShop).map(item => {
+  // Copies of items the shop doesn't otherwise sell, back in its supply: sold,
+  // or carried by a character who retired (rulebook p. 43).
+  const returned = new Map();
+  for (const name of data.city.returnedItems || []) {
+    const item = byName.get(String(name).toLowerCase());
+    if (item && !inShop(item)) returned.set(item.id, (returned.get(item.id) || 0) + 1);
+  }
+
+  const stock = all.filter(item => inShop(item) || returned.get(item.id)).map(item => {
     const held = owners.get(item.id) || [];
     if (held.length > item.count) {
       questions.push(`${item.name}: the party carries ${held.length}, but only ${item.count} exist.`);
     }
-    return { ...item, price: Math.max(0, item.cost + modifier), sells: Math.floor(item.cost / 2),
-             held, left: Math.max(0, item.count - held.length), design: !(item.prosperity && item.prosperity <= level) };
+    const back = !inShop(item);
+    return { ...item, price: Math.max(0, item.cost + modifier), sells: Math.floor(item.cost / 2), held,
+             left: back ? Math.min(returned.get(item.id), Math.max(0, item.count - held.length)) : Math.max(0, item.count - held.length),
+             design: !back && !(item.prosperity && item.prosperity <= level), back };
   }).sort((a, b) => a.id - b.id);
+  // Names the shop sells anyway, so a sale or retirement needn't put them back.
+  const normal = new Set(all.filter(inShop).map(item => item.name.toLowerCase()));
 
   // Reputation that isn't settled may mean other prices.
   const range = ledger?.reputation?.range;
   const modifiers = range ? new Set([shopModifier(range.lo), shopModifier(range.hi), modifier]) : new Set([modifier]);
   const coming = all.filter(item => item.prosperity === level + 1).length;
 
-  return { level, modifier, stock, questions, coming, pricesUnsure: modifiers.size > 1, range };
+  return { level, modifier, stock, questions, coming, pricesUnsure: modifiers.size > 1, range, normal };
 }
 
 // Whose shopping the Shop shows: until someone is picked, this phone's
@@ -2190,18 +2239,18 @@ function renderShop(data) {
   const sells = (draft?.sells || []).filter(x => x.character && x.item);
   const mineBuys = shopper ? buys.filter(b => b.character === shopper.name) : [];
   const mineSells = shopper ? sells.filter(x => x.character === shopper.name) : [];
-  const owned = shopper ? [...shopper.items.filter(i => !mineSells.some(x => x.item === i)), ...mineBuys.map(b => b.item)] : [];
+  const owned = shopper ? [...shopper.items.filter(i => !mineSells.some(x => sameItem(x.item, i))), ...mineBuys.map(b => b.item)] : [];
   const room = shopper ? slotUse({ ...shopper, items: owned }, characterStats(shopper).level) : null;
-  const priceOf = name => shop.stock.find(i => i.name === name);
+  const priceOf = name => shop.stock.find(i => sameItem(i.name, name));
   const spent = mineBuys.reduce((sum, b) => sum + (priceOf(b.item)?.price || 0), 0)
               - mineSells.reduce((sum, x) => sum + (priceOf(x.item)?.sells || 0), 0);
   const gold = shopper ? shopper.gold - spent : 0;
-  const left = item => item.left - buys.filter(b => b.item === item.name).length + sells.filter(x => x.item === item.name).length;
+  const left = item => item.left - buys.filter(b => sameItem(b.item, item.name)).length + sells.filter(x => sameItem(x.item, item.name)).length;
   const full = item => { const [k, n] = slotNeed(item.slot); return room && k in room.used && room.used[k] + n > room.limits[k]; };
   const dear = item => shopper && item.price > gold;
-  const has = item => shopper?.items.includes(item.name);
-  const bought = item => mineBuys.some(b => b.item === item.name);
-  const sold = item => mineSells.some(x => x.item === item.name);
+  const has = item => shopper?.items.some(i => sameItem(i, item.name));
+  const bought = item => mineBuys.some(b => sameItem(b.item, item.name));
+  const sold = item => mineSells.some(x => sameItem(x.item, item.name));
   const canBuy = item => shopper && !has(item) && !bought(item) && left(item) > 0 && !dear(item) && !full(item);
 
   // On the right: the price, and under it what the shopper can do. It goes
@@ -2216,7 +2265,8 @@ function renderShop(data) {
     : null;
   const row = item => h("li", { class: has(item) ? "owned" : left(item) <= 0 && !bought(item) ? "sold-out" : dear(item) && !bought(item) ? "too-dear" : null },
     h("span", {},
-      h("strong", {}, item.name, item.design ? h("span", { class: "tag" }, "design") : null),
+      h("strong", {}, item.name, item.design ? h("span", { class: "tag" }, "design") : null,
+        item.back ? h("span", { class: "tag", title: "Not sold here otherwise: a copy sold, or left by a retired character" }, "returned") : null),
       h("span", { class: "sub" }, copyPips(item), [
         shopper && !has(item) && !bought(item) && left(item) > 0 && full(item) ? fullText(shopper, item.slot) : null,
         // What it sells for: on the shopper's own items that's their Sell button.
@@ -2459,6 +2509,30 @@ function applyDraft(raw, d, data) {
   const warnings = [];
   for (const c of out.characters) { c.items ||= []; c.perks ||= []; }
   const who = name => out.characters.find(c => c.name === name);
+  // Handing someone an item (bought, looted or a reward): one of each item
+  // per character, and whoever's items change gets the slot check below.
+  const changed = new Set();
+  const giveItem = (name, item) => {
+    const c = who(name);
+    if (!c) return;
+    if (c.items.some(i => sameItem(i, item))) warnings.push(`${name} already has ${item}: a character can own only one of each item.`);
+    c.items.push(item);
+    changed.add(name);
+  };
+  // A copy of an item the shop doesn't otherwise sell goes back into its
+  // supply when sold or when its owner retires; buying it takes it out.
+  const normal = name => data.shop?.normal?.has(String(name).toLowerCase()) ?? true;
+  const returnItem = name => {
+    if (normal(name)) return;
+    out.city ||= {};
+    // Spelled as the item list does, however the sheet had it.
+    (out.city.returnedItems ||= []).push(Object.values(itemsRef?.items || {}).find(x => sameItem(x.name, name))?.name || name);
+  };
+  const takeReturned = name => {
+    const list = out.city?.returnedItems || [];
+    const i = list.findIndex(n => sameItem(n, name));
+    if (i >= 0) list.splice(i, 1);
+  };
   const gainFor = new Map();   // name -> { xp, gold, checkmarks }
   const gain = (name, key, amount) => {
     if (!amount) return;
@@ -2475,6 +2549,7 @@ function applyDraft(raw, d, data) {
     if (!c || c.retired) { warnings.push(`${x.character} isn't an active character.`); continue; }
     c.retired = true;
     delete c.inactive;
+    for (const item of c.items || []) returnItem(item);
     joinLog.push(`${c.name} retires: a prosperity checkmark, the ${c.class} retirement events go into the decks, and their items go back to the shop`);
     if (!x.unlocks) continue;
     if (data.city.unlockedClasses.some(u => u.id === x.unlocks)) { warnings.push(`The class with the ${classIconName(x.unlocks)} icon is already unlocked.`); continue; }
@@ -2591,6 +2666,13 @@ function applyDraft(raw, d, data) {
     for (const name of party) { gain(name, "gold", r.gold || 0); gain(name, "xp", r.experience || 0); }
     if (r.gold || r.experience) log.push(`${label} reward: ${[r.gold ? `${r.gold} gold` : null, r.experience ? `${r.experience} XP` : null].filter(Boolean).join(" and ")} each`);
     if (r.collectiveGold) warnings.push(`${label} gives ${r.collectiveGold} gold to share: add it to the characters' gold by hand.`);
+    // Reward items: one copy each, to one of the characters there (p. 49).
+    if (s.result === "success") rewardCopies(info).forEach((item, k) => {
+      const taker = (s.rewardTakers || [])[k];
+      if (!taker) { warnings.push(`${label} gives ${item}: who takes it?`); return; }
+      giveItem(taker, item);
+      log.push(`${taker} takes ${item}, a reward of ${label}`);
+    });
     if (r.chooseLocation) warnings.push(`${label} lets you choose one of ${r.chooseLocation.map(x => `#${x}`).join(", ")}: note the choice.`);
     for (const t of s.treasures.filter(t => t.number)) {
       const tile = String(Number(t.number));
@@ -2601,7 +2683,7 @@ function applyDraft(raw, d, data) {
         if (part.type === "gold") gain(t.character, "gold", num(part.value));
         if (part.type === "experience") gain(t.character, "xp", num(part.value));
         if (part.type === "item") {
-          who(t.character)?.items.push(itemName(part.value));
+          giveItem(t.character, itemName(part.value));
           log.push(`${t.character} takes ${itemName(part.value)} from treasure ${t.number}`);
         }
       }
@@ -2638,13 +2720,13 @@ function applyDraft(raw, d, data) {
   log.push(...joinLog);
 
   // Shopping and perks, after the scenarios.
-  const priceOf = name => data.shop?.stock.find(i => i.name === name)?.price;
+  const priceOf = name => data.shop?.stock.find(i => sameItem(i.name, name))?.price;
   for (const b of d.buys.filter(b => b.character && b.item)) {
     const c = who(b.character);
-    if (c.items.includes(b.item)) warnings.push(`${b.character} already has ${b.item}: a character can own only one of each item.`);
     const price = priceOf(b.item) ?? 0;
     c.gold = (c.gold || 0) - price;
-    c.items.push(b.item);
+    giveItem(b.character, b.item);
+    takeReturned(b.item);
     log.push(`${b.character} buys ${b.item} for ${price} gold`);
   }
   // No more copies bought than the shop has, counting any sold back tonight.
@@ -2659,10 +2741,12 @@ function applyDraft(raw, d, data) {
   }
   for (const sale of d.sells.filter(x => x.character && x.item)) {
     const c = who(sale.character);
-    const i = c.items.indexOf(sale.item);
+    const i = c.items.findIndex(x => sameItem(x, sale.item));
     if (i < 0) { warnings.push(`${sale.character} doesn't carry ${sale.item}.`); continue; }
     c.items.splice(i, 1);
-    const item = Object.values(itemsRef?.items || {}).find(x => x.name === sale.item);
+    changed.add(sale.character);
+    returnItem(sale.item);
+    const item = Object.values(itemsRef?.items || {}).find(x => sameItem(x.name, sale.item));
     const value = item ? Math.floor(item.cost / 2) : 0;
     c.gold = (c.gold || 0) + value;
     log.push(`${sale.character} sells ${sale.item} for ${value} gold`);
@@ -2693,7 +2777,7 @@ function applyDraft(raw, d, data) {
   for (const c of out.characters) if (c.gold < 0) warnings.push(`${c.name} would have ${c.gold} gold.`);
   // Items that won't fit, because of what the draft buys: a second body
   // item, say. Problems a character already had are left to Before you play.
-  for (const name of new Set(d.buys.filter(b => b.character && b.item).map(b => b.character))) {
+  for (const name of changed) {
     const now = out.characters.find(c => c.name === name);
     if (!now) continue;
     const was = data.characters.find(c => c.name === name);
@@ -2877,6 +2961,17 @@ function renderRecorder(data) {
               ? field("Checkmarks", text(`sc-${i}-${c.name}-cm`, r, "checkmarks", { type: "number", min: 0, max: 3, inputmode: "numeric", "aria-label": `${c.name}: battle goal checkmarks` }), "short")
               : null,
             h("span", { class: "rec-gain", "data-gain": `${i}|${c.name}` }, gainText(s, r)));
+        })) : null,
+      // A reward item goes to one of the characters there: who takes it.
+      s.result === "success" && rewardCopies(scenarioRef?.scenarios?.[String(n)]).length ? h("div", { class: "rec-results" },
+        h("span", { class: "label" }, "Reward items"),
+        // The scenario book sometimes says who: the reference data keeps it.
+        (scenarioRef?.scenarios?.[String(n)]?.rewards?.hints?.items || []).map(t => h("p", { class: "small muted" }, t)),
+        rewardCopies(scenarioRef?.scenarios?.[String(n)]).map((item, k) => {
+          s.rewardTakers ||= [];
+          return h("div", { class: "rec-row" },
+            h("strong", { class: "rec-who" }, item),
+            field("Taken by", select(`sc-${i}-rw${k}`, s.rewardTakers, k, partyOptions)));
         })) : null,
       s.result === "success" ? h("div", { class: "rec-results" },
         h("span", { class: "label" }, "Treasures looted"),
@@ -3289,7 +3384,7 @@ function onNavigate() {
 // Fill in anything missing, so older or partial files still display.
 function withDefaults(raw) {
   const party = { name: "", location: "", achievements: [], notes: "", ...raw.party, reputation: 0 };
-  const city = { donations: 0, globalAchievements: [], unlockedClasses: [], itemDesigns: [], ...raw.city, prosperityCheckmarks: 0 };
+  const city = { donations: 0, globalAchievements: [], unlockedClasses: [], itemDesigns: [], returnedItems: [], ...raw.city, prosperityCheckmarks: 0 };
   return {
     ...raw,
     party,
@@ -3370,6 +3465,8 @@ async function start() {
     data.city.itemDesigns = derived.record.designs;
     data.city.unlockedClasses = derived.record.classes;
     data.draws = derived.record.draws;
+    data.foundItems = derived.record.found;
+    data.claims = derived.record.claims;
     data.treasureInfo = derived.record.treasures;
     data.scenarios = deriveScenarios(data, ref, derived.unlocks, evRef);
     data.shop = deriveShop(data, items, data.ledger);
