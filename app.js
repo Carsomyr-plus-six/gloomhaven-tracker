@@ -237,10 +237,22 @@ function scenarioLabel(data, number) {
   return `#${number}${name ? ` ${name}` : ""}`;
 }
 
-// Active characters first, then retired: the order the character picker uses.
-function characterOrder(data) {
-  return [...data.characters.filter(c => !c.retired), ...data.characters.filter(c => c.retired)];
+// A mention of a scenario that opens it on the Scenarios tab, as the Ready
+// to play cards do.
+function scenarioLink(data, number, text = scenarioLabel(data, number)) {
+  return h("a", { class: "scenario-link", href: "#scenarios", onclick: () => openScenario(data, number) }, text);
 }
+
+// Active characters first, then inactive (sitting out for now: still the
+// party's, with their items, but not playing), then retired. The order the
+// character picker uses.
+function characterOrder(data) {
+  return [...data.characters.filter(c => !c.retired && !c.inactive),
+          ...data.characters.filter(c => !c.retired && c.inactive),
+          ...data.characters.filter(c => c.retired)];
+}
+// Adventuring: neither retired nor sitting out.
+const playable = c => !c.retired && !c.inactive;
 
 // --- Overview ---------------------------------------------------------------
 
@@ -387,7 +399,7 @@ let levelParty = null;
 let difficulty = "normal";
 
 function defaultLevelParty(data) {
-  const active = data.characters.filter(c => !c.retired).map(c => c.name);
+  const active = data.characters.filter(playable).map(c => c.name);
   const last = [...data.sessions].filter(s => s.date && s.characters?.length)
     .sort((a, b) => b.date.localeCompare(a.date))[0];
   const tonight = last ? last.characters.filter(n => active.includes(n)) : [];
@@ -406,6 +418,7 @@ function tonight(data) {
 }
 
 function levelTile(data) {
+  // The inactive come last, quieter, and can be picked for a night.
   const active = characterOrder(data).filter(c => !c.retired);
   if (!active.length) return null;
   if (!levelParty) levelParty = defaultLevelParty(data);
@@ -440,8 +453,11 @@ function levelTile(data) {
       // Monster level is the scenario level, which the ladder shows.
       ? h("div", { class: "level-stats" }, stat("Gold per coin", st.gold), stat("Trap damage", st.trap), stat("Bonus XP", st.xp))
       : h("p", { class: "small muted" }, "Pick who is playing."),
-    h("div", { class: "filters party-pick", role: "group", "aria-label": "Who is playing" }, active.map(c =>
+    h("div", { class: "filters party-pick", role: "group", "aria-label": "Who is playing",
+               style: `--wide: ${Math.min(active.length, 4)}; --narrow: ${active.length === 3 ? 3 : Math.min(active.length, 2)}` }, active.map(c =>
       h("button", { type: "button", "data-key": `playing-${c.name}`, "aria-pressed": String(levelParty.has(c.name)),
+                    class: c.inactive ? "away" : null, title: c.inactive ? `${c.name} is inactive: pick them to count them tonight` : null,
+                    "aria-label": c.inactive ? `${c.name}, level ${characterStats(c).level}, inactive` : null,
                     onclick: () => toggle(c.name) },
         h("span", { class: "pick-name" }, c.name), h("span", {}, characterStats(c).level)))),
     playing.length
@@ -529,7 +545,8 @@ function todoItems(data) {
   // stays until the next session is recorded, as there's nowhere to tick it.
   const levelUps = lastLevelUps(data);
 
-  for (const c of order.filter(c => !c.retired)) {
+  // Someone sitting out isn't reminded of anything: it waits on their sheet.
+  for (const c of order.filter(playable)) {
     const st = characterStats(c);
     // Phones open that character's sheet; wide screens scroll to its card.
     const go = e => {
@@ -666,17 +683,22 @@ function partyList(data) {
   const order = characterOrder(data);
   const active = order.filter(c => !c.retired);
   if (!active.length) return null;
+  const away = active.filter(c => c.inactive).length;
   return h("div", { class: "party" },
-    h("div", { class: "party-head" }, h("h2", {}, "The party"), h("span", { class: "small muted" }, plural(active.length, "character"))),
+    h("div", { class: "party-head" }, h("h2", {}, "The party"),
+      h("span", { class: "small muted" }, [plural(active.length - away, "character"), away ? `${away} inactive` : null].filter(Boolean).join(" · "))),
+    // Anyone sitting out comes last, quieter, with "Inactive" in place of
+    // what they're working towards.
     active.map(c => {
       const st = characterStats(c);
-      return h("a", { class: "party-row", href: "#characters", onclick: () => pickCharacter(data, order.indexOf(c)) },
-        hex(st.level, "level"),
+      return h("a", { class: `party-row${c.inactive ? " inactive" : ""}`, href: "#characters", onclick: () => pickCharacter(data, order.indexOf(c)) },
+        hex(st.level, c.inactive ? "quiet" : "level"),
         h("span", { class: "party-who" },
           h("strong", {}, c.name),
           h("span", {}, classIcon(c.class), c.class),
-          perksLeft(c) ? h("em", {}, `${plural(perksLeft(c), "perk")} to choose`) : null),
-        h("span", { class: "party-xp" },
+          !c.inactive && perksLeft(c) ? h("em", {}, `${plural(perksLeft(c), "perk")} to choose`) : null),
+        c.inactive ? h("span", { class: "party-xp" }, h("span", {}, "Inactive"))
+        : h("span", { class: "party-xp" },
           h("span", { class: st.close ? "close" : null }, st.nextText),
           meter(st.toNext ? st.toNext.fraction : 1, st.close),
           h("small", {}, `${c.gold} gold`)));
@@ -765,13 +787,18 @@ function codeText(text) {
   return text.split("`").map((part, i) => i % 2 ? h("code", {}, part) : part);
 }
 
-function recordRows(list) {
+function recordRows(list, data) {
   if (!list.length) return h("p", { class: "small muted" }, "None yet.");
+  // Where it came from: a scenario ("#8") opens that scenario.
+  const where = text => {
+    const n = /^#(\d+)$/.exec(String(text))?.[1];
+    return n && data ? scenarioLink(data, Number(n), text) : text;
+  };
   return h("ul", { class: "rows" }, list.map(a => h("li", {},
     h("span", {},
       h("strong", {}, a.name, a.count > 1 ? ` ×${a.count}` : null),
       a.notes ? h("span", { class: "sub" }, a.notes) : null),
-    a.where ? h("span", { class: "where" }, a.where) : null)));
+    a.where ? h("span", { class: "where" }, where(a.where)) : null)));
 }
 
 function renderRecord(data) {
@@ -784,9 +811,9 @@ function renderRecord(data) {
       `From ${d.from}. Not drawn yet.`,
       d.how ? h("span", { class: "how" }, codeText(`Once drawn, record it in \`campaign.json\`: ${d.how}.`)) : null])),
     h("div", { class: "record" },
-      card("Party achievements", recordRows(party.achievements)),
-      card("Global achievements", recordRows(city.globalAchievements)),
-      card("In the shop for good", recordRows(city.itemDesigns)),
+      card("Party achievements", recordRows(party.achievements, data)),
+      card("Global achievements", recordRows(city.globalAchievements, data)),
+      card("In the shop for good", recordRows(city.itemDesigns, data)),
       card("Unlocked classes", city.unlockedClasses.length
         ? h("div", { class: "chips" }, city.unlockedClasses.map(c =>
             h("span", { class: "chip", title: c.where || null }, classIcon(c.name || c), c.name || c)))
@@ -1501,7 +1528,7 @@ function scenarioFacts(data, s) {
   const t = s.status === "available" ? tonight(data) : null;
   const pairs = [
     ["Tonight", t ? `Scenario level ${t.level} (${t.difficulty.toLowerCase()}): monster level ${t.monsters}, ${t.gold} gold a coin, trap damage ${t.trap}, ${t.xp} bonus XP` : null],
-    ["Unlocked by", s.unlockedBy != null ? scenarioLabel(data, s.unlockedBy) : s.unlockedVia],
+    ["Unlocked by", s.unlockedBy != null ? scenarioLink(data, s.unlockedBy) : s.unlockedVia],
     ["Completed", formatDate(s.completed)],
     ["Rewards", s.rewards.length ? capitalize(s.rewards.join(", ")) : null],
     ["Treasure", data.treasureInfo?.get(s.number)?.join("; ")
@@ -1967,7 +1994,7 @@ function renderCharacters(data) {
         h("div", { class: "char-level" }, hex(st.level, "level"), h("span", { class: "label" }, "Level")),
         h("div", {},
           h("h3", { class: Math.max(...c.name.split(/\s+/).map(w => w.length)) > 9 ? "long" : null }, c.name),
-          h("p", {}, classIcon(c.class), [c.class, c.retired ? "retired" : null].filter(Boolean).join(" · ")))),
+          h("p", {}, classIcon(c.class), [c.class, c.retired ? "retired" : c.inactive ? "inactive" : null].filter(Boolean).join(" · ")))),
       h("div", { class: "block" },
         h("div", { class: "block-head" },
           h("span", { class: "xp-now num" }, `${c.xp} XP`),
@@ -2022,37 +2049,43 @@ function renderCharacters(data) {
       c.notes ? h("div", { class: "block char-notes" }, h("span", { class: "label" }, "Notes"), notes(c.notes)) : null);
   };
 
-  const active = order.filter(c => !c.retired);
+  const active = order.filter(playable);
+  const inactive = order.filter(c => !c.retired && c.inactive);
   const retired = order.filter(c => c.retired);
 
   // Phones show one sheet at a time, chosen from this row.
   // With a big party it scrolls sideways rather than squeezing the names;
-  // retired characters come last, after a divider, dimmed.
+  // inactive and then retired characters come last, each after a divider,
+  // dimmed.
+  const group = c => c.retired ? 2 : c.inactive ? 1 : 0;
   const switcher = h("div", { class: "char-switch", role: "group", "aria-label": "Choose a character" },
     order.map((c, i) => {
       const st = characterStats(c);
       const mine = !c.retired && c.name === me;
-      return [c.retired && !order[i - 1]?.retired ? h("span", { class: "switch-sep", "aria-hidden": "true" }) : null,
+      const state = c.retired ? "retired" : c.inactive ? "inactive" : null;
+      return [i > 0 && group(c) !== group(order[i - 1]) ? h("span", { class: "switch-sep", "aria-hidden": "true" }) : null,
         h("button", {
-          type: "button", "data-key": `char-${i}`, class: c.retired ? "retired" : null,
+          type: "button", "data-key": `char-${i}`, class: state,
           "aria-pressed": String(i === characterIndex),
-          "aria-label": c.retired ? `${c.name}, retired` : mine ? `${c.name}, you` : null,
+          "aria-label": state ? `${c.name}, ${state}` : mine ? `${c.name}, you` : null,
           onclick: () => pickCharacter(data, i),
         },
         h("span", {}, hex(st.level, "quiet"),
-          perksLeft(c) ? h("span", { class: "dot", role: "img", "aria-label": "Has a perk to choose" }) : null),
+          playable(c) && perksLeft(c) ? h("span", { class: "dot", role: "img", "aria-label": "Has a perk to choose" }) : null),
         h("span", { class: "switch-name" }, c.name),
         mine ? h("span", { class: "you", "aria-hidden": "true" }, "You") : null)];
     }));
 
   return [
-    sectionHead("Characters", [`${active.length} active`, retired.length ? `${retired.length} retired` : null].filter(Boolean).join(" · ")),
+    sectionHead("Characters", [`${active.length} active`, inactive.length ? `${inactive.length} inactive` : null,
+                               retired.length ? `${retired.length} retired` : null].filter(Boolean).join(" · ")),
     // Phones: the Shop, further down this tab, as a small link on the line
     // under the row, so the sheet starts with the characters.
     h("div", { class: "switch-wrap" }, switcher,
       h("a", { class: "switch-shop", href: "#shop", "aria-label": "Shop, further down" }, "Shop", icon("chevron"))),
     active.length ? h("div", { class: "char-grid" }, active.map(card)) : empty("No active characters."),
-    active.length ? meLine(data) : null,
+    inactive.length ? [h("h3", { class: "subhead" }, "Inactive"), h("div", { class: "char-grid" }, inactive.map(card))] : null,
+    active.length || inactive.length ? meLine(data) : null,
     retired.length ? [h("h3", { class: "subhead" }, "Retired"), h("div", { class: "char-grid" }, retired.map(card))] : null,
   ];
 }
@@ -2351,6 +2384,7 @@ const draftId = () => Math.random().toString(36).slice(2, 10);
 
 function newDraft(data) {
   // Who's playing: as picked on the Overview's scenario level, if it has been.
+  // Anyone inactive picked there plays too, which brings them back once saved.
   const active = new Set(data.characters.filter(c => !c.retired).map(c => c.name));
   const party = [...(levelParty || defaultLevelParty(data))].filter(n => active.has(n));
   return { id: draftId(), date: today(), title: "", party, notes: "",
@@ -2417,6 +2451,7 @@ function applyDraft(raw, d, data) {
     const c = who(x.character);
     if (!c || c.retired) { warnings.push(`${x.character} isn't an active character.`); continue; }
     c.retired = true;
+    delete c.inactive;
     joinLog.push(`${c.name} retires: a prosperity checkmark, the ${c.class} retirement events go into the decks, and their items go back to the shop`);
     if (!x.unlocks) continue;
     if (data.city.unlockedClasses.some(u => u.id === x.unlocks)) { warnings.push(`The class with the ${classIconName(x.unlocks)} icon is already unlocked.`); continue; }
@@ -2449,6 +2484,11 @@ function applyDraft(raw, d, data) {
   // bought between sessions changes the sheets and nothing else.
   const evening = played.length > 0 || d.events.some(e => num(e.number)) || Boolean(String(d.notes || "").trim());
   if (evening && !party.length) warnings.push("No one is marked as playing.");
+  // Someone sitting out who plays this evening is back.
+  if (evening) for (const name of party) {
+    const c = who(name);
+    if (c?.inactive) { delete c.inactive; log.push(`${name} plays again, so is no longer inactive`); }
+  }
   out.updated = d.date || today();
 
   // Events, in the order drawn.
@@ -2742,6 +2782,24 @@ function renderRecorder(data) {
   const activeOptions = [["", "Who?"], ...[...active, ...newcomers].map(c => [c.name, c.name])];
   const available = data.scenarios.filter(s => s.status === "available").sort((a, b) => a.number - b.number);
 
+  // What the campaign would look like with this draft saved: the events'
+  // outcomes come from the same rules the Event decks list uses.
+  const after = res => d.events.some(e => num(e.number) && e.option)
+    ? deriveCampaign(withDefaults(JSON.parse(JSON.stringify(res.out))), scenarioRef, classRef) : null;
+  // Under an event's row: whether that card can be drawn, and once an option
+  // is picked, what it did (only that option, so the other isn't spoiled).
+  const eventNote = (e, i, derived) => {
+    const n = num(e.number);
+    if (!n) return "";
+    const label = eventLabel(e.deck, n);
+    if (!classRef?.events?.[e.deck]?.[String(n)]) return `${label} isn't in the event data.`;
+    if (data.eventState?.decks?.[e.deck] && !data.eventState.decks[e.deck].has(n)) return `${label} isn't in the ${e.deck} deck now. Check the number.`;
+    if (!e.option) return `${label}: pick the option you chose.`;
+    const entry = derived?.history?.findLast(x => x.deck === e.deck && x.number === n);
+    const said = [...(entry?.effects || []), entry?.fate ? `card ${entry.fate}` : null].filter(Boolean);
+    return said.length ? `Option ${e.option}: ${said.join(", ")}` : `Option ${e.option}: depends on who was there; the Event decks list will ask.`;
+  };
+
   // A scenario's name (with its rewards, on a success) under its number.
   const scenarioNameText = s => {
     const n = num(s.number);
@@ -2812,14 +2870,15 @@ function renderRecorder(data) {
   const eventBlock = (e, i) => {
     const options = classRef?.events?.[e.deck]?.[String(num(e.number))];
     const pays = options && JSON.stringify(options).includes('"type":"pay');
-    return h("div", { class: "rec-row" },
+    return h("div", { class: "rec-event" }, h("div", { class: "rec-row" },
       field("Deck", select(`ev-${i}-d`, e, "deck", [["city", "City"], ["road", "Road"]])),
       field("Number", text(`ev-${i}-n`, e, "number", { type: "number", min: 1, inputmode: "numeric", "aria-label": "Event number" }, true), "short"),
       field("Option", select(`ev-${i}-o`, e, "option", [["", "–"], ["A", "A"], ["B", "B"]])),
       field("Before", select(`ev-${i}-s`, e, "scenario",
         [["", "In town / between"], ...d.scenarios.filter(s => num(s.number)).map(s => [num(s.number), `#${num(s.number)}`])])),
       pays ? field("Paid?", select(`ev-${i}-p`, e, "paid", [["", "Not sure"], ["yes", "Yes"], ["no", "No"]])) : null,
-      remove(d.events, i, "event", "add-event"));
+      remove(d.events, i, "event", "add-event")),
+      h("p", { class: "small muted", "data-ev-note": i }, eventNote(e, i, firstAfter)));
   };
 
   const buyBlock = (b, i) => h("div", { class: "rec-row" },
@@ -2913,9 +2972,15 @@ function renderRecorder(data) {
     h("button", { type: "button", class: "btn quiet", onclick: () => document.querySelector(".rec-summary")?.scrollIntoView({ block: "start" }) },
       "See what changes"));
   const refreshSummary = () => {
+    const res = applyDraft(rawCampaign, d, data);
     for (const el of document.querySelectorAll("[data-sc-name]")) {
       const s = d.scenarios[num(el.dataset.scName)];
       if (s) el.textContent = scenarioNameText(s);
+    }
+    const derived = after(res);
+    for (const el of document.querySelectorAll("[data-ev-note]")) {
+      const e = d.events[num(el.dataset.evNote)];
+      if (e) el.textContent = eventNote(e, num(el.dataset.evNote), derived);
     }
     for (const el of document.querySelectorAll("[data-sc-picks]")) {
       el.hidden = filled(d.scenarios[num(el.dataset.scPicks)]?.number);
@@ -2925,7 +2990,6 @@ function renderRecorder(data) {
       const s = d.scenarios[num(i)];
       if (s) el.textContent = gainText(s, s.results[name] || {});
     }
-    const res = applyDraft(rawCampaign, d, data);
     // The button above the form says whether closing it keeps a draft.
     const close = document.querySelector('[data-key="rec-toggle"]');
     if (close) close.textContent = res.evening || res.log.length ? "Close the form (keep the draft)" : "Close the form";
@@ -2933,6 +2997,7 @@ function renderRecorder(data) {
     document.querySelector(".rec-top")?.replaceWith(topBar(res));
   };
   const first = applyDraft(rawCampaign, d, data);
+  const firstAfter = after(first);
 
   // Every part of the form is a heading over its fields, the same way.
   return h("div", { class: "recorder" },
@@ -2949,7 +3014,8 @@ function renderRecorder(data) {
           h("div", { class: "filters", role: "group", "aria-labelledby": "rec-who-label" }, active.map(c =>
             h("button", { type: "button", "data-key": `rec-who-${c.name}`, "aria-pressed": String(d.party.includes(c.name)),
                           onclick: () => { d.party = d.party.includes(c.name) ? d.party.filter(n => n !== c.name) : [...d.party, c.name]; rerender(); } },
-              c.name)),
+              // Someone sitting out can still be marked: it brings them back.
+              c.name, c.inactive ? h("span", {}, "inactive") : null)),
             newcomers.map((c, i) =>
               h("button", { type: "button", "data-key": `rec-who-new-${i}`, "aria-pressed": String(c.draft.playing !== false),
                             onclick: () => { c.draft.playing = c.draft.playing === false; rerender(); } },
@@ -3054,11 +3120,13 @@ function renderSessions(data) {
             const before = eventsBefore(sc.number);
             const won = sc.result === "success";
             const meta = [sc.level != null ? `Level ${sc.level}` : null, before.length ? `${before.join(", ")} drawn before` : null].filter(Boolean);
+            // The scenario opens on the Scenarios tab.
             return h("li", {},
-              hex(sc.number, won ? "completed" : "blocked"),
-              h("span", { class: "played-text" },
-                h("strong", {}, name || `Scenario ${sc.number}`),
-                meta.length ? h("span", {}, meta.join(" · ")) : null),
+              h("a", { class: "played-link", href: "#scenarios", onclick: () => openScenario(data, sc.number) },
+                hex(sc.number, won ? "completed" : "blocked"),
+                h("span", { class: "played-text" },
+                  h("strong", {}, name || `Scenario ${sc.number}`),
+                  meta.length ? h("span", {}, meta.join(" · ")) : null)),
               h("span", { class: `result ${won ? "success" : "failure"}`, role: "img", "aria-label": won ? "Success" : "Failure", title: won ? "Success" : "Failure" },
                 icon(won ? "check" : "cross")));
           })) : null,
