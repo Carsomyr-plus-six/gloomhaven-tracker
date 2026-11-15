@@ -11,6 +11,8 @@ What it changes, as the licence asks us to say:
 - crops the canvas to the artwork and rounds coordinates to one decimal
 - recolours black to the site's text colour where RECOLOR says so, so the
   icon shows on the dark background
+- in the single-colour icons (MASKS), turns white details into see-through
+  cut-outs, so the page can use them as masks
 
 The output is CC BY-NC-SA 4.0 like the source; see icons/README.md.
 
@@ -54,7 +56,38 @@ ICONS = {
     "heal": ("General Icons.pdf", 8),
     "shield": ("General Icons.pdf", 10),
     "refresh": ("General Icons.pdf", 22),
+    "checkmark": ("General Icons.pdf", 23),
+    # Item slots
+    "slot-body": ("Equip Slots.pdf", 1),
+    "slot-head": ("Equip Slots.pdf", 2),
+    "slot-legs": ("Equip Slots.pdf", 3),
+    "slot-onehand": ("Equip Slots.pdf", 4),
+    "slot-twohand": ("Equip Slots.pdf", 5),
+    "slot-small": ("Equip Slots.pdf", 6),
+    # Classes, named by the ids in data/gloomhaven-events.json (locked
+    # classes go by the spoiler-free name of their icon).
+    "class-angry-face": ("Class Icons and Augments.pdf", 1),
+    "class-lightning": ("Class Icons and Augments.pdf", 2),
+    "class-brute": ("Class Icons and Augments.pdf", 3),
+    "class-cragheart": ("Class Icons and Augments.pdf", 4),
+    "class-triangles": ("Class Icons and Augments.pdf", 5),
+    "class-mindthief": ("Class Icons and Augments.pdf", 6),
+    "class-eclipse": ("Class Icons and Augments.pdf", 7),
+    "class-squidface": ("Class Icons and Augments.pdf", 8),
+    "class-spellweaver": ("Class Icons and Augments.pdf", 9),
+    "class-circles": ("Class Icons and Augments.pdf", 10),
+    "class-sun": ("Class Icons and Augments.pdf", 11),
+    "class-tinkerer": ("Class Icons and Augments.pdf", 12),
+    "class-music-note": ("Class Icons and Augments.pdf", 13),
+    "class-two-mini": ("Class Icons and Augments.pdf", 14),
+    "class-saw": ("Class Icons and Augments.pdf", 15),
+    "class-three-spears": ("Class Icons and Augments.pdf", 16),
+    "class-scoundrel": ("Class Icons and Augments.pdf", 17),
 }
+# The single-colour icons above (checkmark, slots, classes) stay black: the
+# page uses them as masks and fills them with the colour around them. Their
+# white details become see-through cut-outs so the mask keeps them.
+MASKS = {name for name in ICONS if name == "checkmark" or name.startswith(("slot-", "class-"))}
 
 TEXT_COLOR = "#ece6d8"   # --fg in styles.css
 RECOLOR = {"heal": {"#000000": TEXT_COLOR}, "shield": {"#000000": TEXT_COLOR},
@@ -166,7 +199,10 @@ def number(n):
     return "0" if text in ("", "-0") else text
 
 
-def to_svg(page, recolor):
+def to_svg(page, recolor, holes=False):
+    """With holes, white shapes become see-through cut-outs in what was drawn
+    before them, so the icon works as a mask: each run of white shapes masks
+    everything painted so far."""
     painted = list(page_paths(page))
     xs = [v for p in painted for _, pts in p[0] for v in pts[0::2]]
     ys = [v for p in painted for _, pts in p[0] for v in pts[1::2]]
@@ -177,10 +213,24 @@ def to_svg(page, recolor):
     left -= (side - width) / 2
     top -= (side - height) / 2
 
-    out = []
+    out, defs, cuts = [], [], []
+
+    def cut():
+        if cuts:
+            mask_id = f"cut{len(defs) + 1}"
+            defs.append(f'<mask id="{mask_id}" maskUnits="userSpaceOnUse" x="0" y="0" width="{number(side)}" '
+                        f'height="{number(side)}"><rect width="{number(side)}" height="{number(side)}" fill="#fff"/>'
+                        + "".join(f'<path d="{d}" fill="#000"/>' for d in cuts) + "</mask>")
+            out[:] = [f'<g mask="url(#{mask_id})">' + "".join(out) + "</g>"]
+            cuts.clear()
+
     for segments, fill, stroke, stroke_width, evenodd, opacity in painted:
         d = "".join(cmd + " ".join(number(v - (left if i % 2 == 0 else top)) for i, v in enumerate(pts))
                     for cmd, pts in segments)
+        if holes and fill == "#ffffff" and not stroke:
+            cuts.append(d)
+            continue
+        cut()
         attrs = [f'd="{d}"', f'fill="{recolor.get(fill, fill)}"' if fill else 'fill="none"']
         if fill and evenodd:
             attrs.append('fill-rule="evenodd"')
@@ -189,8 +239,9 @@ def to_svg(page, recolor):
         if opacity < 1:
             attrs.append(f'opacity="{number(opacity)}"')
         out.append(f"<path {' '.join(attrs)}/>")
+    cut()
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {number(side)} {number(side)}">'
-            + "".join(out) + "</svg>\n")
+            + (f"<defs>{''.join(defs)}</defs>" if defs else "") + "".join(out) + "</svg>\n")
 
 
 def open_pdf(source, name):
@@ -214,7 +265,7 @@ def main():
     readers = {}
     for name, (pdf, page) in ICONS.items():
         reader = readers.get(pdf) or readers.setdefault(pdf, open_pdf(source, pdf))
-        svg = to_svg(reader.pages[page - 1], RECOLOR.get(name, {}))
+        svg = to_svg(reader.pages[page - 1], RECOLOR.get(name, {}), holes=name in MASKS)
         (OUT_DIR / f"{name}.svg").write_text(svg, encoding="utf-8", newline="\n")
         print(f"icons/{name}.svg  {len(svg.encode()):>6} bytes  ({pdf}, page {page})")
 

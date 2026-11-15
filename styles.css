@@ -349,6 +349,22 @@ main {
 /* A game icon in front of a keyword, kept on the same line as its word. */
 .kw { white-space: nowrap; }
 .glyph { width: 1.2em; height: 1.2em; margin-right: 0.25em; vertical-align: -0.25em; }
+/* A single-colour game icon (class, item slot, checkmark): the SVG is a
+   mask, filled with the text colour. */
+.gicon {
+  display: inline-block;
+  flex: none;
+  width: 1.15em;
+  height: 1.15em;
+  margin-right: 0.4em;
+  vertical-align: -0.2em;
+  background-color: currentColor;
+  -webkit-mask: var(--icon) center / contain no-repeat;
+  mask: var(--icon) center / contain no-repeat;
+}
+.label .gicon { width: 1.3em; height: 1.3em; vertical-align: -0.3em; }
+.char-head p .gicon { color: var(--fg-3); }
+.results .marks .gicon { margin-right: 0; }
 .perks .note { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
 .open-perks summary { font-size: 13px; color: var(--fg-3); cursor: pointer; padding: 6px 0 2px; }
 .open-perks li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line-soft); font-size: 14px; }

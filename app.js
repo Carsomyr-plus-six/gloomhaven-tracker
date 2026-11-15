@@ -138,6 +138,14 @@ function icon(name, label) {
     label ? { class: "icon", role: "img", "aria-label": label } : { class: "icon", "aria-hidden": "true" });
 }
 
+// A single-colour game icon from icons/ (Creator Pack, CC BY-NC-SA 4.0),
+// filled with the colour of the text around it. With a label it is
+// announced; without one it is decoration.
+function gameIcon(name, label) {
+  return h("span", { class: "gicon", style: `--icon: url("icons/${name}.svg")`,
+    ...(label ? { role: "img", "aria-label": label } : { "aria-hidden": "true" }) });
+}
+
 // A hex tile holding a scenario number or a level. kind: "" (solid brass),
 // "completed", "blocked", "level" or "quiet".
 function hex(text, kind = "") {
@@ -403,7 +411,7 @@ function partyList(data) {
         hex(st.level, "level"),
         h("span", { class: "party-who" },
           h("strong", {}, c.name),
-          h("span", {}, [c.class, c.player].filter(Boolean).join(" · ")),
+          h("span", {}, classIcon(c.class), [c.class, c.player].filter(Boolean).join(" · ")),
           st.unspent ? h("em", {}, `${plural(st.unspent, "perk")} to choose`) : null),
         h("span", { class: "party-xp" },
           h("span", { class: st.close ? "close" : null }, st.nextText),
@@ -488,7 +496,7 @@ function renderRecord(data) {
       card("In the shop for good", recordRows(city.itemDesigns)),
       card("Unlocked classes", city.unlockedClasses.length
         ? h("div", { class: "chips" }, city.unlockedClasses.map(c =>
-            h("span", { class: "chip", title: c.where || null }, c.name || c)))
+            h("span", { class: "chip", title: c.where || null }, classIcon(c.name || c), c.name || c)))
         : h("p", { class: "small muted" }, "None listed."))),
     party.notes ? h("div", { class: "party-notes" }, h("h3", { class: "label" }, "Party notes"), notes(party.notes)) : null,
   ];
@@ -511,6 +519,9 @@ function achievementName(ref, kind, id) {
 // data/gloomhaven-items.json, once loaded: item names by number.
 let itemsRef = null;
 function itemName(id) { return itemsRef?.items?.[String(id)]?.name || `item ${id}`; }
+function itemSlot(name) {
+  return Object.values(itemsRef?.items || {}).find(i => i.name.toLowerCase() === String(name).toLowerCase())?.slot || null;
+}
 
 // What a treasure tile gives, from the reference data ("gold:10|...").
 function treasureParts(ref, number) {
@@ -1169,7 +1180,7 @@ function resultsList(results, sign = "") {
     r.xp != null ? h("span", { class: "num" }, `${sign}${r.xp} `, h("span", {}, "XP")) : null,
     r.gold != null ? h("span", { class: `num${sign ? " gain-gold" : ""}` }, `${sign}${r.gold} `, h("span", {}, "gold")) : null,
     sign ? null : h("span", { class: "marks" },
-      r.checkmarks ? [icon("check", "Battle goal checkmarks"), String(r.checkmarks)] : null),
+      r.checkmarks ? [gameIcon("checkmark", "Battle goal checkmarks"), String(r.checkmarks)] : null),
     r.notes ? h("span", { class: "extra" }, r.notes) : null)));
 }
 
@@ -1329,9 +1340,20 @@ function renderScenarios(data) {
 
 let classRef = null;   // data/gloomhaven-events.json, once loaded
 
+// A class's id in the reference data: its name, or for a locked class the
+// spoiler-free name of its icon.
+function classId(cls) {
+  return Object.entries(classRef?.classes || {}).find(([, n]) => n.toLowerCase() === String(cls).toLowerCase())?.[0] || null;
+}
+
 function classPerks(cls) {
-  const id = Object.entries(classRef?.classes || {}).find(([, n]) => n.toLowerCase() === String(cls).toLowerCase())?.[0];
+  const id = classId(cls);
   return id ? classRef.classEvents?.[id]?.perks || null : null;
+}
+
+function classIcon(cls) {
+  const id = classId(cls);
+  return id ? gameIcon(`class-${id}`) : null;
 }
 
 // Perk text with the game's icon in front of each keyword, as on the
@@ -1468,7 +1490,7 @@ function renderCharacters(data) {
         h("div", { class: "char-level" }, hex(st.level, "level"), h("span", { class: "label" }, "Level")),
         h("div", {},
           h("h3", {}, c.name),
-          h("p", {}, [c.class, c.player ? `played by ${c.player}` : null, c.retired ? "retired" : null].filter(Boolean).join(" · ")))),
+          h("p", {}, classIcon(c.class), [c.class, c.player ? `played by ${c.player}` : null, c.retired ? "retired" : null].filter(Boolean).join(" · ")))),
       h("div", { class: "block" },
         h("div", { class: "block-head" },
           h("span", { class: "xp-now num" }, `${c.xp} XP`),
@@ -1485,7 +1507,7 @@ function renderCharacters(data) {
           h("span", { class: "quest-hint" }, "Secret, progress only")) : null),
       h("div", { class: "block goal-block" },
         h("div", { class: "block-head" },
-          h("span", { class: "label" }, "Battle goals"),
+          h("span", { class: "label" }, gameIcon("checkmark"), "Battle goals"),
           h("span", {}, `${plural(c.checkmarks, "checkmark")} · ${plural(fromGoals, "perk")}`)),
         goalBoxes(c.checkmarks)),
       h("div", { class: "block" },
@@ -1506,7 +1528,10 @@ function renderCharacters(data) {
       c.items.length ? h("div", { class: "block" },
         h("div", { class: "block-head" }, h("span", { class: "label" }, "Items"), h("span", {}, `${c.items.length} carried`)),
         itemProblems.map(text => nudge("question", "Too many items", text)),
-        h("div", { class: "chips" }, c.items.map(i => h("span", { class: "chip" }, i)))) : null,
+        h("div", { class: "chips" }, c.items.map(i => {
+          const slot = itemSlot(i);
+          return h("span", { class: "chip" }, slot ? gameIcon(`slot-${slot}`) : null, i);
+        }))) : null,
       notes(c.notes, "char-notes"));
   };
 
@@ -1605,7 +1630,7 @@ function renderShop(data) {
       ].filter(Boolean).join(" · "))),
     h("span", { class: "price num" }, `${item.price} gold`));
 
-  const groups = SLOTS.map(([slot, label]) => [label, shop.stock.filter(i => i.slot === slot)]).filter(([, list]) => list.length);
+  const groups = SLOTS.map(([slot, label]) => [slot, label, shop.stock.filter(i => i.slot === slot)]).filter(([, , list]) => list.length);
   const priceNote = shop.modifier === 0 ? "normal prices" : `${signed(shop.modifier)} gold per item`;
 
   return [
@@ -1613,9 +1638,9 @@ function renderShop(data) {
     shop.pricesUnsure ? nudge("question", "Prices may be off",
       `Reputation could be ${rangeText(shop.range)}, which would change prices. Settle the open events on the Overview.`) : null,
     shop.questions.map(q => nudge("question", "Check an item", q)),
-    h("div", { class: "shop" }, groups.map(([label, list]) =>
+    h("div", { class: "shop" }, groups.map(([slot, label, list]) =>
       h("div", { class: "card" },
-        h("h3", { class: "label" }, label),
+        h("h3", { class: "label" }, gameIcon(`slot-${slot}`), label),
         h("ul", { class: "rows" }, list.map(row))))),
     shop.coming ? h("p", { class: "aside" }, `${plural(shop.coming, "more item")} arrive${shop.coming === 1 ? "s" : ""} at prosperity ${shop.level + 1}.`) : null,
   ];
