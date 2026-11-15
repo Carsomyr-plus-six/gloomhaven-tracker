@@ -1248,6 +1248,101 @@ function renderScenarios(data) {
   return [head, filters, h("div", { class: "scenario-list" }, shown.map(s => scenarioRow(data, s)))];
 }
 
+// --- Character checks -------------------------------------------------------------
+// data/gloomhaven-events.json lists each class's perks as the character sheet
+// words them, with how many boxes each has; data/gloomhaven-items.json gives
+// each item's slot. A character's perks are matched against the class's list
+// and what they carry against the slots they have.
+
+let classRef = null;   // data/gloomhaven-events.json, once loaded
+
+function classPerks(cls) {
+  const id = Object.entries(classRef?.classes || {}).find(([, n]) => n.toLowerCase() === String(cls).toLowerCase())?.[0];
+  return id ? classRef.classEvents?.[id]?.perks || null : null;
+}
+
+const NUMBER_WORDS = { "1": "one", "2": "two", "3": "three", "4": "four" };
+
+// How a perk reads with the wording differences that don't matter taken out.
+// strict keeps "rolling" and "+0"; loose drops them too.
+function perkKey(text, loose = false) {
+  let t = String(text).toLowerCase().replace(/[−–]/g, "-").replace(/\([^)]*\)/g, " ")
+    .replace(/(^|\s)([1-4])(?=\s|$)/g, (m, pre, d) => pre + NUMBER_WORDS[d])
+    .replace(/\bcards?\b/g, " ").replace(/[^a-z0-9+\- ]/g, " ");
+  if (loose) t = t.replace(/\brolling\b/g, " ").replace(/(^|\s)\+0(?=\s|$)/g, " ");
+  return t.replace(/\s+/g, " ").trim();
+}
+
+// The class perk a written perk is, or null. Strict match first, then loose
+// if that points at exactly one perk.
+function matchPerk(text, perks) {
+  const strict = perks.find(p => perkKey(p.text) === perkKey(text));
+  if (strict) return strict;
+  const loose = perks.filter(p => perkKey(p.text, true) === perkKey(text, true));
+  return loose.length === 1 ? loose[0] : null;
+}
+
+// The class perk sharing the most telling words with a written one, for a
+// hint. "Add", "with" and the counts say little about which perk it is.
+const PLAIN_WORDS = new Set(["add", "remove", "replace", "with", "and", "one", "two", "three", "four"]);
+function closestPerk(text, perks) {
+  const telling = t => perkKey(t, true).split(" ").filter(w => w && !PLAIN_WORDS.has(w));
+  const words = new Set(telling(text));
+  let best = null, score = 0;
+  for (const p of perks) {
+    const theirs = telling(p.text);
+    const shared = theirs.filter(w => words.has(w)).length / (new Set([...words, ...theirs]).size || 1);
+    if (shared > score) { best = p; score = shared; }
+  }
+  return score >= 0.3 ? best : null;
+}
+
+// The perks a character has taken, matched to the class's list, and the ones
+// still open.
+function perkCheck(c) {
+  const perks = classPerks(c.class);
+  const rows = [];
+  for (const text of c.perks) {
+    const match = perks ? matchPerk(text, perks) : null;
+    const key = match ? match.text : text;
+    const row = rows.find(r => r.key === key);
+    if (row) row.count++;
+    else rows.push({ key, text: match ? match.text : text, written: text, match, count: 1 });
+  }
+  for (const r of rows) {
+    if (!perks) continue;
+    if (!r.match) {
+      const near = closestPerk(r.written, perks);
+      r.note = `Not on the ${c.class} sheet.${near ? ` Closest: ${near.text}.` : ""}`;
+    } else if (r.count > r.match.count) {
+      r.note = `Taken ${r.count} times, but the sheet has ${plural(r.match.count, "box").replace("boxs", "boxes")}.`;
+    } else if (r.written !== r.match.text) {
+      r.note = `Written as "${r.written}".`;
+      r.quiet = true;
+    }
+  }
+  const open = (perks || []).map(p => ({ ...p, left: p.count - (rows.find(r => r.match === p)?.count || 0) }))
+    .filter(p => p.left > 0);
+  return { known: Boolean(perks), rows, open };
+}
+
+// Slots: one head, body and legs item; two hands (a two-handed item takes
+// both); small items up to half the character's level, rounded up.
+function itemCheck(c, level) {
+  const byName = new Map(Object.values(itemsRef?.items || {}).map(i => [i.name.toLowerCase(), i]));
+  const used = { head: 0, body: 0, legs: 0, hands: 0, small: 0 };
+  for (const name of c.items) {
+    const slot = byName.get(name.toLowerCase())?.slot;
+    if (slot === "onehand") used.hands += 1;
+    else if (slot === "twohand") used.hands += 2;
+    else if (slot in used) used[slot] += 1;
+  }
+  const limits = { head: 1, body: 1, legs: 1, hands: 2, small: Math.ceil(level / 2) };
+  const names = { head: "head items", body: "body items", legs: "legs items", hands: "hands' worth of items", small: "small items" };
+  return Object.keys(limits).filter(k => used[k] > limits[k])
+    .map(k => `Carries ${used[k]} ${names[k]}, but has room for ${limits[k]}${k === "small" ? ` at level ${level}` : ""}.`);
+}
+
 // --- Characters -----------------------------------------------------------------
 
 let characterIndex = 0;   // which sheet a phone shows
@@ -1275,11 +1370,9 @@ function renderCharacters(data) {
     const st = characterStats(c);
     const fromGoals = perksFromCheckmarks(c.checkmarks);
     // The same perk taken twice shows once, with a count.
-    const perks = [];
-    for (const text of c.perks) {
-      const same = perks.find(p => p.text === text);
-      if (same) same.count++; else perks.push({ text, count: 1 });
-    }
+    const check = perkCheck(c);
+    const perks = check.rows;
+    const itemProblems = itemCheck(c, st.level);
     return h("article", { class: `char-card${order.indexOf(c) === characterIndex ? " current" : ""}` },
       h("header", { class: "char-head" },
         h("div", { class: "char-level" }, hex(st.level, "level"), h("span", { class: "label" }, "Level")),
@@ -1311,11 +1404,18 @@ function renderCharacters(data) {
           h("span", {}, `${c.perks.length} of ${st.earned} taken`)),
         st.unspent ? nudge("plus", `${plural(st.unspent, "perk")} to choose`, null, "perk-nudge") : null,
         perks.length
-          ? h("ul", { class: "perks" }, perks.map(p => h("li", {},
-              icon("check"), h("span", {}, p.text), p.count > 1 ? h("span", { class: "times" }, `×${p.count}`) : null)))
-          : h("span", { class: "small muted" }, "None taken yet.")),
+          ? h("ul", { class: "perks" }, perks.map(p => h("li", { class: p.note && !p.quiet ? "unsure" : null },
+              icon(p.note && !p.quiet ? "question" : "check"),
+              h("span", {}, p.text, p.note ? h("span", { class: "note" }, p.note) : null),
+              p.count > 1 ? h("span", { class: "times" }, `×${p.count}`) : null)))
+          : h("span", { class: "small muted" }, "None taken yet."),
+        st.unspent && check.open.length ? h("details", { class: "open-perks", open: true },
+          h("summary", {}, `Perks still open on the ${c.class} sheet`),
+          h("ul", {}, check.open.map(p => h("li", {},
+            h("span", {}, p.text), p.left > 1 ? h("span", { class: "times" }, `${p.left} boxes`) : null)))) : null),
       c.items.length ? h("div", { class: "block" },
         h("div", { class: "block-head" }, h("span", { class: "label" }, "Items"), h("span", {}, `${c.items.length} carried`)),
+        itemProblems.map(text => nudge("question", "Too many items", text)),
         h("div", { class: "chips" }, c.items.map(i => h("span", { class: "chip" }, i)))) : null,
       notes(c.notes, "char-notes"));
   };
@@ -1608,6 +1708,7 @@ async function start() {
       loadReference("data/gloomhaven-items.json"),
     ]);
     itemsRef = items;
+    classRef = evRef;
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
     const data = withDefaults(await response.json());
     const derived = deriveCampaign(data, ref, evRef);
