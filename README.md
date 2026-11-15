@@ -13,7 +13,9 @@ It runs on GitHub Pages, so it works on phones and desktops without installing a
 | `campaign.json` | The campaign itself. This is the file you edit. |
 | `index.html` | The page skeleton: header, tabs, empty sections. |
 | `styles.css` | How it looks, including dark mode. |
-| `app.js` | Reads `campaign.json` and fills in the page. Also works out levels, prosperity and shop prices. |
+| `app.js` | Reads `campaign.json` and fills in the page. Also works out levels, prosperity, shop prices, and which scenarios are unlocked or blocked. |
+| `data/gloomhaven-scenarios.json` | Reference data for all 95 scenarios: unlocks, blocks, requirements, rewards. Generated, don't edit by hand. **Contains spoilers.** |
+| `tools/update_scenario_data.py` | Regenerates the reference data: `py tools/update_scenario_data.py` |
 | `examples/sample-campaign.json` | Made-up data for testing. View it at `?data=examples/sample-campaign.json`. |
 
 ## Running it locally
@@ -34,17 +36,22 @@ Then open http://127.0.0.1:8000/. Stop the server with Ctrl+C.
 
 **city**: `prosperityCheckmarks` (the total; the page works out the prosperity level), `donations` (total gold given to the Sanctuary), `globalAchievements`, `unlockedClasses` (a list of class names), `itemDesigns` (items added to the shop permanently).
 
-Achievements, party or global, and item designs look like this. Only `name` is required:
+Achievements, party or global, and item designs look like this. Only `name` is required. Spell achievement names as the game does: scenario requirements are checked against them. Add `"count": 2` for an achievement gained more than once.
 
 ```json
 { "name": "Achievement name", "scenario": 2, "notes": "Optional" }
 ```
 
-**scenarios**: one entry per scenario you've unlocked. `status` is `available`, `completed` or `blocked`. Dates are written `YYYY-MM-DD`. `treasures` lists the numbers of treasure tiles looted there, as text so leading zeros stay.
+**scenarios**: list the scenarios you've **completed**. Everything else (which scenarios are unlocked, which are blocked and why, and the rewards) is worked out from the reference data. Dates are written `YYYY-MM-DD`. `treasures` lists the numbers of treasure tiles looted there, as text so leading zeros stay. `name` is optional and only there to make the file easier to read.
 
 ```json
-{ "number": 2, "name": "Scenario name", "status": "completed", "unlockedBy": 1, "completed": "2026-10-04", "treasures": ["07"], "notes": "" }
+{ "number": 2, "name": "Barrow Lair", "status": "completed", "completed": "2026-10-04", "treasures": ["07"], "notes": "" }
 ```
+
+Add an entry that isn't completed only when the reference data can't know about it:
+
+- A scenario unlocked some other way (a choice, a treasure, an event): `{ "number": 15, "status": "available", "unlockedBy": 13 }`
+- A scenario you've decided to treat as blocked: `{ "number": 5, "status": "blocked", "notes": "Why" }`
 
 **characters**: the page works out the level from `xp` and the perks earned from `checkmarks`. Set `retired` to `true` when a character retires.
 
@@ -67,3 +74,9 @@ Achievements, party or global, and item designs look like this. Only `name` is r
   "notes": ""
 }
 ```
+
+## Credits and license
+
+Scenario data comes from [Gloomhaven Secretariat](https://github.com/Lurkars/gloomhavensecretariat) by Lurkars and contributors, licensed under the GNU Affero General Public License v3.0. This project uses the same license; see [LICENSE](LICENSE).
+
+This is an unofficial fan project. Gloomhaven and its content are © Cephalofair Games.

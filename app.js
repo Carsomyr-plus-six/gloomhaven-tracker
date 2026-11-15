@@ -123,6 +123,121 @@ function renderOverview(data) {
   ];
 }
 
+// --- Scenario rules from the reference data ------------------------------
+// data/gloomhaven-scenarios.json (from Gloomhaven Secretariat) says what each
+// scenario unlocks, blocks, requires and rewards. campaign.json only records
+// what happened; everything else is worked out here.
+
+// "Jekserah's Plans" -> "jekserahs-plans", the ids the reference data uses.
+function slug(name) {
+  return String(name).toLowerCase().replace(/['’]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+function achievementName(ref, kind, id) {
+  return ref?.achievements?.[kind]?.[id] || id;
+}
+
+// How many times the party has each achievement, by kind ("global" / "party").
+function achievementCounts(data) {
+  const count = list => {
+    const counts = new Map();
+    for (const a of list) {
+      const id = a.id || slug(a.name);
+      counts.set(id, (counts.get(id) || 0) + (a.count || 1));
+    }
+    return counts;
+  };
+  return { global: count(data.city.globalAchievements), party: count(data.party.achievements) };
+}
+
+// Requirements are alternatives (any one will do); each lists achievements
+// that are needed, "!" meaning must be incomplete and ":N" meaning N times.
+// Returns null when met, otherwise a sentence saying what is missing.
+function unmetRequirements(ref, requirements, have) {
+  const failures = [];
+  for (const alternative of requirements) {
+    const unmet = [];
+    for (const [kind, values] of Object.entries(alternative)) {
+      for (const value of values) {
+        const negated = value.startsWith("!");
+        const [id, times] = value.replace(/^!/, "").split(":");
+        const needed = Number(times || 1);
+        const count = have[kind]?.get(id) || 0;
+        const name = achievementName(ref, kind, id);
+        if (negated && count >= needed) unmet.push(`${name} to be incomplete`);
+        if (!negated && count < needed) unmet.push(needed > 1 ? `${name} ×${needed}` : name);
+      }
+    }
+    if (!unmet.length) return null;
+    failures.push(unmet.join(" and "));
+  }
+  return `Needs ${failures.join(", or ")}`;
+}
+
+function describeRewards(ref, rewards) {
+  if (!rewards) return [];
+  const parts = [];
+  const r = rewards;
+  if (r.gold) parts.push(`${r.gold} gold each`);
+  if (r.collectiveGold) parts.push(`${r.collectiveGold} gold to share`);
+  if (r.experience) parts.push(`${r.experience} XP each`);
+  if (r.prosperity) parts.push(`${signed(r.prosperity)} prosperity`);
+  if (r.reputation) parts.push(`${signed(r.reputation)} reputation`);
+  for (const id of r.globalAchievements || []) parts.push(achievementName(ref, "global", String(id).split(":")[0]));
+  for (const id of r.partyAchievements || []) parts.push(achievementName(ref, "party", String(id).split(":")[0]));
+  for (const id of r.lostPartyAchievements || []) parts.push(`lose ${achievementName(ref, "party", id)}`);
+  if (r.chooseLocation) parts.push(`choose one of ${r.chooseLocation.map(n => `#${n}`).join(", ")}`);
+  const known = ["gold", "collectiveGold", "experience", "prosperity", "reputation", "globalAchievements",
+                 "partyAchievements", "lostPartyAchievements", "chooseLocation"];
+  if (Object.keys(r).some(k => !known.includes(k))) parts.push("more in the scenario book");
+  return parts;
+}
+
+// Turn campaign.json's scenario entries plus the reference data into the full
+// list of unlocked scenarios, each with a status and, if blocked, the reasons.
+function deriveScenarios(data, ref) {
+  const entries = new Map(data.scenarios.map(s => [s.number, s]));
+  const refOf = n => ref?.scenarios?.[String(n)];
+  const done = data.scenarios.filter(s => s.status === "completed").map(s => s.number).sort((a, b) => a - b);
+  const completed = new Set(done);
+
+  // Which scenario unlocked each one. An unlockedBy in campaign.json wins.
+  const parent = new Map();
+  if (ref) parent.set(1, null);
+  for (const c of done) {
+    for (const u of refOf(c)?.unlocks || []) if (!parent.has(Number(u))) parent.set(Number(u), c);
+  }
+  for (const s of data.scenarios) {
+    if (s.unlockedBy != null) parent.set(s.number, s.unlockedBy);
+    else if (!parent.has(s.number)) parent.set(s.number, null);
+  }
+
+  const have = achievementCounts(data);
+  const nameOf = n => entries.get(n)?.name || refOf(n)?.name || "";
+
+  return [...parent.keys()].map(n => {
+    const entry = entries.get(n) || {};
+    const info = refOf(n) || {};
+    const s = { treasures: [], notes: "", completed: null, ...entry,
+                number: n, name: nameOf(n), unlockedBy: parent.get(n), reasons: [], rewards: [] };
+
+    if (completed.has(n)) {
+      s.status = "completed";
+      s.rewards = describeRewards(ref, info.rewards);
+      return s;
+    }
+
+    const blockers = done.filter(c => (refOf(c)?.blocks || []).includes(String(n)));
+    if (blockers.length) s.reasons.push(`Blocked by ${blockers.map(c => `#${c} ${nameOf(c)}`).join(", ")}`);
+    const unmet = info.requirements ? unmetRequirements(ref, info.requirements, have) : null;
+    if (unmet) s.reasons.push(unmet);
+    s.status = entry.status === "blocked" || s.reasons.length ? "blocked" : "available";
+    return s;
+  });
+}
+
+// --- Scenarios tab --------------------------------------------------------
+
 const STATUS_LABELS = { available: "Available", completed: "Completed", blocked: "Blocked" };
 let scenarioFilter = "all";
 
@@ -217,7 +332,9 @@ function renderScenarios(data) {
         h("div", { class: "muted small" },
           [s.unlockedBy ? `Unlocked by #${s.unlockedBy}${name(s.unlockedBy) ? ` ${name(s.unlockedBy)}` : ""}` : null,
            s.completed ? `Completed ${formatDate(s.completed)}` : null,
-           s.treasures?.length ? `Treasure ${s.treasures.join(", ")} looted` : null].filter(Boolean).join(" · ")),
+           s.treasures?.length ? `${s.treasures.length > 1 ? "Treasures" : "Treasure"} ${s.treasures.join(", ")} looted` : null].filter(Boolean).join(" · ")),
+        s.reasons.map(r => h("div", { class: "reason small" }, r)),
+        s.rewards.length ? h("div", { class: "small" }, h("span", { class: "muted" }, "Rewards: "), s.rewards.join(", ")) : null,
         notes(s.notes))))),
   ];
 }
@@ -322,21 +439,37 @@ function dataUrl() {
   return new URL("campaign.json", location.href);
 }
 
+// The scenario reference data. Without it the tracker still works, showing
+// only what campaign.json lists.
+async function loadReference() {
+  try {
+    const response = await fetch("data/gloomhaven-scenarios.json");
+    return response.ok ? await response.json() : null;
+  } catch {
+    return null;
+  }
+}
+
 async function start() {
   const status = document.getElementById("status");
   const url = dataUrl();
   try {
-    const response = await fetch(url, { cache: "no-cache" });
+    const [response, ref] = await Promise.all([fetch(url, { cache: "no-cache" }), loadReference()]);
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
     const data = withDefaults(await response.json());
+    data.scenarios = deriveScenarios(data, ref);
 
     if (data.party.name) {
       document.getElementById("title").textContent = data.party.name;
       document.title = `${data.party.name} · Gloomhaven`;
     }
-    document.getElementById("footer").textContent =
+    document.getElementById("footer").replaceChildren(
       [data.edition, data.updated ? `updated ${formatDate(data.updated)}` : null,
-       url.pathname.endsWith("/campaign.json") ? null : `showing ${url.pathname}`].filter(Boolean).join(" · ");
+       url.pathname.endsWith("/campaign.json") ? null : `showing ${url.pathname}`].filter(Boolean).join(" · "),
+      h("br"),
+      ...(ref ? ["Scenario data from ", h("a", { href: ref.source }, "Gloomhaven Secretariat"), ` (${ref.license}). `]
+              : ["Scenario reference data couldn't be loaded. "]),
+      "Unofficial fan project; Gloomhaven is © Cephalofair Games.");
 
     render(data);
     status.remove();

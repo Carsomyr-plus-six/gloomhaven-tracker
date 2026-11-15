@@ -171,4 +171,7 @@ ul.plain li + li { margin-top: 4px; }
   color: var(--muted);
 }
 
+.reason { color: var(--bad); }
+
 .site-footer { max-width: 900px; margin: 0 auto; padding: 8px 16px 32px; color: var(--muted); font-size: 0.875rem; }
+.site-footer a { color: inherit; }
