@@ -331,8 +331,13 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 }
 .tonight-step:hover { border-color: var(--fg-3); color: var(--fg); }
 .tonight-step .hex { --w: 24px; --fill: var(--surface); }
-.tonight-step > span:last-child { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.tonight-text { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .tonight-value { font-size: var(--t-sm); font-weight: 600; line-height: 1.3; }
+/* A step already in the draft: ticked, in the completed colour. */
+.tonight-step.done { border-color: var(--line-strong); }
+.tonight-done { margin-left: auto; color: var(--verdigris); }
+.tonight-done .icon { font-size: var(--t-lg); stroke-width: 2.4; }
+.enhancer-record { align-self: flex-start; }
 .btn.tonight-record { align-self: stretch; justify-content: center; padding-inline: 18px; border-radius: var(--r-md); }
 .hero-side { grid-area: side; align-self: start; min-width: 0; display: flex; flex-direction: column; gap: 28px; }
 .ready { min-width: 0; }
