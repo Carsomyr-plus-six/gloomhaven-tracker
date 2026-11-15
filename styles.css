@@ -172,6 +172,8 @@ ul.plain li + li { margin-top: 4px; }
 }
 
 .reason { color: var(--bad); }
+.results { margin-top: 8px; }
+.results strong { font-weight: 600; }
 
 .site-footer { max-width: 900px; margin: 0 auto; padding: 8px 16px 32px; color: var(--muted); font-size: 0.875rem; }
 .site-footer a { color: inherit; }

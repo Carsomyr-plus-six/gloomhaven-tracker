@@ -335,6 +335,11 @@ function renderScenarios(data) {
            s.treasures?.length ? `${s.treasures.length > 1 ? "Treasures" : "Treasure"} ${s.treasures.join(", ")} looted` : null].filter(Boolean).join(" · ")),
         s.reasons.map(r => h("div", { class: "reason small" }, r)),
         s.rewards.length ? h("div", { class: "small" }, h("span", { class: "muted" }, "Rewards: "), s.rewards.join(", ")) : null,
+        s.results?.length ? h("ul", { class: "plain small results" }, s.results.map(r => h("li", {},
+          h("strong", {}, r.character), " ",
+          [r.xp != null ? `${r.xp} XP` : null, r.gold != null ? `${r.gold} gold` : null,
+           r.checkmarks ? `${r.checkmarks} checkmark${r.checkmarks === 1 ? "" : "s"}` : null,
+           r.notes].filter(Boolean).join(" · ")))) : null,
         notes(s.notes))))),
   ];
 }

@@ -48,6 +48,14 @@ Achievements, party or global, and item designs look like this. Only `name` is r
 { "number": 2, "name": "Barrow Lair", "status": "completed", "completed": "2026-10-04", "treasures": ["07"], "notes": "" }
 ```
 
+`results` is optional: what each character got from the scenario. `xp` and `gold` are what they gained there; `checkmarks` are from battle goals. These are shown on the scenario but not added to the character totals automatically.
+
+```json
+"results": [
+  { "character": "Azorica", "xp": 15, "gold": 10, "checkmarks": 1 }
+]
+```
+
 Add an entry that isn't completed only when the reference data can't know about it:
 
 - A scenario unlocked some other way (a choice, a treasure, an event): `{ "number": 15, "status": "available", "unlockedBy": 13 }`
