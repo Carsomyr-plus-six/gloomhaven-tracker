@@ -561,6 +561,15 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .quest-hidden { display: inline-flex; align-items: center; gap: 6px; color: var(--fg-3); font-weight: 500; }
 .quest-hidden .icon { font-size: var(--t-lg); stroke-width: 2; }
 .quest-reveal:hover .quest-hidden { color: var(--fg); }
+/* Under a shown quest: its card (this phone only) and each step's count. */
+.quest-detail { gap: 10px; }
+.quest-detail select { max-width: 60%; min-height: 36px; padding: 0 8px; border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--surface-2); color: var(--fg); font: inherit; font-size: var(--t-sm); }
+.quest-steps > li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 6px 0; border-top: 1px solid var(--line-soft); font-size: var(--t-md); }
+.quest-steps .sub { display: block; font-size: var(--t-xs); color: var(--muted); }
+.quest-steps .then { color: var(--muted); }
+.quest-steps .num { flex: none; font-weight: 700; }
+.quest-detail > .todo-do { align-self: flex-start; }
 .goals { display: flex; justify-content: space-between; gap: 6px; }
 .goals > span { display: flex; min-width: 0; gap: 3px; padding: 3px; border-radius: var(--r-sm); border: 1px solid transparent; }
 .goals > span { position: relative; }
@@ -1144,7 +1153,7 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .block-head .xp-next { font-size: var(--t-md); }
   .char-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   /* Every part of the sheet below the XP sits in a card of its own. */
-  .char-stats > div, .goal-block, .perk-block, .deck-block, .item-block, .char-notes { --under: var(--surface); padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+  .char-stats > div, .quest-detail, .goal-block, .perk-block, .deck-block, .item-block, .char-notes { --under: var(--surface); padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
   .gold { font-size: var(--d-lg); line-height: 1.1; }
   .quest { font-size: var(--t-xl); line-height: 1.25; }
   .quest-meter { margin-top: 8px; }

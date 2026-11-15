@@ -1,0 +1,388 @@
+{
+ "source": "https://github.com/Lurkars/gloomhavensecretariat",
+ "license": "AGPL-3.0",
+ "retrieved": "2026-11-15",
+ "quests": {
+  "510": {
+   "name": "Seeker of Xorn",
+   "steps": [
+    {
+     "text": "\"Crypt\" Scenarios",
+     "count": 3,
+     "track": "scenarioName:Crypt"
+    },
+    {
+     "text": "Follow \"Noxious Cellar\" (Scenario 52) to a conclusion",
+     "count": 1,
+     "track": "scenario:52|54",
+     "after": [
+      1
+     ]
+    }
+   ],
+   "unlockClass": "squidface"
+  },
+  "511": {
+   "name": "Merchant Class",
+   "steps": [
+    {
+     "text": "Head items",
+     "count": 2,
+     "track": "itemType:head"
+    },
+    {
+     "text": "Body items",
+     "count": 2,
+     "track": "itemType:body"
+    },
+    {
+     "text": "Legs items",
+     "count": 2,
+     "track": "itemType:legs"
+    },
+    {
+     "text": "One Hand or Two Hands items",
+     "count": 3,
+     "track": "itemType:onehand|twohand"
+    },
+    {
+     "text": "Small items",
+     "count": 4,
+     "track": "itemType:small"
+    }
+   ],
+   "unlockClass": "three-spears"
+  },
+  "512": {
+   "name": "Greed Is Good",
+   "steps": [
+    {
+     "text": "Gold",
+     "count": 200,
+     "track": "gold"
+    }
+   ],
+   "unlockClass": "three-spears"
+  },
+  "513": {
+   "name": "Finding the Cure",
+   "steps": [
+    {
+     "text": "Forest Imps killed",
+     "count": 8,
+     "track": "kill:forest-imp"
+    },
+    {
+     "text": "Follow \"Forgotten Grove\" (Scenario 59) to a conclusion",
+     "count": 1,
+     "track": "scenario:59|60",
+     "after": [
+      1
+     ]
+    }
+   ],
+   "openEnvelope": "X"
+  },
+  "514": {
+   "name": "A Study of Anatomy",
+   "steps": [
+    {
+     "text": "Exhausted Party Members",
+     "count": 15,
+     "track": "exhaustedChars"
+    }
+   ],
+   "unlockClass": "saw"
+  },
+  "515": {
+   "name": "Law Bringer",
+   "steps": [
+    {
+     "text": "Bandits or Cultists killed",
+     "count": 20,
+     "track": "kill:bandit-guard|bandit-archer|bandit-commander|cultist"
+    }
+   ],
+   "unlockClass": "sun"
+  },
+  "516": {
+   "name": "Pounds of Flesh",
+   "steps": [
+    {
+     "text": "Vermlings killed",
+     "count": 15,
+     "track": "kill:vermling-scout|vermling-shaman"
+    }
+   ],
+   "unlockClass": "lightning"
+  },
+  "517": {
+   "name": "Trophy Hunt",
+   "steps": [
+    {
+     "text": "Different types of monsters killed",
+     "count": 20
+    }
+   ],
+   "unlockClass": "two-mini"
+  },
+  "518": {
+   "name": "Eternal Wanderer",
+   "steps": [
+    {
+     "text": "Different scenarios completed",
+     "count": 15,
+     "track": "scenariosCompleted"
+    }
+   ],
+   "unlockClass": "circles"
+  },
+  "519": {
+   "name": "Battle Legend",
+   "steps": [
+    {
+     "text": "Earned checkmarks from completed battle goals",
+     "count": 15,
+     "track": "battleGoals"
+    }
+   ],
+   "unlockClass": "music-note"
+  },
+  "520": {
+   "name": "Implement of Light",
+   "steps": [
+    {
+     "text": "Skullbane Axe",
+     "count": 1,
+     "track": "item:113"
+    },
+    {
+     "text": "Living Bones, Living Corpses, or Living Spirits killed with Skullbane Axe",
+     "count": 7,
+     "after": [
+      1
+     ]
+    }
+   ],
+   "unlockClass": "sun"
+  },
+  "521": {
+   "name": "Take Back the Trees",
+   "steps": [
+    {
+     "text": "Completed scenarios in Dagger Forest",
+     "count": 3
+    },
+    {
+     "text": "Follow \"Foggy Thicket\" (Scenario 55) to a conclusion",
+     "count": 1,
+     "track": "scenario:55|56",
+     "after": [
+      1
+     ]
+    }
+   ],
+   "unlockClass": "angry-face"
+  },
+  "522": {
+   "name": "The Thin Places",
+   "steps": [
+    {
+     "text": "Completed side scenarios (scenario number > 51)",
+     "count": 6,
+     "track": "sideScenarios:52-95"
+    }
+   ],
+   "unlockClass": "eclipse"
+  },
+  "523": {
+   "name": "Aberrant Slayer",
+   "steps": [
+    {
+     "text": "Flame Demon killed",
+     "count": 1,
+     "track": "kill:flame-demon"
+    },
+    {
+     "text": "Frost Demon killed",
+     "count": 1,
+     "track": "kill:frost-demon"
+    },
+    {
+     "text": "Wind Demon killed",
+     "count": 1,
+     "track": "kill:wind-demon"
+    },
+    {
+     "text": "Earth Demon killed",
+     "count": 1,
+     "track": "kill:earth-demon"
+    },
+    {
+     "text": "Night Demon killed",
+     "count": 1,
+     "track": "kill:night-demon"
+    },
+    {
+     "text": "Sun Demon killed",
+     "count": 1,
+     "track": "kill:sun-demon"
+    }
+   ],
+   "unlockClass": "triangles"
+  },
+  "524": {
+   "name": "Fearless Stand",
+   "steps": [
+    {
+     "text": "Elite monsters killed",
+     "count": 20,
+     "track": "kill:elite"
+    }
+   ],
+   "unlockClass": "two-mini"
+  },
+  "525": {
+   "name": "Piety in All Things",
+   "steps": [
+    {
+     "text": "Gold donated to the Sanctuary of the Great Oak",
+     "count": 120,
+     "track": "donatedGold"
+    }
+   ],
+   "unlockClass": "saw"
+  },
+  "526": {
+   "name": "Vengeance",
+   "steps": [
+    {
+     "text": "Completed scenarios in Gloomhaven",
+     "count": 4
+    },
+    {
+     "text": "Follow \"Investigation\" (Scenario 57) to a conclusion",
+     "count": 1,
+     "track": "scenario:57|58",
+     "after": [
+      1
+     ]
+    }
+   ],
+   "openEnvelope": "X"
+  },
+  "527": {
+   "name": "Zealot of the Blood Good",
+   "steps": [
+    {
+     "text": "Times exhausted",
+     "count": 12,
+     "track": "exhaustedSelf"
+    }
+   ],
+   "unlockClass": "lightning"
+  },
+  "528": {
+   "name": "Goliath Toppler",
+   "steps": [
+    {
+     "text": "Completed boss scenarios",
+     "count": 4,
+     "track": "bossScenarios"
+    }
+   ],
+   "unlockClass": "angry-face"
+  },
+  "529": {
+   "name": "The Fall of Man",
+   "steps": [
+    {
+     "text": "Completed scenarios in Lingering Swamp",
+     "count": 2
+    },
+    {
+     "text": "Follow \"Fading Lighthouse\" (Scenario 61) to a conclusion",
+     "count": 1,
+     "track": "scenario:61|62",
+     "after": [
+      1
+     ]
+    }
+   ],
+   "unlockClass": "eclipse"
+  },
+  "530": {
+   "name": "Augmented Abilities",
+   "steps": [
+    {
+     "text": "Enhancements",
+     "count": 4,
+     "track": "enhancements"
+    }
+   ],
+   "unlockClass": "circles"
+  },
+  "531": {
+   "name": "Elemental Samples",
+   "steps": [
+    {
+     "text": "Completed scenario in Gloomhaven",
+     "count": 1
+    },
+    {
+     "text": "Completed scenario in Dagger Forest",
+     "count": 1
+    },
+    {
+     "text": "Completed scenario in Lingering Swamp",
+     "count": 1
+    },
+    {
+     "text": "Completed scenario in Watcher Mountains",
+     "count": 1
+    },
+    {
+     "text": "Completed scenario in Copperneck Mountains",
+     "count": 1
+    },
+    {
+     "text": "Completed scenario in Misty Sea",
+     "count": 1
+    }
+   ],
+   "unlockClass": "triangles"
+  },
+  "532": {
+   "name": "A Helping Hand",
+   "steps": [
+    {
+     "text": "Personal quests achieved",
+     "count": 2,
+     "track": "retiredChars"
+    }
+   ],
+   "unlockClass": "music-note"
+  },
+  "533": {
+   "name": "The Perfect Poison",
+   "steps": [
+    {
+     "text": "Oozes killed",
+     "count": 3,
+     "track": "kill:ooze|giant-ooze"
+    },
+    {
+     "text": "Lurkers killed",
+     "count": 3,
+     "track": "kill:lurker"
+    },
+    {
+     "text": "Spitting Drakes killed",
+     "count": 3,
+     "track": "kill:spitting-drake"
+    }
+   ],
+   "unlockClass": "squidface"
+  }
+ }
+}
