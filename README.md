@@ -41,13 +41,15 @@ The page does the end-of-scenario sums itself:
 
 It lists every change, with anything that looks wrong, before you save. A bar at the top of the form says how many things there are to check.
 
-A perk to choose can also be recorded straight from **Before you play** on the Overview: **Record it** opens the form with a perk row for that character.
+A perk to choose can also be recorded straight from **Before you play** on the Overview, or from the character's sheet: **Record it** opens the form with a perk row for that character. Once picked, the perk stops being asked for while the draft waits to be saved.
+
+Only an evening of play goes in the session log: a perk taken, an item bought or a donation made between sessions changes the characters and city, and adds no session.
 
 The site has nowhere to save, so it hands you the updated file:
 - **Copy and edit on GitHub** (on the live site) copies it and opens `campaign.json` in GitHub's editor, which works on a phone too: select everything, paste, and commit.
 - **Download campaign.json** or **Copy to clipboard**: put it in place of `campaign.json` in the repository and commit it.
 
-Until then the draft stays in that browser, so a reload at the table loses nothing; **Discard draft** clears it. Once the session is in `campaign.json`, the page notices on its next load and clears the draft itself, so the session can't be recorded twice.
+Until then the draft stays in that browser, so a reload at the table loses nothing; **Discard draft** clears it. The file the page hands you carries the draft's id as `lastDraft`, so once it's in `campaign.json` the page notices on its next load and clears the draft itself, and nothing can be recorded twice.
 
 Some things still need a hand edit afterwards, and the page says what to write: gold to share between the party, a choice of location, a random scenario or item design once drawn, and the option of an event recorded without one.
 
@@ -85,7 +87,7 @@ Reputation and prosperity aren't written down: the page adds them up from the re
 { "number": 2, "name": "Barrow Lair", "status": "completed", "completed": "2026-10-04", "treasures": ["07"], "notes": "" }
 ```
 
-The page looks up what each treasure gave: item designs go to the shop and unlocked scenarios open. A treasure can also be written out to say who looted it and, for a random side scenario or item design, what you drew. Until a random one is drawn, the Campaign record reminds you.
+The page looks up what each treasure gave: item designs go to the shop and unlocked scenarios open. A treasure can also be written out to say who looted it and, for a random side scenario or item design, what you drew. Until a random one is drawn, the Campaign record reminds you; `"drawn": false` says it never was and won't be, and stops the reminder.
 
 ```json
 "treasures": [{ "number": "07", "character": "Craig", "drew": 52 }, { "number": "11", "drew": "Item name" }]
@@ -135,7 +137,7 @@ Many outcomes depend on something on the table. The tracker checks these itself 
 - **Reputation**: checked against reputation as it stood then.
 - **Paying**: add `"paid": true` or `"paid": false`.
 
-The Overview asks when it can't tell. `"outcome": 1` (counting from 1) picks an outcome by hand, and `"card": "removed"` or `"returned"` overrides what happened to the card.
+The Overview asks when it can't tell. `"outcome": 1` (counting from 1) picks an outcome by hand, and `"card": "removed"` or `"returned"` overrides what happened to the card. If the option can't be known any more, `"unknown": true` stops the questions: reputation and prosperity keep the range the event could have given.
 
 ```json
 { "deck": "city", "number": 29, "option": "A", "characters": ["Craig", "Azorica"], "scenario": 8 }

@@ -21,7 +21,7 @@
       "status": "completed",
       "completed": null,
       "treasures": [
-        "07"
+        { "number": "07", "drawn": false }
       ],
       "notes": "Exact XP and gold gained are lost to time.\nTreasure 07 gave a random side scenario, which we never drew."
     },
@@ -67,7 +67,7 @@
       "status": "completed",
       "completed": null,
       "treasures": [
-        "51"
+        { "number": "51", "drawn": false }
       ],
       "results": [
         { "character": "Azorica", "xp": 16, "gold": 3 },
@@ -191,10 +191,10 @@
     }
   ],
   "events": [
-    { "deck": "city", "number": 1, "notes": "Option and timing not recorded." },
-    { "deck": "city", "number": 23, "notes": "Option and timing not recorded." },
+    { "deck": "city", "number": 1, "unknown": true, "notes": "Option and timing not recorded." },
+    { "deck": "city", "number": 23, "unknown": true, "notes": "Option and timing not recorded." },
     { "deck": "city", "number": 29, "option": "A", "characters": ["Craig"], "notes": "Convinced the Savvas to go back to work. Craig was there; the rest of the party and the timing weren't recorded." },
-    { "deck": "road", "number": 9, "notes": "Option and timing not recorded." },
+    { "deck": "road", "number": 9, "unknown": true, "notes": "Option and timing not recorded." },
     { "deck": "road", "number": 28, "notes": "Option and timing not recorded." },
     { "deck": "city", "number": 21, "option": "B", "scenario": 8 },
     { "deck": "road", "number": 15, "scenario": 14, "notes": "On the way to #14. Option not recorded." },

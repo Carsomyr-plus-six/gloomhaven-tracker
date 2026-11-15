@@ -429,10 +429,11 @@ function renderOverview(data) {
 // the sections that work it out. Each entry links to where it's handled.
 function todoItems(data) {
   const items = [];
-  const add = (text, href, onclick, action) => items.push({ text, href, onclick, action });
+  // place: what the link says, if not the section's name.
+  const add = (text, href, onclick, action, place) => items.push({ text, href, onclick, action, place });
   const order = characterOrder(data);
 
-  if (draft) add("A recorded session hasn't been saved: download it from Sessions and commit it.", "#sessions");
+  if (draft) add("What's been recorded on this phone isn't saved yet: download it from Sessions and commit it.", "#sessions");
 
   // Who passed a level in the last session: a new ability card to pick. It
   // stays until the next session is recorded, as there's nowhere to tick it.
@@ -445,13 +446,16 @@ function todoItems(data) {
       pickCharacter(data, order.indexOf(c));
       if (!phone.matches) { e.preventDefault(); revealCharacter(c.name); }
     };
+    const sheet = `${c.name}'s sheet`;
     for (const u of levelUps.filter(u => u.character === c.name)) {
-      add(`${c.name} reached level ${u.level} last session: add an ability card of level ${u.level} or lower.`, "#characters", go);
+      add(`${c.name} reached level ${u.level} last session: add an ability card of level ${u.level} or lower.`, "#characters", go, null, sheet);
     }
-    if (st.unspent) add(`${c.name} has ${plural(st.unspent, "perk")} to choose.`, "#characters", go,
-      { label: "Record it", run: () => recordPerk(data, c.name) });
-    for (const r of perkCheck(c).rows.filter(r => r.note && !r.quiet)) add(`${c.name}: "${r.written}". ${r.note}`, "#characters", go);
-    for (const problem of itemCheck(c, st.level)) add(`${c.name}: ${problem}`, "#characters", go);
+    // A perk already picked in the session being recorded isn't asked for again.
+    const left = perksLeft(c);
+    if (left) add(`${c.name} has ${plural(left, "perk")} to choose.`, "#characters", go,
+      { label: "Record it", run: () => recordPerk(data, c.name) }, sheet);
+    for (const r of perkCheck(c).rows.filter(r => r.note && !r.quiet)) add(`${c.name}: "${r.written}". ${r.note}`, "#characters", go, null, sheet);
+    for (const problem of itemCheck(c, st.level)) add(`${c.name}: ${problem}`, "#characters", go, null, sheet);
   }
 
   for (const d of data.draws || []) add(`Draw ${d.what} (${d.from}).`, "#record");
@@ -470,9 +474,14 @@ function todoItems(data) {
   return items;
 }
 
-// Who passed a level in the last session, and to which: each owes a new
-// ability card until the next session is recorded.
-function lastLevelUps(data) { return data.sessions.at(-1)?.levelUps || []; }
+// Who passed a level in the last session played, and to which: each owes a
+// new ability card until the next session is recorded.
+function lastLevelUps(data) { return [...data.sessions].reverse().find(s => s.scenarios?.length)?.levelUps || []; }
+
+// Perks picked in the session being recorded, not yet in campaign.json.
+function draftedPerks(name) { return (draft?.perks || []).filter(p => p.character === name && p.perk).length; }
+// Perks still to choose, leaving out those already picked in the draft.
+function perksLeft(c) { return Math.max(0, characterStats(c).unspent - draftedPerks(c.name)); }
 
 // What each "Before you play" link says: the section it goes to.
 const TODO_PLACES = { "#characters": "Characters", "#shop": "Shop", "#sessions": "Sessions",
@@ -512,7 +521,7 @@ function todoList(data) {
           h("span", {}, item.text),
           h("span", { class: "todo-acts" },
             item.action ? h("button", { type: "button", class: "todo-do", onclick: item.action.run }, item.action.label) : null,
-            h("a", { class: "todo-go", href: item.href, onclick: item.onclick || null }, TODO_PLACES[item.href] || "Open")))))
+            h("a", { class: "todo-go", href: item.href, onclick: item.onclick || null }, item.place || TODO_PLACES[item.href] || "Open")))))
       : h("p", { class: "small muted" }, "Nothing to sort out before the next scenario."));
 }
 
@@ -530,7 +539,7 @@ function partyList(data) {
         h("span", { class: "party-who" },
           h("strong", {}, c.name),
           h("span", {}, classIcon(c.class), c.class),
-          st.unspent ? h("em", {}, `${plural(st.unspent, "perk")} to choose`) : null),
+          perksLeft(c) ? h("em", {}, `${plural(perksLeft(c), "perk")} to choose`) : null),
         h("span", { class: "party-xp" },
           h("span", { class: st.close ? "close" : null }, st.nextText),
           meter(st.toNext ? st.toNext.fraction : 1, st.close),
@@ -590,11 +599,11 @@ function renderEvents(data) {
     ].filter(Boolean).join(" · ");
     return h("li", {},
       h("strong", {}, e.label),
-      h("span", {}, detail || (e.notes ? null : "Option not recorded"),
+      h("span", {}, detail || (e.notes ? null : e.unknown ? "Option not known" : "Option not recorded"),
         e.notes ? h("div", { class: detail ? "small muted" : null }, e.notes) : null,
         (asks.get(e) || []).map(text => h("div", { class: "ask" }, icon("question"), text))),
-      h("span", { class: `fate ${e.fate || "open"}` },
-        e.fate ? [gameIcon(`event-${e.fate}`), capitalize(e.fate)] : "Needs an answer"));
+      h("span", { class: `fate ${e.fate || (e.unknown ? "unknown" : "open")}` },
+        e.fate ? [gameIcon(`event-${e.fate}`), capitalize(e.fate)] : e.unknown ? "Not known" : "Needs an answer"));
   };
 
   return [
@@ -1028,7 +1037,7 @@ function deriveCampaign(data, ref, evRef) {
       if (g.kind === "design") addDesign(g.item, label);
       else if (g.kind === "randomDesign") {
         if (e.drew) addDesign(e.drew, label);
-        else record.draws.push({ what: "a random item design", from: label,
+        else if (e.drawn !== false) record.draws.push({ what: "a random item design", from: label,
           how: `add \`"drew": "Item name"\` to ${label} in the \`"events"\` list` });
       } else gainAchievement(g.kind, g.id, label);
     }
@@ -1041,6 +1050,9 @@ function deriveCampaign(data, ref, evRef) {
     const one = found.length === 1 ? found[0] : null;
     if (!found.length) {
       questions.push(`${label}: check the option. The event data has no option ${e.option || ""} for this card.`.replace(" .", "."));
+    } else if (e.unknown && !e.option) {
+      // "unknown": true says the option can't be known any more: the range
+      // stays, the questions go.
     } else if (!agreed && !e.option) {
       const who = found.some(o => o.doubts.some(c => c?.type === "character")) ? ", and who was there" : "";
       questions.push(`${label}: which option did you choose${who}? It decides ${describeStakes(found)}.`);
@@ -1051,7 +1063,7 @@ function deriveCampaign(data, ref, evRef) {
     if (!fate && agreed) questions.push(`${label}: check whether the card was removed or returned to the deck.`);
     const sureAdds = new Set(adds.map(a => JSON.stringify(a)));
     const mayAdds = new Set(found.flatMap(o => [...o.mayAdd, ...o.adds]).map(a => JSON.stringify(a)).filter(a => !sureAdds.has(a)));
-    for (const [deck, number] of [...mayAdds].map(a => JSON.parse(a))) {
+    for (const [deck, number] of e.unknown && !e.option ? [] : [...mayAdds].map(a => JSON.parse(a))) {
       questions.push(`${label}: ${eventLabel(deck, number)} may have been added, depending on ${one ? "who was there" : "the outcome"}.`);
     }
 
@@ -1075,7 +1087,8 @@ function deriveCampaign(data, ref, evRef) {
     // Treasures: "07", or { "number": "07", "character": "Craig", "drew": 52 }.
     const found = [];
     for (const t of s.treasures || []) {
-      const { number, character, drew } = typeof t === "object" ? t : { number: t };
+      // "drawn": false says a random draw was never made, and won't be.
+      const { number, character, drew, drawn: never } = typeof t === "object" ? { ...t, drawn: t.drawn === false } : { number: t };
       const from = `treasure ${number}`;
       const parts = treasureParts(ref, number);
       for (const part of parts) {
@@ -1083,18 +1096,18 @@ function deriveCampaign(data, ref, evRef) {
         if (part.type === "scenario") unlocks.push({ number: Number(part.value), source: from });
         if (part.type === "randomScenario") {
           if (drew != null) unlocks.push({ number: Number(drew), source: from });
-          else record.draws.push({ what: "a random side scenario", from: `${from}, looted in ${where}`,
+          else if (!never) record.draws.push({ what: "a random side scenario", from: `${from}, looted in ${where}`,
             how: `in scenario ${where}'s \`"treasures"\`, write \`"${number}"\` as \`{ "number": "${number}", "drew": 52 }\`, putting the number of the scenario you drew in place of 52` });
         }
         if (part.type === "randomItemDesign") {
           if (drew != null) addDesign(drew, from);
-          else record.draws.push({ what: "a random item design", from: `${from}, looted in ${where}`,
+          else if (!never) record.draws.push({ what: "a random item design", from: `${from}, looted in ${where}`,
             how: `in scenario ${where}'s \`"treasures"\`, write \`"${number}"\` as \`{ "number": "${number}", "drew": "Item name" }\`` });
         }
       }
       const gives = parts.map(describeTreasurePart).join(", ") || "not in the treasure index";
       const scenarioDraw = parts.some(part => part.type === "randomScenario");
-      const drawn = drew == null ? "" : ` (drew ${scenarioDraw ? `#${drew}` : drew})`;
+      const drawn = drew != null ? ` (drew ${scenarioDraw ? `#${drew}` : drew})` : never ? " (never drawn)" : "";
       found.push(`${number}: ${gives}${drawn}${character ? `, to ${character}` : ""}`);
     }
     if (found.length) record.treasures.set(s.number, found);
@@ -1786,10 +1799,13 @@ function renderCharacters(data) {
           h("span", { class: "label" }, "Perks"),
           st.earned || c.perks.length ? h("span", {}, `${c.perks.length} of ${st.earned} taken`) : null),
         // Records the perk straight from the sheet, as "Before you play" does.
-        st.unspent ? (rawCampaign && !c.retired
+        perksLeft(c) ? (rawCampaign && !c.retired
           ? h("button", { type: "button", class: "nudge perk-nudge", "data-key": `perk-record-${c.name}`, onclick: () => recordPerk(data, c.name) },
-              icon("plus"), h("span", {}, `${plural(st.unspent, "perk")} to choose`), h("span", { class: "nudge-go" }, "Record it"))
-          : nudge("plus", `${plural(st.unspent, "perk")} to choose`, null, "perk-nudge")) : null,
+              icon("plus"), h("span", {}, `${plural(perksLeft(c), "perk")} to choose`), h("span", { class: "nudge-go" }, "Record it"))
+          : nudge("plus", `${plural(perksLeft(c), "perk")} to choose`, null, "perk-nudge"))
+          : draftedPerks(c.name) && st.unspent
+            ? nudge("check", `${draftedPerks(c.name) === 1 ? "Perk" : "Perks"} picked`, "In the session being recorded; it counts once that's saved.", "saved")
+            : null,
         perks.length
           ? h("ul", { class: "perks" }, perks.map(p => h("li", { class: p.note && !p.quiet ? "unsure" : null },
               // Its boxes, as ticked on the sheet; the game's checkmark is
@@ -1832,7 +1848,7 @@ function renderCharacters(data) {
           onclick: () => pickCharacter(data, i),
         },
         h("span", {}, hex(st.level, "quiet"),
-          st.unspent ? h("span", { class: "dot", role: "img", "aria-label": "Has a perk to choose" }) : null),
+          perksLeft(c) ? h("span", { class: "dot", role: "img", "aria-label": "Has a perk to choose" }) : null),
         h("span", { class: "switch-name" }, c.name),
         mine ? h("span", { class: "you", "aria-hidden": "true" }, "You") : null)];
     }));
@@ -2007,6 +2023,7 @@ let savedDraft = null;   // a draft found already in campaign.json on load, and 
 // Is this draft's session already in campaign.json? The same date (or, if
 // undated, title) and the same scenarios played in the same order.
 function draftIsSaved(d, raw) {
+  if (d.id && raw.lastDraft === d.id) return true;
   const played = (d.scenarios || []).map(s => num(s.number)).filter(Boolean).join(",");
   return (raw.sessions || []).some(s =>
     (s.date || null) === (d.date || null)
@@ -2021,7 +2038,10 @@ function today() {
 }
 
 function loadDraft() {
-  try { return JSON.parse(localStorage.getItem(DRAFT_KEY)) || null; } catch { return null; }
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(DRAFT_KEY)) || null; } catch {}
+  if (d && !d.id) d.id = draftId();
+  return d;
 }
 function saveDraft() {
   try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch {}
@@ -2031,8 +2051,12 @@ function dropDraft() {
   try { localStorage.removeItem(DRAFT_KEY); } catch {}
 }
 
+// Each draft has an id, which campaign.json keeps as "lastDraft" once saved:
+// that's how the page knows the draft is in the file, session or not.
+const draftId = () => Math.random().toString(36).slice(2, 10);
+
 function newDraft(data) {
-  return { date: today(), title: "", party: [...defaultLevelParty(data)], notes: "",
+  return { id: draftId(), date: today(), title: "", party: [...defaultLevelParty(data)], notes: "",
            scenarios: [], events: [], buys: [], sells: [], perks: [], donations: [],
            retirements: [], newCharacters: [] };
 }
@@ -2086,7 +2110,10 @@ function applyDraft(raw, d, data) {
   const party = d.party.filter(name => who(name));
   const played = d.scenarios.filter(s => num(s.number));
 
-  if (!party.length) warnings.push("No one is marked as playing.");
+  // Only an evening of play goes in the session log: a perk taken or an item
+  // bought between sessions changes the sheets and nothing else.
+  const evening = played.length > 0 || d.events.some(e => num(e.number)) || Boolean(String(d.notes || "").trim());
+  if (evening && !party.length) warnings.push("No one is marked as playing.");
   out.updated = d.date || today();
 
   // Events, in the order drawn.
@@ -2167,13 +2194,13 @@ function applyDraft(raw, d, data) {
     }
   }
 
-  // The session itself.
+  // The session itself, if there was one.
   const session = { date: d.date || null };
   if (d.title) session.title = d.title;
   session.scenarios = played.map(s => ({ number: num(s.number), level: draftLevel(s, data), result: s.result }));
   session.characters = [...party];
   session.notes = d.notes || "";
-  out.sessions.push(session);
+  if (evening) out.sessions.push(session);
 
   // XP, gold and checkmarks onto the character sheets. Passing a level means
   // a new ability card; the perk that comes with it the Characters tab counts.
@@ -2265,7 +2292,14 @@ function applyDraft(raw, d, data) {
   }
   for (const c of out.characters) if (c.gold < 0) warnings.push(`${c.name} would have ${c.gold} gold.`);
 
-  return { out, log, warnings };
+  // The draft's id, just after "updated" (replacing an earlier one).
+  const marked = {};
+  for (const [k, v] of Object.entries(out)) {
+    if (k === "lastDraft") continue;
+    marked[k] = v;
+    if (k === "updated") marked.lastDraft = d.id;
+  }
+  return { out: marked, log, warnings, evening };
 }
 
 // campaign.json written the way the file is laid out by hand: short lists of
@@ -2299,7 +2333,9 @@ function renderRecorder(data) {
   d.donations ||= [];
   d.retirements ||= [];
   d.newCharacters ||= [];
-  const rerender = () => { saveDraft(); render(data, "sessions"); };
+  // A change to the form's rows redraws it, and the Overview and sheets too:
+  // they leave out what the draft already covers (a perk picked, say).
+  const rerender = () => { saveDraft(); render(data, "sessions"); render(data, "overview"); render(data, "characters"); };
   const set = (obj, key, again = false) => e => {
     obj[key] = e.target.type === "checkbox" ? e.target.checked : e.target.value;
     if (again) rerender(); else saveDraft();
@@ -2452,13 +2488,13 @@ function renderRecorder(data) {
     const c = data.characters.find(x => x.name === p.character);
     return h("div", { class: "rec-row" },
       field("Who", select(`perk-${i}-c`, p, "character", activeOptions)),
-      field("Perk", select(`perk-${i}-p`, p, "perk", [["", "Pick a perk"], ...(c ? perkCheck(c).open.map(x => [x.text, x.text]) : [])], false), "wide"),
+      field("Perk", select(`perk-${i}-p`, p, "perk", [["", "Pick a perk"], ...(c ? perkCheck(c).open.map(x => [x.text, x.text]) : [])]), "wide"),
       remove(d.perks, i, "perk", "add-perk"));
   };
 
   // What the draft changes, with the download. Rebuilt on its own as you type.
   const summary = res => {
-    const { out, log, warnings } = res;
+    const { out, log, warnings, evening } = res;
     const json = formatJson(out) + "\n";
     const edit = githubEditUrl(dataUrl());
     const download = () => {
@@ -2477,7 +2513,8 @@ function renderRecorder(data) {
     return h("div", { class: "card rec-block rec-summary" },
       h("h3", { class: "subtitle" }, "What changes"),
       warnings.map(w => nudge("question", "Check", w)),
-      h("ul", {}, [`A session on ${formatDate(d.date) || "an undated evening"} with ${d.party.join(", ") || "no one"}`, ...log].map(line => h("li", {}, line))),
+      h("ul", {}, [evening ? `A session on ${formatDate(d.date) || "an undated evening"} with ${d.party.join(", ") || "no one"}`
+                           : "Between sessions: nothing is added to the session log", ...log].map(line => h("li", {}, line))),
       h("p", { class: "small muted" }, edit
         ? "Copy and edit on GitHub copies the new campaign.json and opens the file on GitHub, phones included: select everything there, paste, and commit. Or download it and put it in place of the old one."
         : "Download the new campaign.json and put it in place of the old one in the repository.",
@@ -2487,7 +2524,7 @@ function renderRecorder(data) {
         edit ? h("a", { class: "btn", href: edit, target: "_blank", rel: "noopener",
                         onclick: () => { navigator.clipboard?.writeText(json).catch(() => {}); } }, "Copy and edit on GitHub") : null,
         h("button", { type: "button", class: "btn", onclick: copy }, "Copy to clipboard"),
-        h("button", { type: "button", class: "btn quiet", onclick: () => { if (confirm("Discard this draft?")) { dropDraft(); render(data, "sessions"); } } }, "Discard draft")));
+        h("button", { type: "button", class: "btn quiet", onclick: () => { if (confirm("Discard this draft?")) { dropDraft(); render(data); } } }, "Discard draft")));
   };
   // A slim bar pinned above the form: how many checks are waiting, and a way
   // down to them, so they're seen while filling it in, not only at the end.
@@ -2596,10 +2633,12 @@ function renderSessions(data) {
     rawCampaign ? h("button", { type: "button", class: `btn${recorderOpen ? "" : " primary"}`, "data-key": "rec-toggle", onclick: toggle },
       recorderOpen ? "Close the form (keep the draft)" : draft ? "Go on recording" : "Record a session") : null);
 
+  // Wide screens: an open form takes the full width, Event decks below it.
+  document.querySelector(".pair")?.classList.toggle("form-open", recorderOpen && Boolean(draft));
   const saved = savedDraft ? formatDate(savedDraft.date) || savedDraft.title || "an undated evening" : null;
   return [
     head,
-    saved ? nudge("check", "Session saved", `The session you recorded for ${saved} is in campaign.json now, so its draft has been cleared.`, "saved") : null,
+    saved ? nudge("check", "Saved", `What you recorded on ${saved} is in campaign.json now, so its draft has been cleared.`, "saved") : null,
     recorderOpen && draft ? renderRecorder(data) : null,
     sorted.length ? null : empty("No sessions recorded yet."),
     sorted.length ? h("p", { class: "aside" }, "Newest first") : null,

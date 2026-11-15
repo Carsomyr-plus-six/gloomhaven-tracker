@@ -212,6 +212,7 @@ main {
 .panel[hidden] { display: none; }
 .pair { display: flex; flex-wrap: wrap; gap: 72px 48px; }
 .pair > .panel { flex: 1 1 420px; }
+.pair.form-open > .panel { flex-basis: 100%; }
 
 .section-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; }
 .section-head h2 { font: 700 var(--d-xl)/1 var(--display); }
