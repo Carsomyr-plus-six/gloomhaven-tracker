@@ -146,15 +146,8 @@ button { font: inherit; color: inherit; }
 }
 .tabs a:hover { background: var(--surface-2); color: var(--fg); }
 .tabs svg { display: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-/* On wide screens the links follow the page: Characters, Shop, Scenarios,
-   Sessions, then the rest. */
-@media (min-width: 900px) {
-  .tabs a[data-tab="characters"] { order: 1; }
-  .tabs a[href="#shop"] { order: 2; }
-  .tabs a[data-tab="scenarios"] { order: 3; }
-  .tabs a[data-tab="sessions"] { order: 4; }
-  .tabs .wide-only { order: 5; }
-}
+/* The links are in page order in index.html, so keyboard focus follows the
+   page; the phone tab bar reorders them for the thumb (see below). */
 
 /* --- Page ----------------------------------------------------------------- */
 main {
@@ -166,7 +159,19 @@ main {
   gap: 72px;
 }
 .status { color: var(--muted); }
-.status.error { color: var(--ember); }
+.status.error {
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+  background: var(--ember-bg);
+  border: 1px solid #5a3328;
+  border-radius: 12px;
+  color: var(--fg-2);
+}
+.status.error strong { color: var(--ember); font-weight: 600; }
+.status.error span:first-of-type { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
 
 .panel { min-width: 0; display: flex; flex-direction: column; gap: 24px; scroll-margin-top: 84px; }
 .panel[hidden] { display: none; }
@@ -609,7 +614,6 @@ main {
   .brand, .tabs .wide-only { display: none; }
   .tabs { flex: 1; flex-wrap: nowrap; gap: 0; }
   .tabs a {
-    order: 0;
     flex: 1;
     flex-direction: column;
     justify-content: center;
@@ -623,6 +627,10 @@ main {
     color: var(--muted);
   }
   .tabs a:hover { background: none; }
+  /* Scenarios before Characters, nearest the thumb after the Overview. */
+  .tabs a[data-tab="scenarios"] { order: 1; }
+  .tabs a[data-tab="characters"] { order: 2; }
+  .tabs a[data-tab="sessions"] { order: 3; }
   .tabs a[aria-current="page"] { color: var(--brass); border-top-color: var(--brass); font-weight: 700; }
   .tabs svg { display: block; width: 24px; height: 24px; }
 
@@ -643,7 +651,8 @@ main {
 
   .hero { display: flex; flex-direction: column; align-items: stretch; gap: 28px; }
   .hero-decor { display: block; }
-  .ready { align-self: stretch; }
+  .ready { align-self: stretch; order: 1; }
+  .tiles { order: 2; }
   .party-name { font-size: 54px; line-height: 1; }
   .ready-head { margin-bottom: 4px; }
   .ready-list { display: flex; gap: 12px; overflow-x: auto; margin: 0 -20px; padding: 0 20px; scrollbar-width: none; }

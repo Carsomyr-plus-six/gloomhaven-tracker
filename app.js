@@ -341,10 +341,13 @@ function renderOverview(data) {
         heroDecor(),
         h("div", { class: "eyebrow" }, eyebrowText(data.edition || "Gloomhaven", party.location)),
         h("h1", { class: "party-name" }, party.name || "Unnamed party")),
+      // Tiles before Ready to play: the left column reads first on wide
+      // screens. Phones show Ready to play first (styles.css).
+      h("div", { class: "tiles" }, reputationTile(party, data.ledger), prosperityTile(city, data.ledger), levelTile(data)),
       h("div", { class: "ready" },
         h("div", { class: "ready-head" },
           h("h2", {}, "Ready to play"),
-          h("a", { href: "#scenarios" }, `All ${plural(data.scenarios.length, "scenario")}`)),
+          h("a", { href: "#scenarios" }, data.scenarios.length > 1 ? `All ${data.scenarios.length} scenarios` : "Scenarios")),
         ready.length
           ? h("div", { class: "ready-list" }, ready.map(s =>
               h("a", { class: "ready-card", href: "#scenarios", onclick: () => openScenario(data, s.number) },
@@ -352,8 +355,7 @@ function renderOverview(data) {
                 h("span", {},
                   h("span", { class: "ready-name" }, s.name || "Untitled"),
                   from(s) ? h("span", { class: "ready-from" }, from(s)) : null))))
-          : empty("Nothing is unlocked to play right now.")),
-      h("div", { class: "tiles" }, reputationTile(party, data.ledger), prosperityTile(city, data.ledger), levelTile(data))),
+          : empty("Nothing is unlocked to play right now."))),
     todoList(data),
     partyList(data),
   ];
@@ -1262,7 +1264,8 @@ function unlockMap(data, all, layout) {
     for (const ky of ys) line(elbow, ky, GAP / 2, T);
   }
 
-  const nodes = all.map(s => {
+  // In tree order, so Tab walks down each branch rather than by number.
+  const nodes = layout.flat.map(({ s }) => {
     const node = h("button", {
         type: "button", class: `node ${s.status}`, "data-key": `node-${s.number}`, "data-scenario": s.number,
         "aria-pressed": String(s.number === scenarioPicked),
@@ -1751,6 +1754,9 @@ function applyDraft(raw, d, data) {
       return { character: name, xp: num(r.xp), gold: num(r.gold), checkmarks: s.result === "success" ? num(r.checkmarks) : 0 };
     });
     for (const r of results) { gain(r.character, "xp", r.xp); gain(r.character, "gold", r.gold); gain(r.character, "checkmarks", r.checkmarks); }
+    // Easy to skip someone at the table; a failed scenario keeps XP and gold too.
+    const blank = party.filter(name => !String(s.results[name]?.xp ?? "").trim() && !String(s.results[name]?.gold ?? "").trim());
+    if (info && blank.length) warnings.push(`${label}: no XP or gold entered for ${blank.join(", ")}.`);
 
     if (s.result !== "success") { log.push(`${label}: failed`); continue; }
 
@@ -1891,8 +1897,28 @@ function renderRecorder(data) {
     if (again) rerender(); else saveDraft();
   };
   const field = (label, control, extra = "") => h("label", { class: `field ${extra}`.trim() }, h("span", {}, label), control);
-  const text = (key, obj, prop, attrs = {}) => h("input", { "data-key": key, value: obj[prop] ?? "", oninput: set(obj, prop),
-                                                           onchange: () => rerender(), ...attrs });
+  // Typing in a box only refreshes the summary: redrawing the form would
+  // replace the box you're moving to, losing your tap or Tab. A box that
+  // changes the form (a scenario, treasure or event number, which shows
+  // what it is underneath) redraws once you leave it, then puts focus back
+  // on whichever box you went to.
+  let relayout = false;
+  const text = (key, obj, prop, attrs = {}, layout = false) => h("input", {
+    "data-key": key, value: obj[prop] ?? "", ...attrs,
+    oninput: e => { set(obj, prop)(e); refreshSummary(); },
+    onchange: layout ? () => { relayout = true; } : null,
+    onfocusout: layout ? e => {
+      if (!relayout) return;
+      relayout = false;
+      const next = e.relatedTarget?.dataset?.key;
+      rerender();
+      const box = next && document.querySelector(`[data-key="${CSS.escape(next)}"]`);
+      box?.focus();
+      // A refocused box puts the caret at the start; select its contents
+      // instead, so typing replaces the value as a fresh tap would suggest.
+      if (box?.tagName === "INPUT") box.select();
+    } : null,
+  });
   const select = (key, obj, prop, options, again = true) => h("select", { "data-key": key, onchange: set(obj, prop, again) },
     options.map(([value, label]) => h("option", { value, selected: String(obj[prop] ?? "") === String(value) }, label)));
   const remove = (list, i, what) => h("button", { type: "button", class: "btn quiet", onclick: () => { list.splice(i, 1); rerender(); } }, `Remove ${what}`);
@@ -1910,7 +1936,7 @@ function renderRecorder(data) {
     return h("fieldset", { class: "card rec-block" },
       h("legend", {}, `Scenario ${i + 1}`),
       h("div", { class: "rec-row" },
-        field("Number", text(`sc-${i}-n`, s, "number", { type: "number", min: 1, max: 95, list: "rec-available", inputmode: "numeric" }), "short"),
+        field("Number", text(`sc-${i}-n`, s, "number", { type: "number", min: 1, max: 95, list: "rec-available", inputmode: "numeric", "aria-label": "Scenario number" }, true), "short"),
         field("Result", select(`sc-${i}-r`, s, "result", [["success", "Success"], ["failure", "Failure"]]))),
       n ? h("p", { class: "small muted" }, info ? `${info.name}${s.result === "success" && rewards.length ? ` · rewards: ${rewards.join(", ")}` : ""}` : "Not a scenario number.") : null,
       party.length ? h("div", { class: "rec-results" },
@@ -1920,16 +1946,16 @@ function renderRecorder(data) {
           const r = s.results[c.name];
           return h("div", { class: "rec-row" },
             h("strong", { class: "rec-who" }, c.name),
-            field("XP", text(`sc-${i}-${c.name}-xp`, r, "xp", { type: "number", min: 0, inputmode: "numeric" }), "short"),
-            field("Gold", text(`sc-${i}-${c.name}-gold`, r, "gold", { type: "number", min: 0, inputmode: "numeric" }), "short"),
+            field("XP", text(`sc-${i}-${c.name}-xp`, r, "xp", { type: "number", min: 0, inputmode: "numeric", "aria-label": `${c.name}: XP` }), "short"),
+            field("Gold", text(`sc-${i}-${c.name}-gold`, r, "gold", { type: "number", min: 0, inputmode: "numeric", "aria-label": `${c.name}: gold` }), "short"),
             s.result === "success"
-              ? field("Checkmarks", text(`sc-${i}-${c.name}-cm`, r, "checkmarks", { type: "number", min: 0, max: 3, inputmode: "numeric" }), "short")
+              ? field("Checkmarks", text(`sc-${i}-${c.name}-cm`, r, "checkmarks", { type: "number", min: 0, max: 3, inputmode: "numeric", "aria-label": `${c.name}: battle goal checkmarks` }), "short")
               : null);
         })) : null,
       s.result === "success" ? h("div", { class: "rec-results" },
         h("span", { class: "label" }, "Treasures looted"),
         s.treasures.map((t, j) => h("div", { class: "rec-row" },
-          field("Number", text(`sc-${i}-t${j}-n`, t, "number", { inputmode: "numeric", placeholder: "07" }), "short"),
+          field("Number", text(`sc-${i}-t${j}-n`, t, "number", { inputmode: "numeric", placeholder: "07", "aria-label": "Treasure number" }, true), "short"),
           field("Looted by", select(`sc-${i}-t${j}-c`, t, "character", partyOptions)),
           t.number ? h("span", { class: "small muted rec-note" }, treasureParts(scenarioRef, t.number).map(describeTreasurePart).join(", ") || "Not in the treasure index") : null,
           remove(s.treasures, j, "treasure"))),
@@ -1942,7 +1968,7 @@ function renderRecorder(data) {
     const pays = options && JSON.stringify(options).includes('"type":"pay');
     return h("div", { class: "rec-row" },
       field("Deck", select(`ev-${i}-d`, e, "deck", [["city", "City"], ["road", "Road"]])),
-      field("Number", text(`ev-${i}-n`, e, "number", { type: "number", min: 1, inputmode: "numeric" }), "short"),
+      field("Number", text(`ev-${i}-n`, e, "number", { type: "number", min: 1, inputmode: "numeric", "aria-label": "Event number" }, true), "short"),
       field("Option", select(`ev-${i}-o`, e, "option", [["", "–"], ["A", "A"], ["B", "B"]])),
       field("Before", select(`ev-${i}-s`, e, "scenario",
         [["", "In town / between"], ...d.scenarios.filter(s => num(s.number)).map(s => [num(s.number), `#${num(s.number)}`])])),
@@ -1968,21 +1994,34 @@ function renderRecorder(data) {
       remove(d.perks, i, "perk"));
   };
 
-  const { out, log, warnings } = applyDraft(rawCampaign, d, data);
-  const json = formatJson(out) + "\n";
-  const download = () => {
-    const url = URL.createObjectURL(new Blob([json], { type: "application/json" }));
-    const a = h("a", { href: url, download: "campaign.json" });
-    document.body.append(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  // What the draft changes, with the download. Rebuilt on its own as you type.
+  const summary = () => {
+    const { out, log, warnings } = applyDraft(rawCampaign, d, data);
+    const json = formatJson(out) + "\n";
+    const download = () => {
+      const url = URL.createObjectURL(new Blob([json], { type: "application/json" }));
+      const a = h("a", { href: url, download: "campaign.json" });
+      document.body.append(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    };
+    const copy = async e => {
+      const button = e.currentTarget;
+      try { await navigator.clipboard.writeText(json); button.textContent = "Copied"; }
+      catch { button.textContent = "Couldn't copy"; }
+    };
+    return h("div", { class: "card rec-block rec-summary" },
+      h("h3", { class: "subtitle" }, "What changes"),
+      warnings.map(w => nudge("question", "Check", w)),
+      h("ul", {}, [`A session on ${formatDate(d.date) || "an undated evening"} with ${d.party.join(", ") || "no one"}`, ...log].map(line => h("li", {}, line))),
+      h("p", { class: "small muted" }, "Download the new campaign.json and put it in place of the old one in the repository. Nothing is saved anywhere else; this draft stays in this browser until you discard it."),
+      h("div", { class: "rec-buttons" },
+        h("button", { type: "button", class: "btn primary", onclick: download }, "Download campaign.json"),
+        h("button", { type: "button", class: "btn", onclick: copy }, "Copy to clipboard"),
+        h("button", { type: "button", class: "btn quiet", onclick: () => { if (confirm("Discard this draft?")) { dropDraft(); render(data, "sessions"); } } }, "Discard draft")));
   };
-  const copy = async e => {
-    const button = e.currentTarget;
-    try { await navigator.clipboard.writeText(json); button.textContent = "Copied"; }
-    catch { button.textContent = "Couldn't copy"; }
-  };
+  const refreshSummary = () => document.querySelector(".rec-summary")?.replaceWith(summary());
 
   return h("div", { class: "recorder" },
     h("datalist", { id: "rec-available" }, available.map(s => h("option", { value: s.number }, `#${s.number} ${s.name || ""}`))),
@@ -2018,16 +2057,8 @@ function renderRecorder(data) {
         : null),
     h("fieldset", { class: "card rec-block" },
       h("legend", {}, "Notes"),
-      h("textarea", { "data-key": "rec-notes", rows: 3, oninput: set(d, "notes") }, d.notes)),
-    h("div", { class: "card rec-block rec-summary" },
-      h("h3", { class: "subtitle" }, "What changes"),
-      warnings.map(w => nudge("question", "Check", w)),
-      h("ul", {}, [`A session on ${formatDate(d.date) || "an undated evening"} with ${d.party.join(", ") || "no one"}`, ...log].map(line => h("li", {}, line))),
-      h("p", { class: "small muted" }, "Download the new campaign.json and put it in place of the old one in the repository. Nothing is saved anywhere else; this draft stays in this browser until you discard it."),
-      h("div", { class: "rec-buttons" },
-        h("button", { type: "button", class: "btn primary", onclick: download }, "Download campaign.json"),
-        h("button", { type: "button", class: "btn", onclick: copy }, "Copy to clipboard"),
-        h("button", { type: "button", class: "btn quiet", onclick: () => { if (confirm("Discard this draft?")) { dropDraft(); render(data, "sessions"); } } }, "Discard draft"))));
+      h("textarea", { "data-key": "rec-notes", rows: 3, "aria-label": "Notes", oninput: set(d, "notes") }, d.notes)),
+    summary());
 }
 
 // --- Sessions -------------------------------------------------------------------
@@ -2271,8 +2302,23 @@ async function start() {
     // Arriving on a link to a section: go there now that it exists.
     if (location.hash.length > 1) document.getElementById(location.hash.slice(1))?.scrollIntoView();
   } catch (err) {
+    // Nothing to show, so say what probably went wrong and drop the menu,
+    // whose links would lead nowhere.
+    const requested = new URLSearchParams(location.search).has("data");
+    const hint = location.protocol === "file:"
+      ? "The page was opened straight from a file, and browsers won't let it read campaign.json that way. Run a small web server in the folder (py -m http.server 8000) and open http://127.0.0.1:8000/."
+      : err instanceof SyntaxError
+        ? "The file isn't valid JSON. A missing comma or quote is the usual cause; the error above says where."
+        : requested
+          ? "Check the file named after ?data= in the address exists, or open the page without it."
+          : "campaign.json should sit next to index.html.";
     status.classList.add("error");
-    status.textContent = `Couldn't load the campaign (${url.pathname}): ${err.message}`;
+    status.replaceChildren(
+      h("strong", {}, "Couldn't load the campaign"),
+      h("span", {}, `${url.pathname}: ${err.message}`),
+      h("span", {}, hint));
+    document.querySelector(".tabs")?.style.setProperty("display", "none");
+    document.getElementById("footer").hidden = true;
   }
 }
 
