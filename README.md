@@ -13,7 +13,7 @@ It runs on GitHub Pages, so it works on phones and desktops without installing a
 | `campaign.json` | The campaign itself. This is the file you edit. |
 | `index.html` | The page skeleton: header, tabs, empty sections. |
 | `styles.css` | How it looks: one dark theme, with the phone layout at the bottom of the file. |
-| `app.js` | Reads `campaign.json` and fills in the page. Also works out levels, reputation and prosperity, event outcomes and decks, achievements, item designs, unlocked classes, what treasures gave, shop prices, the unlock map, and which scenarios are unlocked or blocked. |
+| `app.js` | Reads `campaign.json` and fills in the page. Also works out levels, reputation and prosperity, event outcomes and decks, achievements, item designs, unlocked classes, what treasures gave, the shop (stock, prices, who carries what), the unlock map, and which scenarios are unlocked or blocked. |
 | `data/gloomhaven-scenarios.json` | Reference data for all 95 scenarios: unlocks, blocks, requirements, rewards; and what each treasure tile gives. Generated, don't edit by hand. **Contains spoilers.** |
 | `data/gloomhaven-events.json` | Reference data for city and road events: starting decks, and each option's outcomes: the condition, what happens to the card, and the effects (reputation, prosperity, gold, XP, achievements, cards added, scenarios unlocked), plus each class's unlock and retirement events. No event text. Generated, **contains spoilers**. |
 | `data/gloomhaven-items.json` | Reference data for the 150 items: name, cost, copies, slot, and the prosperity that puts them in the shop. No item text. Generated, **contains spoilers**. |
@@ -73,7 +73,7 @@ Add an entry that isn't completed only when the reference data can't know about 
 - A scenario unlocked some other way (a choice, a treasure, an event): `{ "number": 15, "status": "available", "unlockedBy": 13 }`
 - A scenario you've decided to treat as blocked: `{ "number": 5, "status": "blocked", "notes": "Why" }`
 
-**characters**: the page works out the level from `xp` and the perks earned from `checkmarks`. Set `retired` to `true` when a character retires: the page adds a prosperity checkmark and the class's retirement events. Personal quests are secret, so `personalQuest` holds only the progress (like `"2/15"`), never the quest's name.
+**characters**: the page works out the level from `xp` and the perks earned from `checkmarks`. Set `retired` to `true` when a character retires: the page adds a prosperity checkmark and the class's retirement events. Spell `items` as the item cards do: the Shop counts those copies as out of stock (a retired character's items go back) and flags an item it doesn't know or doesn't sell yet. Personal quests are secret, so `personalQuest` holds only the progress (like `"2/15"`), never the quest's name.
 
 ```json
 {

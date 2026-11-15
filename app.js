@@ -1269,6 +1269,92 @@ function renderCharacters(data) {
   ];
 }
 
+// --- Shop -----------------------------------------------------------------------
+// data/gloomhaven-items.json says what each item costs, how many copies exist
+// and at what prosperity it reaches the shop. The shop holds every item up to
+// the city's prosperity level plus the item designs the party has found;
+// copies carried by active characters are out of stock (a retired character's
+// items go back). Prices move with reputation.
+
+const SLOTS = [["head", "Head"], ["body", "Body"], ["legs", "Legs"], ["onehand", "One hand"],
+               ["twohand", "Two hands"], ["small", "Small items"]];
+
+function deriveShop(data, items, ledger) {
+  if (!items) return null;
+  const level = stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
+  const modifier = shopModifier(data.party.reputation);
+  const all = Object.entries(items.items).map(([id, item]) => ({ id: Number(id), ...item }));
+  const byName = new Map(all.map(item => [item.name.toLowerCase(), item]));
+  const designs = new Set(data.city.itemDesigns.map(d => d.name.toLowerCase()));
+  const inShop = item => (item.prosperity && item.prosperity <= level) || designs.has(item.name.toLowerCase());
+  const questions = [];
+
+  // Who carries what.
+  const owners = new Map();
+  for (const c of data.characters.filter(c => !c.retired)) {
+    for (const name of c.items) {
+      const item = byName.get(name.toLowerCase());
+      if (!item) {
+        questions.push(`${c.name} carries ${name}, which isn't in the item list. Check the spelling against the card.`);
+        continue;
+      }
+      if (!inShop(item)) {
+        const why = item.prosperity ? `the shop only has it from prosperity ${item.prosperity}` : "it only comes from a design";
+        questions.push(`${c.name} carries ${item.name}, but ${why}. Check the item, or list its design in itemDesigns if the party found one.`);
+      }
+      const list = owners.get(item.id) || [];
+      list.push(c.name);
+      owners.set(item.id, list);
+    }
+  }
+
+  const stock = all.filter(inShop).map(item => {
+    const held = owners.get(item.id) || [];
+    if (held.length > item.count) {
+      questions.push(`${item.name}: the party carries ${held.length}, but only ${item.count} exist.`);
+    }
+    return { ...item, price: Math.max(0, item.cost + modifier), sells: Math.floor(item.cost / 2),
+             held, left: Math.max(0, item.count - held.length), design: !(item.prosperity && item.prosperity <= level) };
+  }).sort((a, b) => a.id - b.id);
+
+  // Reputation that isn't settled may mean other prices.
+  const range = ledger?.reputation?.range;
+  const modifiers = range ? new Set([shopModifier(range.lo), shopModifier(range.hi), modifier]) : new Set([modifier]);
+  const coming = all.filter(item => item.prosperity === level + 1).length;
+
+  return { level, modifier, stock, questions, coming, pricesUnsure: modifiers.size > 1, range };
+}
+
+function renderShop(data) {
+  const shop = data.shop;
+  if (!shop) return null;
+  const copies = n => `${n} ${n === 1 ? "copy" : "copies"}`;
+
+  const row = item => h("li", { class: item.left ? null : "sold-out" },
+    h("span", {},
+      h("strong", {}, item.name, item.design ? h("span", { class: "tag" }, "design") : null),
+      h("span", { class: "sub" }, [
+        item.left ? `${copies(item.left)} left` : "Sold out",
+        item.held.length ? `${item.held.join(", ")} ${item.held.length === 1 ? "has" : "have"} ${item.held.length === 1 ? "one" : "them"} · sells for ${item.sells}` : null,
+      ].filter(Boolean).join(" · "))),
+    h("span", { class: "price num" }, `${item.price} gold`));
+
+  const groups = SLOTS.map(([slot, label]) => [label, shop.stock.filter(i => i.slot === slot)]).filter(([, list]) => list.length);
+  const priceNote = shop.modifier === 0 ? "normal prices" : `${signed(shop.modifier)} gold per item`;
+
+  return [
+    sectionHead("Shop", `Prosperity ${shop.level} · ${priceNote}`),
+    shop.pricesUnsure ? nudge("question", "Prices may be off",
+      `Reputation could be ${rangeText(shop.range)}, which would change prices. Settle the open events on the Overview.`) : null,
+    shop.questions.map(q => nudge("question", "Check an item", q)),
+    h("div", { class: "shop" }, groups.map(([label, list]) =>
+      h("div", { class: "card" },
+        h("h3", { class: "label" }, label),
+        h("ul", { class: "rows" }, list.map(row))))),
+    shop.coming ? h("p", { class: "aside" }, `${plural(shop.coming, "more item")} arrive${shop.coming === 1 ? "s" : ""} at prosperity ${shop.level + 1}.`) : null,
+  ];
+}
+
 // --- Sessions -------------------------------------------------------------------
 
 // What each character gained over an evening: the results of the scenarios
@@ -1335,6 +1421,7 @@ function renderSessions(data) {
 const RENDERERS = {
   overview: renderOverview,
   characters: renderCharacters,
+  shop: renderShop,
   scenarios: renderScenarios,
   sessions: renderSessions,
   events: renderEvents,
@@ -1343,7 +1430,7 @@ const RENDERERS = {
 
 // Which tab each section belongs to on a phone.
 const TAB_OF = { overview: "overview", events: "overview", record: "overview",
-                 scenarios: "scenarios", characters: "characters", sessions: "sessions" };
+                 scenarios: "scenarios", characters: "characters", shop: "characters", sessions: "sessions" };
 
 function currentTab() {
   const id = location.hash.slice(1);
@@ -1459,6 +1546,7 @@ async function start() {
     data.draws = derived.record.draws;
     data.treasureInfo = derived.record.treasures;
     data.scenarios = deriveScenarios(data, ref, derived.unlocks, evRef);
+    data.shop = deriveShop(data, items, data.ledger);
 
     if (data.party.name) {
       document.getElementById("title").textContent = data.party.name;
