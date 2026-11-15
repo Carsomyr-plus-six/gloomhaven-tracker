@@ -74,7 +74,7 @@ def main():
     }
 
     OUTPUT.parent.mkdir(exist_ok=True)
-    OUTPUT.write_text(json.dumps(output, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    OUTPUT.write_text(json.dumps(output, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
     print(f"Wrote {len(scenarios)} scenarios to {OUTPUT}")
 
 
