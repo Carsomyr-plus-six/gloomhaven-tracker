@@ -4,7 +4,7 @@ A small website for tracking our Gloomhaven (first edition) campaign: the party,
 
 Live site: https://carsomyr-plus-six.github.io/gloomhaven-tracker/
 
-It runs on GitHub Pages, so it works on phones and desktops without installing anything. Campaign data lives in this repository, so every change is a commit and the history of the campaign is the history of the repo.
+It runs on GitHub Pages, so it works on phones and desktops without installing anything. On a phone it is four tabs along the bottom, made to be read at the table; on a wide screen the whole campaign is one page. Campaign data lives in this repository, so every change is a commit and the history of the campaign is the history of the repo.
 
 ## Files
 
@@ -12,8 +12,8 @@ It runs on GitHub Pages, so it works on phones and desktops without installing a
 | --- | --- |
 | `campaign.json` | The campaign itself. This is the file you edit. |
 | `index.html` | The page skeleton: header, tabs, empty sections. |
-| `styles.css` | How it looks, including dark mode. |
-| `app.js` | Reads `campaign.json` and fills in the page. Also works out levels, prosperity, shop prices, and which scenarios are unlocked or blocked. |
+| `styles.css` | How it looks: one dark theme, with the phone layout at the bottom of the file. |
+| `app.js` | Reads `campaign.json` and fills in the page. Also works out levels, prosperity, shop prices, the unlock map, and which scenarios are unlocked or blocked. |
 | `data/gloomhaven-scenarios.json` | Reference data for all 95 scenarios: unlocks, blocks, requirements, rewards. Generated, don't edit by hand. **Contains spoilers.** |
 | `data/gloomhaven-events.json` | Reference data for city and road events: starting decks, and what each option adds, removes or unlocks. No event text. Generated, **contains spoilers**. |
 | `tools/update_scenario_data.py` | Regenerates both reference files: `py tools/update_scenario_data.py` |
