@@ -167,6 +167,11 @@
   ],
   "sessions": [],
   "events": [
+    { "deck": "city", "number": 1, "notes": "Option and timing not recorded." },
+    { "deck": "city", "number": 23, "notes": "Option and timing not recorded." },
+    { "deck": "city", "number": 29, "notes": "Option and timing not recorded." },
+    { "deck": "road", "number": 9, "notes": "Option and timing not recorded." },
+    { "deck": "road", "number": 28, "notes": "Option and timing not recorded." },
     { "deck": "city", "number": 21, "option": "B", "scenario": 8 }
   ],
   "eventDecks": {
