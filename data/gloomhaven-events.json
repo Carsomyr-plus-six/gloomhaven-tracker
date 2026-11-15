@@ -90,82 +90,832 @@
  "classEvents": {
   "brute": {
    "starting": true,
-   "retireEvent": 42
+   "retireEvent": 42,
+   "perks": [
+    {
+     "text": "Remove two -1 cards",
+     "count": 1
+    },
+    {
+     "text": "Replace one -1 card with one +1 card",
+     "count": 1
+    },
+    {
+     "text": "Add two +1 cards",
+     "count": 2
+    },
+    {
+     "text": "Add one +3 card",
+     "count": 1
+    },
+    {
+     "text": "Add three rolling PUSH 1 cards",
+     "count": 2
+    },
+    {
+     "text": "Add two rolling PIERCE 3 cards",
+     "count": 1
+    },
+    {
+     "text": "Add one rolling STUN card",
+     "count": 2
+    },
+    {
+     "text": "Add one rolling DISARM card and one rolling MUDDLE card",
+     "count": 1
+    },
+    {
+     "text": "Add one rolling ADD TARGET card",
+     "count": 2
+    },
+    {
+     "text": "Add one +1 SHIELD 1, self card",
+     "count": 1
+    },
+    {
+     "text": "Add one +1 card",
+     "count": 1
+    }
+   ]
   },
   "cragheart": {
    "starting": true,
-   "retireEvent": 46
+   "retireEvent": 46,
+   "perks": [
+    {
+     "text": "Remove four +0 cards",
+     "count": 1
+    },
+    {
+     "text": "Replace one -1 card with one +1 card",
+     "count": 3
+    },
+    {
+     "text": "Add one -2 card and two +2 cards",
+     "count": 1
+    },
+    {
+     "text": "Add one +1 IMMOBILIZE card",
+     "count": 2
+    },
+    {
+     "text": "Add one +2 MUDDLE card",
+     "count": 2
+    },
+    {
+     "text": "Add two rolling PUSH 2 cards",
+     "count": 1
+    },
+    {
+     "text": "Add two rolling EARTH cards",
+     "count": 2
+    },
+    {
+     "text": "Add two rolling AIR cards",
+     "count": 1
+    },
+    {
+     "text": "Ignore negative item effects",
+     "count": 1
+    },
+    {
+     "text": "Ignore negative scenario effects",
+     "count": 1
+    }
+   ]
   },
   "mindthief": {
    "starting": true,
-   "retireEvent": 47
+   "retireEvent": 47,
+   "perks": [
+    {
+     "text": "Remove two -1 cards",
+     "count": 2
+    },
+    {
+     "text": "Remove four +0 cards",
+     "count": 1
+    },
+    {
+     "text": "Replace two +1 cards with two +2 cards",
+     "count": 1
+    },
+    {
+     "text": "Replace one -2 card with one +0 card",
+     "count": 1
+    },
+    {
+     "text": "Add one +2 ICE card",
+     "count": 2
+    },
+    {
+     "text": "Add two rolling +1 cards",
+     "count": 2
+    },
+    {
+     "text": "Add three rolling PULL 1 cards",
+     "count": 1
+    },
+    {
+     "text": "Add three rolling MUDDLE cards",
+     "count": 1
+    },
+    {
+     "text": "Add two rolling IMMOBILIZE cards",
+     "count": 1
+    },
+    {
+     "text": "Add one rolling STUN card",
+     "count": 1
+    },
+    {
+     "text": "Add one rolling DISARM card and one rolling MUDDLE card",
+     "count": 1
+    },
+    {
+     "text": "Ignore negative scenario effects",
+     "count": 1
+    }
+   ]
   },
   "scoundrel": {
    "starting": true,
-   "retireEvent": 45
+   "retireEvent": 45,
+   "perks": [
+    {
+     "text": "Remove two -1 cards",
+     "count": 2
+    },
+    {
+     "text": "Remove four +0 cards",
+     "count": 1
+    },
+    {
+     "text": "Replace one -2 card with one +0 card",
+     "count": 1
+    },
+    {
+     "text": "Replace one -1 card with one +1 card",
+     "count": 1
+    },
+    {
+     "text": "Replace one +0 card with one +2 card",
+     "count": 2
+    },
+    {
+     "text": "Add two rolling +1 cards",
+     "count": 2
+    },
+    {
+     "text": "Add two rolling PIERCE 3 cards",
+     "count": 1
+    },
+    {
+     "text": "Add two rolling POISON cards",
+     "count": 2
+    },
+    {
+     "text": "Add two rolling MUDDLE cards",
+     "count": 1
+    },
+    {
+     "text": "Add one rolling INVISIBLE card",
+     "count": 1
+    },
+    {
+     "text": "Ignore negative scenario effects",
+     "count": 1
+    }
+   ]
   },
   "spellweaver": {
    "starting": true,
-   "retireEvent": 44
+   "retireEvent": 44,
+   "perks": [
+    {
+     "text": "Remove four +0 cards",
+     "count": 1
+    },
+    {
+     "text": "Replace one -1 card with one +1 card",
+     "count": 2
+    },
+    {
+     "text": "Add two +1 cards",
+     "count": 2
+    },
+    {
+     "text": "Add one +0 STUN card",
+     "count": 1
+    },
+    {
+     "text": "Add one +1 WOUND card",
+     "count": 1
+    },
+    {
+     "text": "Add one +1 IMMOBILIZE card",
+     "count": 1
+    },
+    {
+     "text": "Add one +1 CURSE card",
+     "count": 1
+    },
+    {
+     "text": "Add one +2 FIRE card",
+     "count": 2
+    },
+    {
+     "text": "Add one +2 ICE card",
+     "count": 2
+    },
+    {
+     "text": "Add one rolling EARTH card and one rolling AIR card",
+     "count": 1
+    },
+    {
+     "text": "Add one rolling LIGHT card and one rolling DARK card",
+     "count": 1
+    }
+   ]
   },
   "tinkerer": {
    "starting": true,
-   "retireEvent": 43
+   "retireEvent": 43,
+   "perks": [
+    {
+     "text": "Remove two -1 cards",
+     "count": 2
+    },
+    {
+     "text": "Replace one -2 card with one +0 card",
+     "count": 1
+    },
+    {
+     "text": "Add two +1 cards",
+     "count": 1
+    },
+    {
+     "text": "Add one +3 card",
+     "count": 1
+    },
+    {
+     "text": "Add two rolling FIRE cards",
+     "count": 1
+    },
+    {
+     "text": "Add three rolling MUDDLE cards",
+     "count": 1
+    },
+    {
+     "text": "Add one +1 WOUND card",
+     "count": 2
+    },
+    {
+     "text": "Add one +1 IMMOBILIZE card",
+     "count": 2
+    },
+    {
+     "text": "Add one +1 HEAL 2, self card",
+     "count": 2
+    },
+    {
+     "text": "Add one +0 ADD TARGET card",
+     "count": 1
+    },
+    {
+     "text": "Ignore negative scenario effects",
+     "count": 1
+    }
+   ]
   },
   "angry-face": {
    "starting": false,
    "unlockEvent": 38,
-   "retireEvent": 55
+   "retireEvent": 55,
+   "perks": [
+    {
+     "text": "Remove two -1 cards",
+     "count": 2
+    },
+    {
+     "text": "Replace two +0 cards with two +1 cards",
+     "count": 3
+    },
+    {
+     "text": "Add two rolling +1 cards",
+     "count": 2
+    },
+    {
+     "text": "Add one +2 MUDDLE card",
+     "count": 1
+    },
+    {
+     "text": "Add one +1 POISON card",
+     "count": 1
+    },
+    {
+     "text": "Add one +1 WOUND card",
+     "count": 1
+    },
+    {
+     "text": "Add one +1 IMMOBILIZE card",
+     "count": 1
+    },
+    {
+     "text": "Add one +0 STUN card",
+     "count": 1
+    },
+    {
+     "text": "Add one rolling ADD TARGET card",
+     "count": 2
+    },
+    {
+     "text": "Ignore negative scenario effects",
+     "count": 1
+    }
+   ]
   },
   "circles": {
    "starting": false,
    "unlockEvent": 33,
-   "retireEvent": 50
+   "retireEvent": 50,
+   "perks": [
+    {
+     "text": "Remove two -1 cards",
+     "count": 1
+    },
+    {
+     "text": "Replace one -2 card with one +0 card",
+     "count": 1
+    },
+    {
+     "text": "Replace one -1 card with one +1 card",
+     "count": 3
+    },
+    {
+     "text": "Add one +2 card",
+     "count": 2
+    },
+    {
+     "text": "Add two rolling WOUND cards",
+     "count": 1
+    },
+    {
+     "text": "Add two rolling POISON cards",
+     "count": 1
+    },
+    {
+     "text": "Add two rolling HEAL 1, self cards",
+     "count": 3
+    },
+    {
+     "text": "Add one rolling FIRE card and one rolling AIR card",
+     "count": 1
+    },
+    {
+     "text": "Add one rolling DARK card and one rolling EARTH card",
+     "count": 1
+    },
+    {
+     "text": "Add two +1 cards",
+     "count": 1
+    }
+   ]
   },
   "eclipse": {
    "starting": false,
    "unlockEvent": 34,
-   "retireEvent": 51
+   "retireEvent": 51,
+   "perks": [
+    {
+     "text": "Remove two -1 cards",
+     "count": 2
+    },
+    {
+     "text": "Remove four +0 cards",
+     "count": 1
+    },
+    {
+     "text": "Add one -1 DARK card",
+     "count": 2
+    },
+    {
+     "text": "Replace one -1 DARK card with one +1 DARK card",
+     "count": 2
+    },
+    {
+     "text": "Add one +1 INVISIBLE card",
+     "count": 2
+    },
+    {
+     "text": "Add three rolling MUDDLE cards",
+     "count": 2
+    },
+    {
+     "text": "Add two rolling HEAL 1, self cards",
+     "count": 1
+    },
+    {
+     "text": "Add two rolling CURSE cards",
+     "count": 1
+    },
+    {
+     "text": "Add one rolling ADD TARGET card",
+     "count": 1
+    },
+    {
+     "text": "Add two +1 cards",
+     "count": 1
+    }
+   ]
   },
   "lightning": {
    "starting": false,
    "unlockEvent": 36,
-   "retireEvent": 53
+   "retireEvent": 53,
+   "perks": [
+    {
+     "text": "Remove two -1 cards",
+     "count": 1
+    },
+    {
+     "text": "Remove four +0 cards",
+     "count": 1
+    },
+    {
+     "text": "Replace one -1 card with one +1 card",
+     "count": 2
+    },
+    {
+     "text": "Replace one +0 card with one rolling +2 card",
+     "count": 2
+    },
+    {
+     "text": "Add two rolling WOUND cards",
+     "count": 2
+    },
+    {
+     "text": "Add one rolling STUN card",
+     "count": 2
+    },
+    {
+     "text": "Add one rolling +1 DISARM card",
+     "count": 1
+    },
+    {
+     "text": "Add two rolling HEAL 1, self cards",
+     "count": 1
+    },
+    {
+     "text": "Add one +2 FIRE card",
+     "count": 2
+    },
+    {
+     "text": "Ignore negative item effects",
+     "count": 1
+    }
+   ]
   },
   "music-note": {
    "starting": false,
    "unlockEvent": 37,
-   "retireEvent": 54
+   "retireEvent": 54,
+   "perks": [
+    {
+     "text": "Remove two -1 cards",
+     "count": 2
+    },
+    {
+     "text": "Remove one -2 card",
+     "count": 1
+    },
+    {
+     "text": "Replace two +1 cards with one +4 card",
+     "count": 2
+    },
+    {
+     "text": "Replace one +0 card with one +1 IMMOBILIZE card",
+     "count": 1
+    },
+    {
+     "text": "Replace one +0 card with one +1 DISARM card",
+     "count": 1
+    },
+    {
+     "text": "Replace one +0 card with one +2 WOUND card",
+     "count": 1
+    },
+    {
+     "text": "Replace one +0 card with one +2 POISON card",
+     "count": 1
+    },
+    {
+     "text": "Replace one +0 card with one +2 CURSE card",
+     "count": 1
+    },
+    {
+     "text": "Replace one +0 card with one +3 MUDDLE card",
+     "count": 1
+    },
+    {
+     "text": "Replace one -1 card with one +0 STUN card",
+     "count": 1
+    },
+    {
+     "text": "Add three rolling +1 cards",
+     "count": 1
+    },
+    {
+     "text": "Add two rolling CURSE cards",
+     "count": 2
+    }
+   ]
   },
   "saw": {
    "starting": false,
    "unlockEvent": 39,
-   "retireEvent": 56
+   "retireEvent": 56,
+   "perks": [
+    {
+     "text": "Remove two -1 cards",
+     "count": 2
+    },
+    {
+     "text": "Remove four +0 cards",
+     "count": 1
+    },
+    {
+     "text": "Replace one +0 card with one +2 card",
+     "count": 2
+    },
+    {
+     "text": "Add one rolling +2 card",
+     "count": 2
+    },
+    {
+     "text": "Add one +1 IMMOBILIZE card",
+     "count": 2
+    },
+    {
+     "text": "Add two rolling WOUND cards",
+     "count": 2
+    },
+    {
+     "text": "Add one rolling STUN card",
+     "count": 1
+    },
+    {
+     "text": "Add one rolling HEAL 3, self card",
+     "count": 2
+    },
+    {
+     "text": "Add one +0 REFRESH AN ITEM card",
+     "count": 1
+    }
+   ]
   },
   "squidface": {
    "starting": false,
    "unlockEvent": 35,
-   "retireEvent": 52
+   "retireEvent": 52,
+   "perks": [
+    {
+     "text": "Replace one -2 card with one +0 card",
+     "count": 1
+    },
+    {
+     "text": "Replace one -1 card with one +1 card",
+     "count": 2
+    },
+    {
+     "text": "Replace one +0 card with one +2 card",
+     "count": 2
+    },
+    {
+     "text": "Add two +1 cards",
+     "count": 1
+    },
+    {
+     "text": "Add one +1 AIR card",
+     "count": 3
+    },
+    {
+     "text": "Add three rolling POISON cards",
+     "count": 1
+    },
+    {
+     "text": "Add two rolling CURSE cards",
+     "count": 1
+    },
+    {
+     "text": "Add two rolling IMMOBILIZE cards",
+     "count": 1
+    },
+    {
+     "text": "Add one rolling STUN card",
+     "count": 2
+    },
+    {
+     "text": "Add one +1 card",
+     "count": 1
+    }
+   ]
   },
   "sun": {
    "starting": false,
    "unlockEvent": 31,
-   "retireEvent": 48
+   "retireEvent": 48,
+   "perks": [
+    {
+     "text": "Remove two -1 cards",
+     "count": 2
+    },
+    {
+     "text": "Remove four +0 cards",
+     "count": 1
+    },
+    {
+     "text": "Replace one -2 card with one +0 card",
+     "count": 1
+    },
+    {
+     "text": "Replace one +0 card with one +2 card",
+     "count": 1
+    },
+    {
+     "text": "Add two rolling +1 cards",
+     "count": 2
+    },
+    {
+     "text": "Add two rolling HEAL 1, self cards",
+     "count": 2
+    },
+    {
+     "text": "Add one rolling STUN card",
+     "count": 1
+    },
+    {
+     "text": "Add two rolling LIGHT cards",
+     "count": 2
+    },
+    {
+     "text": "Add two rolling SHIELD 1, self cards",
+     "count": 1
+    },
+    {
+     "text": "Add two +1 cards",
+     "count": 1
+    },
+    {
+     "text": "Ignore negative scenario effects",
+     "count": 1
+    }
+   ]
   },
   "three-spears": {
    "starting": false,
    "unlockEvent": 32,
-   "retireEvent": 49
+   "retireEvent": 49,
+   "perks": [
+    {
+     "text": "Remove two -1 cards",
+     "count": 2
+    },
+    {
+     "text": "Remove four +0 cards",
+     "count": 1
+    },
+    {
+     "text": "Replace one +0 card with one +2 card",
+     "count": 2
+    },
+    {
+     "text": "Add two rolling +1 cards",
+     "count": 2
+    },
+    {
+     "text": "Add three rolling MUDDLE cards",
+     "count": 1
+    },
+    {
+     "text": "Add two rolling PIERCE 3 cards",
+     "count": 1
+    },
+    {
+     "text": "Add one rolling STUN card",
+     "count": 1
+    },
+    {
+     "text": "Add one rolling ADD TARGET card",
+     "count": 1
+    },
+    {
+     "text": "Add one +0 REFRESH AN ITEM card",
+     "count": 3
+    },
+    {
+     "text": "Add two +1 cards",
+     "count": 1
+    }
+   ]
   },
   "triangles": {
    "starting": false,
    "unlockEvent": 40,
-   "retireEvent": 57
+   "retireEvent": 57,
+   "perks": [
+    {
+     "text": "Remove two -1 cards",
+     "count": 2
+    },
+    {
+     "text": "Replace one -1 card with one +1 card",
+     "count": 1
+    },
+    {
+     "text": "Replace one +0 card with one +2 card",
+     "count": 2
+    },
+    {
+     "text": "Add three +0 FIRE cards",
+     "count": 1
+    },
+    {
+     "text": "Add three +0 ICE cards",
+     "count": 1
+    },
+    {
+     "text": "Add three +0 AIR cards",
+     "count": 1
+    },
+    {
+     "text": "Add three +0 EARTH cards",
+     "count": 1
+    },
+    {
+     "text": "Replace two +0 cards with one +0 FIRE card and one +0 EARTH card",
+     "count": 1
+    },
+    {
+     "text": "Replace two +0 cards with one +0 ICE card and one +0 AIR card",
+     "count": 1
+    },
+    {
+     "text": "Add two +1 PUSH 1 cards",
+     "count": 1
+    },
+    {
+     "text": "Add one +1 WOUND card",
+     "count": 1
+    },
+    {
+     "text": "Add one +0 STUN card",
+     "count": 1
+    },
+    {
+     "text": "Add one +0 ADD TARGET card",
+     "count": 1
+    }
+   ]
   },
   "two-mini": {
    "starting": false,
    "unlockEvent": 41,
-   "retireEvent": 58
+   "retireEvent": 58,
+   "perks": [
+    {
+     "text": "Remove two -1 cards",
+     "count": 1
+    },
+    {
+     "text": "Replace one -1 card with one +1 card",
+     "count": 3
+    },
+    {
+     "text": "Replace one +0 card with one +2 card",
+     "count": 2
+    },
+    {
+     "text": "Add one +1 WOUND card",
+     "count": 2
+    },
+    {
+     "text": "Add one +1 IMMOBILIZE card",
+     "count": 2
+    },
+    {
+     "text": "Add two rolling HEAL 1, self cards",
+     "count": 3
+    },
+    {
+     "text": "Add two rolling EARTH cards",
+     "count": 1
+    },
+    {
+     "text": "Ignore negative scenario effects",
+     "count": 1
+    }
+   ]
   }
  },
  "events": {

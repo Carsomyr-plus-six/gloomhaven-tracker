@@ -338,6 +338,10 @@ main {
 .perks > li { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line-soft); font-size: 14px; }
 .perks > li > span:first-of-type { flex: 1; }
 .perks .icon { font-size: 14px; color: var(--verdigris); stroke-width: 2.8; }
+.perks .unsure .icon { color: var(--brass); stroke-width: 2.2; }
+.perks .note { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
+.open-perks summary { font-size: 13px; color: var(--fg-3); cursor: pointer; padding: 6px 0 2px; }
+.open-perks li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line-soft); font-size: 14px; }
 .times { flex: none; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); font-size: 12px; font-weight: 600; color: var(--fg-3); }
 .perk-nudge { align-items: center; padding: 9px 12px; border-radius: 10px; font-weight: 600; color: var(--brass); }
 .perk-nudge .icon { margin: 0; font-size: 16px; }
