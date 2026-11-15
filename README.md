@@ -40,10 +40,10 @@ Achievements, party or global, look like this. Only `name` is required:
 { "name": "Achievement name", "scenario": 2, "notes": "Optional" }
 ```
 
-**scenarios**: one entry per scenario you've unlocked. `status` is `available`, `completed` or `blocked`. Dates are written `YYYY-MM-DD`.
+**scenarios**: one entry per scenario you've unlocked. `status` is `available`, `completed` or `blocked`. Dates are written `YYYY-MM-DD`. `treasures` lists the numbers of treasure tiles looted there, as text so leading zeros stay.
 
 ```json
-{ "number": 2, "name": "Scenario name", "status": "completed", "unlockedBy": 1, "completed": "2026-10-04", "notes": "" }
+{ "number": 2, "name": "Scenario name", "status": "completed", "unlockedBy": 1, "completed": "2026-10-04", "treasures": ["07"], "notes": "" }
 ```
 
 **characters**: the page works out the level from `xp` and the perks earned from `checkmarks`. Set `retired` to `true` when a character retires.

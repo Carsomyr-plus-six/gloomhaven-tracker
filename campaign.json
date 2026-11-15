@@ -6,7 +6,9 @@
     "name": "Craig's List",
     "reputation": 0,
     "location": "",
-    "achievements": [],
+    "achievements": [
+      { "name": "First Steps", "scenario": 1 }
+    ],
     "notes": ""
   },
   "city": {
@@ -15,7 +17,25 @@
     "globalAchievements": [],
     "unlockedClasses": ["Brute", "Tinkerer", "Spellweaver", "Scoundrel", "Cragheart", "Mindthief"]
   },
-  "scenarios": [],
+  "scenarios": [
+    {
+      "number": 1,
+      "name": "Black Barrow",
+      "status": "completed",
+      "unlockedBy": null,
+      "completed": null,
+      "treasures": ["07"],
+      "notes": "Exact XP and gold gained are lost to time."
+    },
+    {
+      "number": 2,
+      "name": "Barrow Lair",
+      "status": "available",
+      "unlockedBy": 1,
+      "completed": null,
+      "notes": ""
+    }
+  ],
   "characters": [
     {
       "name": "Azorica",

@@ -151,7 +151,8 @@ function renderScenarios(data) {
       h("div", { class: "body" },
         h("div", { class: "muted small" },
           [s.unlockedBy ? `Unlocked by #${s.unlockedBy}${name(s.unlockedBy) ? ` ${name(s.unlockedBy)}` : ""}` : null,
-           s.completed ? `Completed ${formatDate(s.completed)}` : null].filter(Boolean).join(" · ")),
+           s.completed ? `Completed ${formatDate(s.completed)}` : null,
+           s.treasures?.length ? `Treasure ${s.treasures.join(", ")} looted` : null].filter(Boolean).join(" · ")),
         notes(s.notes))))),
   ];
 }
