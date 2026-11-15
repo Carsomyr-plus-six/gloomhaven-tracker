@@ -269,20 +269,47 @@ function ledgerFoot(t, unit) {
       h("span", { class: "num" }, `${rangeText(e.range)}${unit}`)))));
 }
 
+// The track marks where shop prices change (every 4 points past ±3), shades
+// the stretch with today's prices, and labels the next step in brass.
 function reputationTile(party, ledger) {
-  const modifier = shopModifier(party.reputation);
-  const next = nextShopStep(party.reputation);
-  const marker = h("span");
-  marker.style.left = `${Math.max(0, Math.min(100, (party.reputation + 20) / 40 * 100))}%`;
+  const rep = party.reputation;
+  const modifier = shopModifier(rep);
+  const next = nextShopStep(rep);
+  const at = r => `${Math.max(0, Math.min(100, (r + 20) / 40 * 100))}%`;
+  const place = (el, r) => { el.style.left = at(r); return el; };
+  let lo = rep, hi = rep;
+  while (lo > -20 && shopModifier(lo - 1) === modifier) lo--;
+  while (hi < 20 && shopModifier(hi + 1) === modifier) hi++;
+  const band = place(h("b", { class: "band" }), lo);
+  band.style.width = `${(hi - lo) / 40 * 100}%`;
+  const steps = [3, 7, 11, 15, 19].flatMap(r => [-r, r]).map(r => place(h("i", { class: next?.at === r ? "next" : null }), r));
+  const said = `Reputation ${signed(rep)}: shop ${modifier === 0 ? "prices normal" : priceText(modifier)}${next ? `, ${priceText(next.modifier)} from ${signed(next.at)}` : ""}.`;
+  // The next step's label; the ends give way to it when it's near them.
+  const near = next && Math.abs(next.at) > 14;
   return h("div", { class: "card tile" },
-    h("div", { class: "tile-top" }, h("span", { class: "label" }, "Reputation"), h("span", { class: "figure" }, signed(party.reputation))),
-    h("div", {},
-      h("div", { class: "track", role: "presentation" }, marker),
-      h("div", { class: "track-scale" }, h("span", {}, "−20"), h("span", {}, "0"), h("span", {}, "+20"))),
+    h("div", { class: "tile-top" }, h("span", { class: "label" }, "Reputation"), h("span", { class: "figure" }, signed(rep))),
+    h("div", { role: "img", "aria-label": said },
+      h("div", { class: "track" }, band, steps, place(h("span", { class: "marker" }), rep)),
+      h("div", { class: "track-scale", "aria-hidden": "true" },
+        near && next.at < 0 ? null : h("span", {}, "−20"),
+        next ? place(h("span", { class: "step" }, `${signed(next.modifier)} gold`), next.at) : null,
+        near && next.at > 0 ? null : h("span", {}, "+20"))),
     h("div", { class: "tile-foot" },
-      h("strong", {}, modifier === 0 ? "Shop prices normal" : `Shop ${priceText(modifier)}`),
-      next ? h("span", {}, `${capitalize(priceText(next.modifier))} from ${signed(next.at)}`) : null),
+      h("strong", {}, modifier === 0 ? "Prices normal" : `Prices ${signed(modifier)} gold`)),
     ledgerFoot(ledger?.reputation, ""));
+}
+
+// Donations to the Sanctuary, a step for each 10 gold, up to the 100 that
+// open Envelope B.
+function sanctuaryMeter(city) {
+  const steps = ENVELOPE_B_DONATIONS / DONATION;
+  const given = Math.min(steps, Math.floor(city.donations / DONATION));
+  const ready = !city.envelopeB && city.donations >= ENVELOPE_B_DONATIONS;
+  return h("div", { class: "sanctuary", role: "img",
+      "aria-label": `${city.donations} gold donated to the Sanctuary. ${city.envelopeB ? "Envelope B is open." : ready ? "Envelope B can be opened." : `${ENVELOPE_B_DONATIONS - city.donations} more opens Envelope B.`}` },
+    h("div", { class: "sanctuary-head", "aria-hidden": "true" },
+      h("span", {}, "Sanctuary"), h("span", { class: ready ? "ready" : null }, city.envelopeB ? "Envelope B open" : "Envelope B")),
+    h("div", { class: "pips", "aria-hidden": "true" }, Array.from({ length: steps }, (_, i) => h("i", { class: i < given ? "on" : null }))));
 }
 
 function prosperityTile(city, ledger) {
@@ -295,12 +322,8 @@ function prosperityTile(city, ledger) {
         "aria-label": `${city.prosperityCheckmarks - from} of ${toNext.next - from} checkmarks towards prosperity ${level + 1}` },
       Array.from({ length: toNext.next - from }, (_, i) => h("span", { class: i < city.prosperityCheckmarks - from ? "on" : null }))) : null,
     h("div", { class: "tile-foot" },
-      h("strong", {}, toNext ? `${toNext.remaining} more to level ${level + 1}` : "Maximum level"),
-      h("span", {}, `${plural(city.prosperityCheckmarks, "checkmark")} · ${city.donations} gold donated`),
-      h("span", {}, city.envelopeB ? "Envelope B is open"
-        : city.donations >= ENVELOPE_B_DONATIONS
-          ? "Donations have reached 100 gold: Envelope B can be opened"
-          : `${ENVELOPE_B_DONATIONS - city.donations} more gold donated opens Envelope B`)),
+      h("strong", {}, toNext ? `${toNext.remaining} more to level ${level + 1}` : "Maximum level")),
+    sanctuaryMeter(city),
     ledgerFoot(ledger?.prosperity, ""));
 }
 
@@ -627,7 +650,8 @@ function renderEvents(data) {
         e.notes ? h("div", { class: detail ? "small muted" : null }, e.notes) : null,
         (asks.get(e) || []).map(text => h("div", { class: "ask" }, icon("question"), text))),
       h("span", { class: `fate ${e.fate || (e.unknown ? "unknown" : "open")}` },
-        e.fate ? [gameIcon(`event-${e.fate}`), capitalize(e.fate)] : e.unknown ? "Not known" : "Needs an answer"));
+        // The icons printed on event cards say it; the word is for screen readers and hover.
+        e.fate ? h("span", { title: capitalize(e.fate) }, gameIcon(`event-${e.fate}`, capitalize(e.fate))) : e.unknown ? "Not known" : "Needs an answer"));
   };
 
   return [
@@ -1429,9 +1453,12 @@ function scenarioRow(data, s, depth = 0, lines = []) {
       hex(s.number, HEX_KIND[s.status]),
       h("span", { class: "row-text" },
         h("span", { class: "row-name" }, s.name || "Untitled"),
+        // The hexagon's look says completed or available; only a block, which
+        // needs its reason, is written out. Screen readers get the word.
         h("span", { class: "row-meta" },
-          h("b", { class: `ink-${s.status}` }, blockedWhy || STATUS_LABELS[s.status] || s.status),
-          meta ? ` · ${meta}` : null)),
+          s.status === "blocked" ? h("b", { class: "ink-blocked" }, blockedWhy || STATUS_LABELS.blocked)
+            : h("span", { class: "sr-only" }, `${STATUS_LABELS[s.status] || s.status}${meta ? ", " : ""}`),
+          s.status === "blocked" && meta ? ` · ${meta}` : meta)),
       icon("chevron")),
     open ? h("div", { class: "row-body" },
       scenarioFacts(data, s),
@@ -1782,10 +1809,17 @@ function myTab(data) {
 
 // Battle-goal checkmarks, drawn as on the character sheet: six groups of
 // three, each full group being a perk.
+// A full group carries the game's checkmark: the perk it earned. The count
+// is said in words to screen readers only, as the boxes show it.
 function goalBoxes(checkmarks) {
-  return h("div", { class: "goals", role: "img", "aria-label": plural(checkmarks, "checkmark") },
-    Array.from({ length: 6 }, (_, g) => h("span", { class: (g + 1) * 3 <= checkmarks ? "full" : null },
-      Array.from({ length: 3 }, (_, b) => h("i", { class: g * 3 + b < checkmarks ? "on" : null })))));
+  const perks = perksFromCheckmarks(checkmarks);
+  return h("div", { class: "goals", role: "img", "aria-label": `${plural(checkmarks, "checkmark")}, ${plural(perks, "perk")} earned` },
+    Array.from({ length: 6 }, (_, g) => {
+      const full = (g + 1) * 3 <= checkmarks;
+      return h("span", { class: full ? "full" : null },
+        Array.from({ length: 3 }, (_, b) => h("i", { class: g * 3 + b < checkmarks ? "on" : null })),
+        full ? gameIcon("checkmark") : null);
+    }));
 }
 
 function renderCharacters(data) {
@@ -1798,7 +1832,6 @@ function renderCharacters(data) {
 
   const card = c => {
     const st = characterStats(c);
-    const fromGoals = perksFromCheckmarks(c.checkmarks);
     // The same perk taken twice shows once, with a count.
     const check = perkCheck(c);
     const perks = check.rows;
@@ -1814,9 +1847,7 @@ function renderCharacters(data) {
           h("span", { class: "xp-now num" }, `${c.xp} XP`),
           h("span", { class: `xp-next${st.close ? " close" : ""}` }, st.nextText)),
         meter(st.toNext ? st.toNext.fraction : 1, st.close),
-        st.toNext ? h("div", { class: "xp-scale num" },
-          h("span", {}, `Level ${st.level} at ${XP_FOR_LEVEL[st.level - 1]}`),
-          h("span", {}, `Level ${st.level + 1} at ${st.toNext.next}`)) : null),
+      ),
       c.retired ? null : lastLevelUps(data).filter(u => u.character === c.name).map(u =>
         nudge("plus", `Reached level ${u.level} last session`, `Add an ability card of level ${u.level} or lower.`)),
       h("div", { class: "char-stats" },
@@ -1827,14 +1858,13 @@ function renderCharacters(data) {
           h("span", { class: "quest-hint" }, "Secret, progress only")) : null),
       h("div", { class: "block goal-block" },
         h("div", { class: "block-head" },
-          h("span", { class: "label" }, gameIcon("checkmark"), "Battle goals"),
-          h("span", {}, `${plural(c.checkmarks, "checkmark")} · ${plural(fromGoals, "perk")}`)),
+          h("span", { class: "label" }, gameIcon("checkmark"), "Battle goals")),
         goalBoxes(c.checkmarks)),
       h("div", { class: "block", style: `--boxes: ${Math.max(2, ...perks.map(p => Math.max(p.count, p.match?.count || 0)),
                                                          ...(st.unspent ? check.open.map(p => p.count) : []))}` },
         h("div", { class: "block-head" },
           h("span", { class: "label" }, "Perks"),
-          st.earned || c.perks.length ? h("span", {}, `${c.perks.length} of ${st.earned} taken`) : null),
+        ),
         // Records the perk straight from the sheet, as "Before you play" does.
         perksLeft(c) ? (rawCampaign && !c.retired
           ? h("button", { type: "button", class: "nudge perk-nudge", "data-key": `perk-record-${c.name}`, onclick: () => recordPerk(data, c.name) },
@@ -1858,7 +1888,7 @@ function renderCharacters(data) {
           h("ul", {}, check.open.map(p => h("li", {},
             perkBoxes(p.count - p.left, p.left), h("span", {}, perkText(p.text)))))) : null),
       c.items.length ? h("div", { class: "block" },
-        h("div", { class: "block-head" }, h("span", { class: "label" }, "Items"), h("span", {}, `${c.items.length} carried`)),
+        h("div", { class: "block-head" }, h("span", { class: "label" }, "Items"), slotStrip(c, st.level)),
         itemProblems.map(text => nudge("question", "Too many items", text)),
         h("div", { class: "chips" }, c.items.map(i => {
           const slot = itemSlot(i);
@@ -1971,19 +2001,28 @@ function renderShop(data) {
   const row = item => h("li", { class: item.left ? (dear(item) ? "too-dear" : null) : "sold-out" },
     h("span", {},
       h("strong", {}, item.name, item.design ? h("span", { class: "tag" }, "design") : null),
-      h("span", { class: "sub" }, [
-        item.left ? `${copies(item.left)} left` : "Sold out",
+      h("span", { class: "sub" }, copyPips(item), [
         item.left && full(item) ? fullText(mine, item.slot) : null,
-        item.held.length ? `${item.held.join(", ")} ${item.held.length === 1 ? "has" : "have"} ${item.held.length === 1 ? "one" : "them"} · sells for ${item.sells}` : null,
+        item.held.length ? `sells for ${item.sells}` : null,
       ].filter(Boolean).join(" · "))),
     h("span", { class: "price num" }, `${item.price} gold`));
+
+  // One mark per copy of the item: empty while it's in the shop, the
+  // holder's class icon once someone carries it.
+  const copyPips = item => {
+    const holders = item.held.map(name => data.characters.find(c => c.name === name)).filter(Boolean);
+    const said = `${copies(item.count)}: ${item.left ? `${item.left} in the shop` : "none in the shop"}${item.held.length ? `, ${item.held.join(", ")} ${item.held.length === 1 ? "has" : "have"} ${item.held.length === 1 ? "one" : "them"}` : ""}`;
+    return h("span", { class: "copies", role: "img", "aria-label": said, title: said },
+      holders.map(c => h("i", { class: "held" }, classIcon(c.class))),
+      Array.from({ length: item.left }, () => h("i")));
+  };
 
   const groups = SLOTS.map(([slot, label]) => [slot, label, shop.stock.filter(i => i.slot === slot)]).filter(([, , list]) => list.length);
   const priceNote = shop.modifier === 0 ? "normal prices" : `${signed(shop.modifier)} gold per item`;
 
   return [
     sectionHead("Shop", `Prosperity ${shop.level} · ${priceNote}`),
-    mine ? h("p", { class: "shop-me" }, `${mine.name} has `, h("strong", {}, `${mine.gold} gold`), `, and ${freeRoom(room)}.`) : null,
+    mine ? h("p", { class: "shop-me" }, h("span", {}, `${mine.name} has `, h("strong", {}, `${mine.gold} gold`)), slotStrip(mine, characterStats(mine).level)) : null,
     shop.pricesUnsure ? pricesNote(shop, data.ledger?.reputation) : null,
     shop.questions.map(q => nudge("question", "Check an item", q)),
     h("div", { class: "shop" }, groups.map(([slot, label, list]) =>
@@ -2009,6 +2048,19 @@ function pricesNote(shop, rep) {
   const names = rep.unknown.join(", ").replace(/, ([^,]*)$/, " and $1");
   return nudge("question", "Prices could differ",
     `Reputation could be ${rangeText(shop.range)}, as ${names} ${rep.unknown.length === 1 ? "isn't" : "aren't"} known, so prices may be ${could}.`, "note");
+}
+
+// A character's item slots, as on the sheet: head, body, legs, two hands and
+// the small items their level allows, lit where something's carried (ember
+// where they carry more than there's room for).
+function slotStrip(c, level) {
+  const { used, limits } = slotUse(c, level);
+  const slots = [];
+  for (const [k, icon, count] of [["head", "head", 1], ["body", "body", 1], ["legs", "legs", 1], ["hands", "onehand", 2], ["small", "small", limits.small]]) {
+    for (let i = 0; i < Math.max(count, used[k]); i++) slots.push([icon, i < used[k], i >= count]);
+  }
+  return h("span", { class: "slots", role: "img", "aria-label": capitalize(`${freeRoom({ used, limits })}.`) },
+    slots.map(([icon, on, over]) => h("span", { class: `slot${on ? " on" : ""}${over ? " over" : ""}` }, gameIcon(`slot-${icon}`))));
 }
 
 // Why an item wouldn't fit: the slot it needs is taken.
@@ -2752,7 +2804,6 @@ function renderSessions(data) {
             h("p", {}, [
               s.title && long ? long : null,
               s.date ? formatDate(s.date, { weekday: "long" }) : "Undated",
-              s.scenarios.length ? plural(s.scenarios.length, "scenario") : null,
               s.characters?.length ? s.characters.join(", ") : null,
             ].filter(Boolean).join(" · "))),
           s.scenarios.length ? h("ul", { class: "card played" }, s.scenarios.map(sc => {
@@ -2765,7 +2816,8 @@ function renderSessions(data) {
               h("span", { class: "played-text" },
                 h("strong", {}, name || `Scenario ${sc.number}`),
                 meta.length ? h("span", {}, meta.join(" · ")) : null),
-              h("span", { class: `result ${won ? "success" : "failure"}` }, icon(won ? "check" : "cross"), won ? "Success" : "Failure"));
+              h("span", { class: `result ${won ? "success" : "failure"}`, role: "img", "aria-label": won ? "Success" : "Failure", title: won ? "Success" : "Failure" },
+                icon(won ? "check" : "cross")));
           })) : null,
           haul.length ? h("div", { class: "haul" },
             h("h4", { class: "label" }, "The evening's haul"),
