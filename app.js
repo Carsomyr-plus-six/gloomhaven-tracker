@@ -547,14 +547,36 @@ function tonightStrip(data) {
   const t = tonight(data);
   const decks = data.eventState?.decks;
   const shop = data.shop;
-  const step = (n, label, value, href) => h("a", { class: "tonight-step", href },
-    hex(n, "quiet"), h("span", {}, h("span", { class: "label" }, label), h("span", { class: "tonight-value" }, value)));
+  // A step already in the draft says what it was, ticked; the event steps
+  // open the form at an event row for that deck, ready for its number.
+  const step = (n, label, value, href, run, done) => h("a", {
+      class: `tonight-step${done ? " done" : ""}`, href,
+      onclick: run && rawCampaign ? e => { e.preventDefault(); run(); } : null },
+    hex(n, done ? "completed" : "quiet"),
+    h("span", { class: "tonight-text" }, h("span", { class: "label" }, label), h("span", { class: "tonight-value" }, value)),
+    done ? h("span", { class: "tonight-done" }, icon("check", "In the draft")) : null);
   const recording = draftChanges(draft, data);
+  const drawn = deck => (draft?.events || []).filter(e => e.deck === deck && num(e.number))
+    .map(e => `${eventLabel(deck, num(e.number))}${e.option ? ` · option ${e.option}` : ""}`).join(", ");
+  const town = draft ? [
+    [(draft.buys || []).filter(b => b.character && b.item).length, "purchase"],
+    [(draft.sells || []).filter(x => x.character && x.item).length, "sale"],
+    [(draft.perks || []).filter(p => p.character && p.perk).length, "perk"],
+    [(draft.donations || []).filter(x => x.character).length, "donation"],
+    [(draft.enhancements || []).filter(x => x.character).length, "enhancement"],
+  ].filter(([n]) => n).map(([n, what]) => plural(n, what)).join(", ") : "";
+  const played = (draft?.scenarios || []).filter(s => num(s.number));
+  const firstPlayed = (draft?.scenarios || []).findIndex(s => num(s.number));
   return h("nav", { class: "tonight", "aria-label": "Tonight, step by step" },
-    step(1, "City event", decks ? `${decks.city.size} in the deck` : "Draw one", "#events"),
-    step(2, "In town", shop ? (shop.modifier === 0 ? "Normal prices" : `Prices ${signed(shop.modifier)} gold`) : "Shop, perks, Sanctuary", "#shop"),
-    step(3, "Road event", (decks ? `${decks.road.size} in the deck` : "Draw one") + straightOn(data), "#events"),
-    step(4, "Scenario", t ? `Level ${t.level} · deal battle goals` : "Pick who is playing", "#scenarios"),
+    step(1, "City event", drawn("city") || (decks ? `${decks.city.size} in the deck` : "Draw one"), "#events",
+      () => recordEvent(data, "city"), Boolean(drawn("city"))),
+    step(2, "In town", town || (shop ? (shop.modifier === 0 ? "Normal prices" : `Prices ${signed(shop.modifier)} gold`) : "Shop, perks, Sanctuary"),
+      "#shop", null, Boolean(town)),
+    step(3, "Road event", drawn("road") || (decks ? `${decks.road.size} in the deck` : "Draw one") + straightOn(data), "#events",
+      () => recordEvent(data, "road"), Boolean(drawn("road"))),
+    step(4, "Scenario", played.length ? played.map(s => scenarioLabel(data, num(s.number))).join(", ")
+      : t ? `Level ${t.level} · deal battle goals` : "Pick who is playing", "#scenarios",
+      played.length ? () => showInRecorder(data, `sc-${firstPlayed}-n`) : null, played.length > 0),
     rawCampaign ? h("button", { type: "button", class: `btn${recording ? "" : " primary"} tonight-record`, "data-key": "tonight-record",
       onclick: () => { if (!draft) draft = newDraft(data); showInRecorder(data, "rec-date"); } },
       recording ? "Go on recording" : "Record the evening") : null);
@@ -607,7 +629,8 @@ function todoItems(data) {
   }
 
   for (const d of data.draws || []) add(`Draw ${d.what} (${d.from}).`, "#record");
-  for (const c of data.claims || []) add(`Treasure ${c.treasure} in ${c.where} gave ${c.item}: who looted it?`, "#record");
+  (data.claims || []).forEach((c, i) => add(`Treasure ${c.treasure} in ${c.where} gave ${c.item}: who looted it?`, "#record", null,
+    rawCampaign ? { label: "Record it", run: () => recordClaim(data, i) } : null));
 
   // What the rulebook opens when the campaign reaches it (p. 49).
   const rep = data.party.reputation;
@@ -688,6 +711,32 @@ function recordAdvance(data, name) {
   draft.advances ||= [];
   if (!draft.advances.includes(name)) draft.advances.push(name);
   showInRecorder(data, `adv-${name}`);
+}
+
+// From the Tonight row: the form at an event row for that deck, a new one
+// unless the draft already has one.
+function recordEvent(data, deck) {
+  if (!draft) draft = newDraft(data);
+  let i = draft.events.findIndex(e => e.deck === deck);
+  if (i < 0) { draft.events.push({ ...newEvent(), deck }); i = draft.events.length - 1; }
+  showInRecorder(data, `ev-${i}-n`);
+}
+
+// "Record it" on the enhancement calculator: what it worked out, in the
+// draft, for whoever is shopping (or to pick in the form).
+function recordEnhancement(data, what, cost) {
+  if (!draft) draft = newDraft(data);
+  draft.enhancements ||= [];
+  const who = data.characters.find(c => !c.retired && c.name === (shopFor === undefined ? me : shopFor));
+  draft.enhancements.push({ character: who?.name || "", what, cost });
+  showInRecorder(data, `enr-${draft.enhancements.length - 1}-c`);
+}
+
+// "Record it" on an open question about a past treasure: the form at its
+// "Looted by".
+function recordClaim(data, i) {
+  if (!draft) draft = newDraft(data);
+  showInRecorder(data, `claim-${i}-c`);
 }
 
 // "Buy" in the Shop: a purchase in the draft, shown in the recorder.
@@ -2440,8 +2489,8 @@ function freeRoom({ used, limits }) {
   return free.length ? `room for ${free.join(", ").replace(/, ([^,]*)$/, " and $1")}` : "no free slots";
 }
 
-// The Enhancer: what a sticker costs, from what's printed on the card. Not
-// saved anywhere; buying one is still a hand edit to the character's gold.
+// The Enhancer: what a sticker costs, from what's printed on the card.
+// "Record it" puts the enhancement in the draft, which takes the gold off.
 const enhancing = { sticker: "attack", level: "1", multi: false, previous: "0", hexes: "3" };
 
 function enhancer(data) {
@@ -2477,7 +2526,14 @@ function enhancer(data) {
         h("ul", { class: "rows" }, cost.steps.map(([text, gold]) => h("li", {}, h("span", {}, text), h("span", { class: "num" }, `+${gold}`)))),
         h("p", { class: "small muted" }, afford.length
           ? `${afford.join(", ").replace(/, ([^,]*)$/, " and $1")} ${afford.length === 1 ? "has" : "have"} enough gold.`
-          : "No one has enough gold yet."))));
+          : "No one has enough gold yet."),
+        rawCampaign ? h("button", { type: "button", class: "todo-do enhancer-record", "data-key": "enh-record",
+          onclick: () => recordEnhancement(data, enhancementText(key), cost.total) }, "Record it") : null)));
+  function enhancementText(k) {
+    const label = ENHANCEMENTS.flatMap(([, list]) => list).find(([key]) => key === k)?.[1] || k;
+    return [label, enhancing.multi && canDouble(k) ? "more than one target" : null, `level ${enhancing.level} card`,
+            Number(enhancing.previous) ? `${enhancing.previous} already on it` : null].filter(Boolean).join(", ");
+  }
 }
 
 // --- Recording a session ------------------------------------------------------------
@@ -2540,7 +2596,7 @@ function newDraft(data) {
   const party = [...(levelParty || defaultLevelParty(data))].filter(n => active.has(n));
   return { id: draftId(), date: today(), title: "", party, notes: "", advances: [],
            scenarios: [], events: [], buys: [], sells: [], perks: [], donations: [],
-           retirements: [], newCharacters: [] };
+           enhancements: [], claims: {}, retirements: [], newCharacters: [] };
 }
 // A scenario starts at the level for who is playing in the form (newcomers
 // included), at the Overview's difficulty; the form can change it.
@@ -2813,6 +2869,20 @@ function applyDraft(raw, d, data) {
   session.notes = d.notes || "";
   if (evening) out.sessions.push(session);
 
+  // Past treasures settled: who looted them, and the item onto their sheet,
+  // or back in the shop's supply if they've sold it since (p. 43).
+  for (const c of data.claims || []) {
+    const x = d.claims?.[`${c.where}:${c.treasure}`];
+    if (!x?.character) continue;
+    const sc = out.scenarios.find(s => `#${s.number}` === c.where);
+    const k = (sc?.treasures || []).findIndex(t => String(typeof t === "object" ? t.number : t) === String(c.treasure));
+    if (k < 0) continue;
+    const t = sc.treasures[k];
+    sc.treasures[k] = { ...(typeof t === "object" ? t : { number: t }), character: x.character };
+    if (x.kept !== false) giveItem(x.character, c.item); else returnItem(c.item);
+    log.push(`Treasure ${c.treasure} in ${c.where}: ${x.character} looted ${c.item}${x.kept !== false ? "" : ", and has since sold it"}`);
+  }
+
   // Advancing to the prosperity level: XP up to that level's start (p. 48).
   const cityLevel = stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
   for (const name of d.advances || []) {
@@ -2896,6 +2966,12 @@ function applyDraft(raw, d, data) {
     out.city.envelopeB = true;
     log.push("Envelope B opened");
   }
+  for (const x of (d.enhancements || []).filter(x => x.character)) {
+    const c = who(x.character);
+    if (!c) continue;
+    c.gold = (c.gold || 0) - num(x.cost);
+    log.push(`${x.character} enhances a card (${x.what}) for ${num(x.cost)} gold`);
+  }
   for (const p of d.perks.filter(p => p.character && p.perk)) {
     who(p.character).perks.push(p.perk);
     log.push(`${p.character} takes "${p.perk}"`);
@@ -2952,6 +3028,8 @@ function formatJson(value, indent = "", mode = "auto") {
 function renderRecorder(data) {
   const d = draft;
   d.donations ||= [];
+  d.enhancements ||= [];
+  d.claims ||= {};
   d.retirements ||= [];
   d.newCharacters ||= [];
   // A change to the form's rows redraws it, and the Overview and sheets too:
@@ -3270,7 +3348,7 @@ function renderRecorder(data) {
       h("div", { class: "card rec-block" },
         h("div", { class: "rec-row" },
           field("Date", text("rec-date", d, "date", { type: "date" })),
-          field("Title (optional)", text("rec-title", d, "title", { placeholder: "Only if there's no date" }), "wide")),
+          field("Title (optional)", text("rec-title", d, "title", { placeholder: "Under the date, or instead of it" }), "wide")),
         h("div", { class: "field" },
           h("span", { id: "rec-who-label" }, "Who played"),
           h("div", { class: "filters", role: "group", "aria-labelledby": "rec-who-label" }, active.map(c =>
@@ -3302,11 +3380,16 @@ function renderRecorder(data) {
         addButton("add-retire", "Retire a character", () => d.retirements.push({ character: "", unlocks: "" }), () => `ret-${d.retirements.length - 1}-c`),
         addButton("add-new", "Add a new character", () => d.newCharacters.push({ name: "", class: "", level: "1", playing: true }), () => `new-${d.newCharacters.length - 1}-n`))),
     h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Shop, perks and the Sanctuary"),
-      d.buys.length || d.sells.length || d.perks.length || d.donations.length
+      d.buys.length || d.sells.length || d.perks.length || d.donations.length || d.enhancements.length
         ? h("div", { class: "card rec-block" }, d.buys.map(buyBlock), d.sells.map(sellBlock), d.perks.map(perkBlock),
             d.donations.map((x, i) => h("div", { class: "rec-row" },
               field(`Donates ${DONATION} gold`, select(`don-${i}-c`, x, "character", partyOptions)),
-              remove(d.donations, i, "donation", "add-donation")))) : null,
+              remove(d.donations, i, "donation", "add-donation"))),
+            // Enhancements, from the calculator's Record it.
+            d.enhancements.map((x, i) => h("div", { class: "rec-row" },
+              field("Who enhances", select(`enr-${i}-c`, x, "character", activeOptions)),
+              h("span", { class: "small muted rec-note" }, `${x.what}: ${x.cost} gold`),
+              remove(d.enhancements, i, "enhancement", "add-buy")))) : null,
       h("div", { class: "rec-buttons" },
         addButton("add-buy", "Buy an item", () => d.buys.push({ character: "", item: "" }), () => `buy-${d.buys.length - 1}-c`),
         addButton("add-sell", "Sell an item", () => d.sells.push({ character: "", item: "" }), () => `sell-${d.sells.length - 1}-c`),
@@ -3317,6 +3400,18 @@ function renderRecorder(data) {
             h("input", { type: "checkbox", "data-key": "rec-envelope-b", checked: Boolean(d.envelopeB), onchange: set(d, "envelopeB", true) }),
             "We opened Envelope B")
         : null),
+    // Open questions about past treasures, settled here rather than by
+    // editing campaign.json.
+    (data.claims || []).length ? h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Settling the record"),
+      h("div", { class: "card rec-block" }, data.claims.map((c, i) => {
+        const x = d.claims[`${c.where}:${c.treasure}`] ||= { character: "", kept: true };
+        return h("div", { class: "rec-row" },
+          h("strong", { class: "rec-who" }, `Treasure ${c.treasure} in ${c.where}: ${c.item}`),
+          field("Looted by", select(`claim-${i}-c`, x, "character", [["", "Not settled"], ...data.characters.map(ch => [ch.name, ch.name])])),
+          x.character ? h("label", { class: "rec-check" },
+            h("input", { type: "checkbox", "data-key": `claim-${i}-k`, checked: x.kept !== false, onchange: set(x, "kept", true) }),
+            `${x.character} still has it`) : null);
+      }))) : null,
     h("div", { class: "rec-section" }, h("h3", { class: "subtitle", id: "rec-notes-label" }, "Notes"),
       h("div", { class: "card rec-block" },
         h("textarea", { "data-key": "rec-notes", rows: 3, "aria-labelledby": "rec-notes-label", oninput: set(d, "notes") }, d.notes))),
@@ -3378,9 +3473,12 @@ function renderSessions(data) {
         h("div", { class: "rail", "aria-hidden": "true" }, h("i")),
         h("div", { class: "session-body" },
           h("div", {},
-            h("h3", {}, s.title || long || "Undated session"),
+            // One style: the date heads a session, so the timeline reads by
+            // date; a title goes on the line under it. Only an undated
+            // session is headed by its title.
+            h("h3", {}, long || s.title || "Undated session"),
             h("p", {}, [
-              s.title && long ? long : null,
+              long && s.title ? s.title : null,
               s.date ? formatDate(s.date, { weekday: "long" }) : "Undated",
               s.characters?.length ? s.characters.join(", ") : null,
             ].filter(Boolean).join(" · "))),

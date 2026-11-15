@@ -26,7 +26,7 @@ It runs on GitHub Pages, so it works on phones and desktops without installing a
 
 ## Recording a session
 
-The top of the Overview walks through the evening in the order it runs: a city event, the town (shop prices, perks, the Sanctuary), a road event, then the scenario at tonight's level, each linking to where it's handled. **Record the evening** at the end of that row opens the form.
+The top of the Overview walks through the evening in the order it runs: a city event, the town (shop prices, perks, the Sanctuary), a road event, then the scenario at tonight's level, each linking to where it's handled; the event steps open the form at an event row for that deck. As the draft fills in, each step says what's recorded and is ticked. **Record the evening** at the end of that row opens the form.
 
 At the table, open **Sessions** and choose **Record a session** (or **Record the evening** on the Overview). Fill in:
 - the date and who played
@@ -53,6 +53,7 @@ Some things can be recorded straight from where you see them, each opening the f
 - **A perk to choose:** **Record it** in **Before you play** on the Overview, or on the character's sheet. Once picked, the perk stops being asked for while the draft waits to be saved.
 - **A scenario you can play:** **Record it** in its details on the Scenarios tab, at tonight's level.
 - **Items:** in the Shop, pick who is shopping (this phone's character to start with). **Buy** shows on what they can afford and have room for, and **Sell** on what they carry; either then says it's in the draft. **Can buy** narrows the list to what they could buy. The Shop counts the draft: its purchases take gold, slots and copies, and its sales free them.
+- **An enhancement:** **Record it** on the enhancement calculator, for whoever is shopping or picked in the form; the gold comes off when it's saved.
 
 A form opened and closed with nothing in it leaves no draft behind.
 
@@ -100,7 +101,7 @@ Reputation and prosperity aren't written down: the page adds them up from the re
 { "number": 2, "name": "Barrow Lair", "status": "completed", "completed": "2026-10-04", "treasures": ["07"], "notes": "" }
 ```
 
-The page looks up what each treasure gave: item designs go to the shop and unlocked scenarios open. A treasure that names an item gives one copy to whoever looted it, not to the shop (rulebook p. 14), so say who in the treasure (`"character"`) and list the item on their sheet; until someone is named or a sheet has it, the page asks. A treasure can also be written out to say who looted it and, for a random side scenario or item design, what you drew. Until a random one is drawn, the Campaign record reminds you; `"drawn": false` says it never was and won't be, and stops the reminder.
+The page looks up what each treasure gave: item designs go to the shop and unlocked scenarios open. A treasure that names an item gives one copy to whoever looted it, not to the shop (rulebook p. 14), so say who in the treasure (`"character"`) and list the item on their sheet; until someone is named or a sheet has it, the page asks. **Record it** on that question opens the form at **Settling the record**, where you pick who looted it and whether they still have it (if not, the copy goes back to the shop). A treasure can also be written out to say who looted it and, for a random side scenario or item design, what you drew. Until a random one is drawn, the Campaign record reminds you; `"drawn": false` says it never was and won't be, and stops the reminder.
 
 ```json
 "treasures": [{ "number": "07", "character": "Craig", "drew": 52 }, { "number": "11", "drew": "Item name" }]
@@ -130,7 +131,7 @@ Add an entry that isn't completed only when the reference data can't know about 
 }
 ```
 
-**sessions**: one entry per evening of play. `result` is `success` or `failure`, and `level` (optional) is the scenario level it was played at. An optional `title` names a session, for example one without a date. `levelUps` (optional, written by the page) lists who passed a level that evening, so **Before you play** can remind them to add an ability card.
+**sessions**: one entry per evening of play. `result` is `success` or `failure`, and `level` (optional) is the scenario level it was played at. An optional `title` names a session: it shows under the date, or as the heading when there's no date. `levelUps` (optional, written by the page) lists who passed a level that evening, so **Before you play** can remind them to add an ability card.
 
 ```json
 {
