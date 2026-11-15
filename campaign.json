@@ -125,7 +125,7 @@
         { "character": "Craig", "xp": 19, "gold": 12 },
         { "character": "Flik Flak", "xp": 15, "gold": 15 }
       ],
-      "notes": "No Kaktus.\nTreasure 26: Craig looted it and gained 20 gold."
+      "notes": "No Kaktus.\nTreasure 26 (20 gold): our notes say Craig looted it, but Flik Flak's sheet has a matching +20. To confirm."
     },
     {
       "number": 13,
