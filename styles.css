@@ -266,6 +266,11 @@ main {
 .tile-foot strong { font-size: 15px; font-weight: 600; }
 .tile-foot span { font-size: 13px; color: var(--muted); }
 .level-tile { grid-column: 1 / -1; }
+.todo { display: flex; flex-direction: column; gap: 8px; padding: 18px 20px; }
+.todo .block-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.todo .block-head > span { font-size: 13px; color: var(--fg-3); }
+.todo .rows li { font-size: 14px; }
+.todo-go { flex: none; padding: 8px 0 8px 12px; font-size: 13px; font-weight: 600; text-decoration: none; }
 .level-tile .segmented { align-self: flex-start; }
 .level-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .level-stats > div { display: flex; flex-direction: column; gap: 2px; }
