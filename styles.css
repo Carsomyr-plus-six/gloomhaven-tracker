@@ -696,6 +696,16 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 .shop .price { flex: none; font-weight: 600; color: var(--brass); }
 .shop .sold-out strong, .shop .sold-out .price { color: var(--muted); }
 .shop .tag { margin-left: 8px; padding: 1px 8px; border-radius: var(--r-pill); background: var(--surface-2); font-size: var(--t-xs); font-weight: 600; color: var(--fg-3); }
+/* The Enhancer: the form on the left, the cost and how it adds up on the right. */
+.enhancer-wrap { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+.enhancer { display: grid; grid-template-columns: minmax(0, 3fr) minmax(220px, 2fr); gap: 20px 32px; align-items: start; }
+.enhancer-form { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.enhancer-cost { display: flex; flex-direction: column; gap: 8px; }
+.enhancer-total { display: flex; align-items: baseline; gap: 8px; color: var(--brass); }
+.enhancer-total .figure { font-size: var(--d-lg); line-height: 1; }
+.enhancer-total span:last-child { font-weight: 600; }
+.enhancer-cost .rows li { font-size: var(--t-sm); min-height: 36px; }
+.enhancer-cost .rows .num { flex: none; color: var(--fg-3); }
 .party-notes { max-width: 880px; display: flex; flex-direction: column; gap: 10px; }
 
 .site-footer { padding-top: 24px; border-top: 1px solid var(--line-soft); color: var(--muted); font-size: var(--t-sm); }
@@ -869,6 +879,7 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
   .drawn .fate { grid-area: fate; }
   .deck-top .figure { font-size: var(--d-md); }
   .record { gap: 12px; }
+  .enhancer { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* Small phones: the overview tiles get a row each. */
