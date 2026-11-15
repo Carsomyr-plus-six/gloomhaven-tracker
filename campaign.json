@@ -12,7 +12,7 @@
     "notes": "Unclaimed: a random side scenario from treasure 07 (scenario #1)."
   },
   "city": {
-    "prosperityCheckmarks": 0,
+    "prosperityCheckmarks": 1,
     "donations": 0,
     "globalAchievements": [],
     "unlockedClasses": ["Brute", "Tinkerer", "Spellweaver", "Scoundrel", "Cragheart", "Mindthief"]
@@ -30,8 +30,25 @@
     {
       "number": 2,
       "name": "Barrow Lair",
-      "status": "available",
+      "status": "completed",
       "unlockedBy": 1,
+      "completed": null,
+      "treasures": ["67"],
+      "notes": "Played the same day as #1.\nRewards: 10 gold each, +1 prosperity.\nTreasure 67 gave 10 gold to whoever looted it (not sure who)."
+    },
+    {
+      "number": 3,
+      "name": "Inox Encampment",
+      "status": "available",
+      "unlockedBy": 2,
+      "completed": null,
+      "notes": ""
+    },
+    {
+      "number": 4,
+      "name": "Crypt of the Damned",
+      "status": "available",
+      "unlockedBy": 2,
       "completed": null,
       "notes": ""
     }
