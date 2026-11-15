@@ -4,7 +4,7 @@ A small website for tracking our Gloomhaven (first edition) campaign: the party,
 
 Live site: https://carsomyr-plus-six.github.io/gloomhaven-tracker/
 
-It runs on GitHub Pages, so it works on phones and desktops without installing anything. On a phone it is four tabs along the bottom, made to be read at the table; on a wide screen the whole campaign is one page. Campaign data lives in this repository, so every change is a commit and the history of the campaign is the history of the repo.
+It runs on GitHub Pages, so it works on phones and desktops without installing anything. On a phone it is four tabs along the bottom, made to be read at the table; on a wide screen the whole campaign is one page. The first time a phone opens it, it asks which character you play, and from then on opens on that character's sheet (a link to another part of the page still goes there). That tab then carries the character's name and class icon, marks them "You" among the party, and goes back to their sheet whenever it's tapped; the Shop says how much gold they have and which items would fit. The choice is kept in that phone's browser only, and can be changed at the bottom of the sheet. Campaign data lives in this repository, so every change is a commit and the history of the campaign is the history of the repo.
 
 ## Files
 
