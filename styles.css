@@ -265,6 +265,12 @@ main {
 .tile-foot { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; }
 .tile-foot strong { font-size: 15px; font-weight: 600; }
 .tile-foot span { font-size: 13px; color: var(--muted); }
+.level-tile { grid-column: 1 / -1; }
+.level-tile .segmented { align-self: flex-start; }
+.level-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.level-stats > div { display: flex; flex-direction: column; gap: 2px; }
+.level-stats .label { white-space: nowrap; }
+.level-stats .num { font: 700 24px/1.1 var(--display); }
 .ledger summary { font-size: 13px; color: var(--fg-3); cursor: pointer; padding: 2px 0; }
 .ledger ul { list-style: none; margin: 6px 0 0; padding: 0; }
 .ledger li { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; padding: 3px 0; border-top: 1px solid var(--line); }
@@ -575,6 +581,7 @@ main {
   .tile-foot { flex-direction: column; }
   .tile-foot strong { font-size: 14px; }
   .tile-foot span { font-size: 12px; }
+  .level-tile .filters { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
 
   .party { display: flex; flex-direction: column; gap: 4px; }
   .party-head { display: flex; align-items: baseline; justify-content: space-between; }

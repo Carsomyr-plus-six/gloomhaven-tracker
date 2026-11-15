@@ -36,6 +36,29 @@ function perksFromCheckmarks(checkmarks) {
   return Math.min(6, Math.floor(checkmarks / 3));
 }
 
+// Scenario level: half the party's average level, rounded up. Easy is one
+// lower, hard one higher, very hard two higher; it runs from 0 to 7.
+function recommendedLevel(levels) {
+  if (!levels.length) return 0;
+  return Math.ceil(levels.reduce((a, b) => a + b, 0) / levels.length / 2);
+}
+
+const DIFFICULTIES = [["easy", "Easy", -1], ["normal", "Normal", 0], ["hard", "Hard", 1], ["veryhard", "Very hard", 2]];
+
+// What a scenario level means at the table.
+function scenarioStats(level) {
+  return {
+    monsters: level,
+    gold: [2, 2, 3, 3, 4, 4, 5, 6][level],
+    trap: 2 + level,
+    xp: 4 + 2 * level,
+  };
+}
+
+// A new character may start at any level up to the prosperity level, with
+// 15 gold for each level plus one.
+const startingGold = level => 15 * (level + 1);
+
 // One perk per level gained after 1, plus the checkmark perks.
 function perksEarned(level, checkmarks) {
   return level - 1 + perksFromCheckmarks(checkmarks);
@@ -207,6 +230,59 @@ function prosperityTile(city, ledger) {
     ledgerFoot(ledger?.prosperity, ""));
 }
 
+// Who is playing tonight, for the scenario level. Starts as the last
+// session's party (those still active), or everyone.
+let levelParty = null;
+let difficulty = "normal";
+
+function defaultLevelParty(data) {
+  const active = data.characters.filter(c => !c.retired).map(c => c.name);
+  const last = [...data.sessions].filter(s => s.date && s.characters?.length)
+    .sort((a, b) => b.date.localeCompare(a.date))[0];
+  const tonight = last ? last.characters.filter(n => active.includes(n)) : [];
+  return new Set(tonight.length ? tonight : active);
+}
+
+function levelTile(data) {
+  const active = characterOrder(data).filter(c => !c.retired);
+  if (!active.length) return null;
+  if (!levelParty) levelParty = defaultLevelParty(data);
+  const playing = active.filter(c => levelParty.has(c.name));
+  const levels = playing.map(c => characterStats(c).level);
+  const recommended = recommendedLevel(levels);
+  const shift = DIFFICULTIES.find(([key]) => key === difficulty)[2];
+  const level = Math.max(0, Math.min(7, recommended + shift));
+  const st = scenarioStats(level);
+  const prosperity = stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
+  const toggle = name => {
+    if (levelParty.has(name)) levelParty.delete(name); else levelParty.add(name);
+    render(data, "overview");
+  };
+  const stat = (label, value) => h("div", {}, h("span", { class: "label" }, label), h("span", { class: "num" }, value));
+
+  return h("div", { class: "card tile level-tile" },
+    h("div", { class: "tile-top" },
+      h("span", { class: "label" }, "Scenario level"),
+      h("span", { class: "display" }, playing.length ? level : "–")),
+    h("div", { class: "filters", role: "group", "aria-label": "Who is playing" }, active.map(c =>
+      h("button", { type: "button", "data-key": `playing-${c.name}`, "aria-pressed": String(levelParty.has(c.name)),
+                    onclick: () => toggle(c.name) },
+        c.name, h("span", {}, characterStats(c).level)))),
+    playing.length ? [
+      h("div", { class: "segmented", role: "group", "aria-label": "Difficulty" }, DIFFICULTIES.map(([key, label]) =>
+        h("button", { type: "button", "data-key": `difficulty-${key}`, "aria-pressed": String(difficulty === key),
+                      onclick: () => { difficulty = key; render(data, "overview"); } }, label))),
+      h("div", { class: "level-stats" },
+        stat("Monsters", `level ${st.monsters}`), stat("Gold per coin", st.gold),
+        stat("Trap damage", st.trap), stat("Bonus XP", st.xp)),
+    ] : h("p", { class: "small muted" }, "Pick who is playing."),
+    h("div", { class: "tile-foot" },
+      h("strong", {}, playing.length
+        ? `Average level ${(levels.reduce((a, b) => a + b, 0) / levels.length).toFixed(1).replace(/\.0$/, "")}, so ${recommended} on normal`
+        : "No one picked"),
+      h("span", {}, `New characters start at level ${prosperity === 1 ? "1" : `1 to ${prosperity}`} with ${startingGold(1)}${prosperity > 1 ? ` to ${startingGold(prosperity)}` : ""} gold`)));
+}
+
 // A few hexes behind the party name, on phones.
 function heroDecor() {
   const at = (cx, cy) => [[0, -26], [22.5, -13], [22.5, 13], [0, 26], [-22.5, 13], [-22.5, -13]]
@@ -241,7 +317,7 @@ function renderOverview(data) {
                   h("span", { class: "ready-name" }, s.name || "Untitled"),
                   from(s) ? h("span", { class: "ready-from" }, from(s)) : null))))
           : empty("Nothing is unlocked to play right now.")),
-      h("div", { class: "tiles" }, reputationTile(party, data.ledger), prosperityTile(city, data.ledger))),
+      h("div", { class: "tiles" }, reputationTile(party, data.ledger), prosperityTile(city, data.ledger), levelTile(data))),
     partyList(data),
   ];
 }
