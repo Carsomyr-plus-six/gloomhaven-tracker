@@ -26,13 +26,20 @@ It runs on GitHub Pages, so it works on phones and desktops without installing a
 
 At the table, open **Sessions** and choose **Record a session**. Fill in:
 - the date and who played
-- each scenario attempted, with the result and what each character gained there (XP, gold, battle goal checkmarks)
+- each scenario attempted, with its level, the result, and for each character the XP on their dial, the coins they picked up and their battle goal checkmarks
 - the treasures looted and who looted them
 - the events drawn, with the option
+- characters retiring, with the class their personal quest unlocks (picked by its icon, so nothing is spoiled), and new characters joining
 - items bought or sold, perks taken, and donations to the Sanctuary (10 gold each, once per player per visit)
 - whether you opened Envelope B, once donations reach 100 gold
 
-The page adds scenario rewards and treasure gold and XP to the characters itself, and lists every change, with anything that looks wrong, before you save. A bar at the top of the form says how many things there are to check.
+The page does the end-of-scenario sums itself:
+- **XP and gold.** It adds the bonus XP for the scenario's level on a success, and turns coins into gold at that level's rate. Each character's row shows what it comes to. The level starts at tonight's level from the Overview, and the page says if it's outside easy to very hard for the party.
+- **Rewards and treasures.** Scenario rewards and treasure gold and XP go to the characters.
+- **Level-ups.** Anyone who passes a level is told to add an ability card and take a perk. Until the next session, **Before you play** reminds them about the card.
+- **New characters.** A new character starts at any level up to the prosperity level, with that level's XP and 15 gold per level plus 15. They can buy their first items in the same session.
+
+It lists every change, with anything that looks wrong, before you save. A bar at the top of the form says how many things there are to check.
 
 A perk to choose can also be recorded straight from **Before you play** on the Overview: **Record it** opens the form with a perk row for that character.
 
@@ -84,7 +91,7 @@ The page looks up what each treasure gave: item designs go to the shop and unloc
 "treasures": [{ "number": "07", "character": "Craig", "drew": 52 }, { "number": "11", "drew": "Item name" }]
 ```
 
-`results` is optional: what each character got from the scenario. `xp` and `gold` are what they gained there; `checkmarks` are from battle goals. These are shown on the scenario but not added to the character totals automatically.
+`results` is optional: what each character got from the scenario. `xp` and `gold` are what they gained there; `checkmarks` are from battle goals. These are shown on the scenario but not added to the character totals automatically. A session recorded on the page writes them with the bonus XP and coins already worked in.
 
 ```json
 "results": [
@@ -108,14 +115,15 @@ Add an entry that isn't completed only when the reference data can't know about 
 }
 ```
 
-**sessions**: one entry per evening of play. `result` is `success` or `failure`. An optional `title` names a session, for example one without a date.
+**sessions**: one entry per evening of play. `result` is `success` or `failure`, and `level` (optional) is the scenario level it was played at. An optional `title` names a session, for example one without a date. `levelUps` (optional, written by the page) lists who passed a level that evening, so **Before you play** can remind them to add an ability card.
 
 ```json
 {
   "date": "2026-10-04",
-  "scenarios": [{ "number": 2, "result": "success" }],
+  "scenarios": [{ "number": 2, "level": 1, "result": "success" }],
   "characters": ["Grunt", "Sparks"],
-  "notes": ""
+  "notes": "",
+  "levelUps": [{ "character": "Grunt", "level": 2 }]
 }
 ```
 

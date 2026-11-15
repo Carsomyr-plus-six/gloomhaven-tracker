@@ -391,6 +391,10 @@ function todoItems(data) {
 
   if (draft) add("A recorded session hasn't been saved: download it from Sessions and commit it.", "#sessions");
 
+  // Who passed a level in the last session: a new ability card to pick. It
+  // stays until the next session is recorded, as there's nowhere to tick it.
+  const levelUps = data.sessions.at(-1)?.levelUps || [];
+
   for (const c of order.filter(c => !c.retired)) {
     const st = characterStats(c);
     // Phones open that character's sheet; wide screens scroll to its card.
@@ -398,6 +402,9 @@ function todoItems(data) {
       pickCharacter(data, order.indexOf(c));
       if (!phone.matches) { e.preventDefault(); revealCharacter(c.name); }
     };
+    for (const u of levelUps.filter(u => u.character === c.name)) {
+      add(`${c.name} reached level ${u.level} last session: add an ability card of level ${u.level} or lower.`, "#characters", go);
+    }
     if (st.unspent) add(`${c.name} has ${plural(st.unspent, "perk")} to choose.`, "#characters", go,
       { label: "Record it", run: () => recordPerk(data, c.name) });
     for (const r of perkCheck(c).rows.filter(r => r.note && !r.quiet)) add(`${c.name}: "${r.written}". ${r.note}`, "#characters", go);
@@ -1476,6 +1483,10 @@ function classPerks(cls) {
   return id ? classRef.classEvents?.[id]?.perks || null : null;
 }
 
+// A locked class goes by its icon, so naming it spoils nothing.
+const CLASS_ICON_NAMES = { "squidface": "squid face", "two-mini": "two minis" };
+function classIconName(id) { return CLASS_ICON_NAMES[id] || id.replace(/-/g, " "); }
+
 function classIcon(cls) {
   const id = classId(cls);
   return id ? gameIcon(`class-${id}`) : null;
@@ -1837,12 +1848,36 @@ function dropDraft() {
 
 function newDraft(data) {
   return { date: today(), title: "", party: [...defaultLevelParty(data)], notes: "",
-           scenarios: [], events: [], buys: [], sells: [], perks: [], donations: [] };
+           scenarios: [], events: [], buys: [], sells: [], perks: [], donations: [],
+           retirements: [], newCharacters: [] };
 }
-const newScenario = () => ({ number: "", result: "success", treasures: [], results: {} });
+// A scenario starts at tonight's level from the Overview (who is playing,
+// difficulty); the form can change it.
+const newScenario = data => ({ number: "", level: String(tonight(data)?.level ?? 0), result: "success", treasures: [], results: {} });
 const newEvent = () => ({ deck: "city", number: "", option: "", scenario: "", paid: "" });
 
 const num = v => { const n = parseInt(v, 10); return Number.isFinite(n) ? n : 0; };
+const filled = v => String(v ?? "").trim() !== "";
+
+// The level a recorded scenario was played at (an older draft has none:
+// tonight's level stands in).
+function draftLevel(s, data) {
+  return Math.max(0, Math.min(7, filled(s.level) ? num(s.level) : tonight(data)?.level ?? 0));
+}
+
+// What one character takes from a scenario: the XP on their dial, plus the
+// bonus XP for the scenario's level if it succeeded, and their coins in gold
+// at that level. Battle goals count only on a success. (A draft from before
+// coins were asked for has gold instead.)
+function scenarioGain(s, r, data) {
+  const st = scenarioStats(draftLevel(s, data));
+  const won = s.result === "success";
+  return {
+    xp: num(r.xp) + (won ? st.xp : 0),
+    gold: filled(r.coins) ? num(r.coins) * st.gold : num(r.gold),
+    checkmarks: won ? num(r.checkmarks) : 0,
+  };
+}
 
 // The draft applied to a copy of campaign.json. Returns the new file, a list
 // of what changes, and anything that looks wrong.
@@ -1894,15 +1929,19 @@ function applyDraft(raw, d, data) {
     else if (known.status === "completed" && s.result === "success") warnings.push(`${label} is already completed.`);
     else if (known.status === "blocked" && s.result === "success") warnings.push(`${label} is blocked.`);
 
-    // Battle goals only count when the scenario succeeds.
-    const results = party.map(name => {
-      const r = s.results[name] || {};
-      return { character: name, xp: num(r.xp), gold: num(r.gold), checkmarks: s.result === "success" ? num(r.checkmarks) : 0 };
-    });
+    // The level it was played at decides the bonus XP and what a coin is worth.
+    const level = draftLevel(s, data);
+    const st = scenarioStats(level);
+    const usual = recommendedLevel(party.map(name => stepFor(who(name).xp || 0, XP_FOR_LEVEL)));
+    if (party.length && (level < Math.max(0, usual - 1) || level > Math.min(7, usual + 2))) {
+      warnings.push(`${label} at level ${level}: for this party that's outside easy to very hard (${Math.max(0, usual - 1)} to ${Math.min(7, usual + 2)}).`);
+    }
+    const results = party.map(name => ({ character: name, ...scenarioGain(s, s.results[name] || {}, data) }));
     for (const r of results) { gain(r.character, "xp", r.xp); gain(r.character, "gold", r.gold); gain(r.character, "checkmarks", r.checkmarks); }
     // Easy to skip someone at the table; a failed scenario keeps XP and gold too.
-    const blank = party.filter(name => !String(s.results[name]?.xp ?? "").trim() && !String(s.results[name]?.gold ?? "").trim());
-    if (info && blank.length) warnings.push(`${label}: no XP or gold entered for ${blank.join(", ")}.`);
+    const blank = party.filter(name => !["xp", "coins", "gold"].some(k => filled(s.results[name]?.[k])));
+    if (info && blank.length) warnings.push(`${label}: no XP or coins entered for ${blank.join(", ")}.`);
+    log.push(`${label} at level ${level}: ${st.gold} gold a coin${s.result === "success" ? `, ${st.xp} bonus XP each` : ""}`);
 
     if (s.result !== "success") { log.push(`${label}: failed`); continue; }
 
@@ -1946,19 +1985,55 @@ function applyDraft(raw, d, data) {
   // The session itself.
   const session = { date: d.date || null };
   if (d.title) session.title = d.title;
-  session.scenarios = played.map(s => ({ number: num(s.number), result: s.result }));
+  session.scenarios = played.map(s => ({ number: num(s.number), level: draftLevel(s, data), result: s.result }));
   session.characters = [...party];
   session.notes = d.notes || "";
   out.sessions.push(session);
 
-  // XP, gold and checkmarks onto the character sheets.
+  // XP, gold and checkmarks onto the character sheets. Passing a level means
+  // a new ability card; the perk that comes with it the Characters tab counts.
+  const levelUps = [];
   for (const [name, g] of gainFor) {
     const c = who(name);
+    const was = stepFor(c.xp || 0, XP_FOR_LEVEL);
     c.xp = (c.xp || 0) + g.xp;
     c.gold = (c.gold || 0) + g.gold;
     c.checkmarks = (c.checkmarks || 0) + g.checkmarks;
     log.push(`${name}: ${[g.xp ? `${signed(g.xp)} XP` : null, g.gold ? `${signed(g.gold)} gold` : null,
                           g.checkmarks ? `${signed(g.checkmarks)} ${g.checkmarks === 1 ? "checkmark" : "checkmarks"}` : null].filter(Boolean).join(", ")}`);
+    const now = stepFor(c.xp, XP_FOR_LEVEL);
+    for (let level = was + 1; level <= now; level++) {
+      levelUps.push({ character: name, level });
+      log.push(`${name} reaches level ${level}: add an ability card of level ${level} or lower, and take a perk`);
+    }
+  }
+  if (levelUps.length) session.levelUps = levelUps;
+
+  // Retirements, then newcomers, before the shopping, so a newcomer can buy.
+  for (const x of (d.retirements || []).filter(x => x.character)) {
+    const c = who(x.character);
+    if (!c || c.retired) { warnings.push(`${x.character} isn't an active character.`); continue; }
+    c.retired = true;
+    log.push(`${c.name} retires: a prosperity checkmark, the ${c.class} retirement events go into the decks, and their items go back to the shop`);
+    if (!x.unlocks) continue;
+    if (data.city.unlockedClasses.some(u => u.id === x.unlocks)) { warnings.push(`The class with the ${classIconName(x.unlocks)} icon is already unlocked.`); continue; }
+    out.city ||= {};
+    out.city.unlockedClasses = [...(out.city.unlockedClasses || []), className(classRef, x.unlocks)];
+    log.push(`${c.name}'s personal quest unlocks the class with the ${classIconName(x.unlocks)} icon, and its events go into the decks`);
+  }
+  const prosperity = stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
+  for (const x of d.newCharacters || []) {
+    const name = String(x.name || "").trim();
+    if (!name && !x.class) continue;
+    if (!name) { warnings.push(`A new ${x.class} has no name.`); continue; }
+    if (who(name)) { warnings.push(`There's already a character called ${name}.`); continue; }
+    if (!x.class) { warnings.push(`${name}: pick a class.`); continue; }
+    const level = Math.max(1, Math.min(prosperity, num(x.level) || 1));
+    const twin = out.characters.find(c => !c.retired && c.class === x.class);
+    if (twin) warnings.push(`${twin.name} already plays a ${x.class}: a party can't have two of the same class.`);
+    out.characters.push({ name, class: x.class, xp: XP_FOR_LEVEL[level - 1], gold: startingGold(level), checkmarks: 0,
+                          perks: [], items: [], personalQuest: "", retired: false, notes: "" });
+    log.push(`${name} the ${x.class} joins at level ${level}, with ${XP_FOR_LEVEL[level - 1]} XP and ${startingGold(level)} gold${level > 1 ? `, and ${plural(level - 1, "perk")} to choose` : ""}`);
   }
 
   // Shopping and perks, after the scenarios.
@@ -2037,6 +2112,8 @@ function formatJson(value, indent = "", mode = "auto") {
 function renderRecorder(data) {
   const d = draft;
   d.donations ||= [];
+  d.retirements ||= [];
+  d.newCharacters ||= [];
   const rerender = () => { saveDraft(); render(data, "sessions"); };
   const set = (obj, key, again = false) => e => {
     obj[key] = e.target.type === "checkbox" ? e.target.checked : e.target.value;
@@ -2083,30 +2160,48 @@ function renderRecorder(data) {
   const partyOptions = [["", "Who?"], ...party.map(c => [c.name, c.name])];
   // Perks are taken in town, by anyone still adventuring.
   const activeOptions = [["", "Who?"], ...active.map(c => [c.name, c.name])];
+  // A newcomer can buy their first items in the same visit to town.
+  const newNames = d.newCharacters.map(x => String(x.name || "").trim()).filter(Boolean);
+  const buyOptions = [...partyOptions, ...newNames.map(n => [n, n])];
   const available = data.scenarios.filter(s => s.status === "available").sort((a, b) => a.number - b.number);
 
+  // What a character's row adds up to, kept current as the boxes are typed in.
+  const gainText = (s, r) => {
+    const g = scenarioGain(s, r, data);
+    return `Comes to ${g.xp} XP and ${g.gold} gold`;
+  };
   const scenarioBlock = (s, i) => {
     const n = num(s.number);
     const info = scenarioRef?.scenarios?.[String(n)];
     const rewards = info ? describeRewards(scenarioRef, info.rewards, classRef) : [];
+    s.level ??= String(draftLevel(s, data));
+    const st = scenarioStats(draftLevel(s, data));
     return h("fieldset", { class: "card rec-block" },
       h("legend", {}, `Scenario ${i + 1}`),
       h("div", { class: "rec-row" },
         field("Number", text(`sc-${i}-n`, s, "number", { type: "number", min: 1, max: 95, list: "rec-available", inputmode: "numeric", "aria-label": "Scenario number" }, true), "short"),
+        field("Level", select(`sc-${i}-l`, s, "level", Array.from({ length: 8 }, (_, l) => [String(l), String(l)]))),
         field("Result", select(`sc-${i}-r`, s, "result", [["success", "Success"], ["failure", "Failure"]]))),
       n ? h("p", { class: "small muted" }, info ? `${info.name}${s.result === "success" && rewards.length ? ` · rewards: ${rewards.join(", ")}` : ""}` : "Not a scenario number.") : null,
       party.length ? h("div", { class: "rec-results" },
         h("span", { class: "label" }, "What each character gained there"),
+        h("p", { class: "small muted" }, s.result === "success"
+          ? `XP as on the dial, and coins picked up. The page adds ${st.xp} bonus XP each, and makes each coin ${st.gold} gold.`
+          : `XP as on the dial, and coins picked up: each coin is ${st.gold} gold. A failure gives no bonus XP.`),
         party.map(c => {
           s.results[c.name] ||= {};
           const r = s.results[c.name];
           return h("div", { class: "rec-row" },
             h("strong", { class: "rec-who" }, c.name),
-            field("XP", text(`sc-${i}-${c.name}-xp`, r, "xp", { type: "number", min: 0, inputmode: "numeric", "aria-label": `${c.name}: XP` }), "short"),
-            field("Gold", text(`sc-${i}-${c.name}-gold`, r, "gold", { type: "number", min: 0, inputmode: "numeric", "aria-label": `${c.name}: gold` }), "short"),
+            field("XP", text(`sc-${i}-${c.name}-xp`, r, "xp", { type: "number", min: 0, inputmode: "numeric", "aria-label": `${c.name}: XP on the dial` }), "short"),
+            // A draft from before coins were asked for keeps its gold box.
+            filled(r.gold) && !filled(r.coins)
+              ? field("Gold", text(`sc-${i}-${c.name}-gold`, r, "gold", { type: "number", min: 0, inputmode: "numeric", "aria-label": `${c.name}: gold` }), "short")
+              : field("Coins", text(`sc-${i}-${c.name}-coins`, r, "coins", { type: "number", min: 0, inputmode: "numeric", "aria-label": `${c.name}: coins` }), "short"),
             s.result === "success"
               ? field("Checkmarks", text(`sc-${i}-${c.name}-cm`, r, "checkmarks", { type: "number", min: 0, max: 3, inputmode: "numeric", "aria-label": `${c.name}: battle goal checkmarks` }), "short")
-              : null);
+              : null,
+            h("span", { class: "rec-gain", "data-gain": `${i}|${c.name}` }, gainText(s, r)));
         })) : null,
       s.result === "success" ? h("div", { class: "rec-results" },
         h("span", { class: "label" }, "Treasures looted"),
@@ -2134,7 +2229,7 @@ function renderRecorder(data) {
   };
 
   const buyBlock = (b, i) => h("div", { class: "rec-row" },
-    field("Who", select(`buy-${i}-c`, b, "character", partyOptions)),
+    field("Who", select(`buy-${i}-c`, b, "character", buyOptions)),
     field("Item", select(`buy-${i}-i`, b, "item", [["", "Pick an item"],
       ...(data.shop?.stock || []).filter(x => x.left > 0).map(x => [x.name, `${x.name} · ${x.price} gold`])], false)),
     remove(d.buys, i, "purchase", "add-buy"));
@@ -2143,6 +2238,31 @@ function renderRecorder(data) {
     field("Item", select(`sell-${i}-i`, b, "item", [["", "Pick an item"],
       ...(data.characters.find(c => c.name === b.character)?.items || []).map(x => [x, x])], false)),
     remove(d.sells, i, "sale", "add-sell"));
+  // Retiring: who, and the class their personal quest unlocks, picked by its
+  // icon (the box's name would be a spoiler until it's opened).
+  const unlocked = new Set(data.city.unlockedClasses.map(u => u.id));
+  const locked = Object.keys(classRef?.classes || {}).filter(id => !unlocked.has(id) && !classRef.classEvents?.[id]?.starting);
+  const retireBlock = (x, i) => h("div", { class: "rec-row" },
+    field("Who retires", select(`ret-${i}-c`, x, "character", activeOptions)),
+    field("Their personal quest unlocks", select(`ret-${i}-u`, x, "unlocks",
+      [["", "No class, or not yet"], ...locked.map(id => [id, `The class with the ${classIconName(id)} icon`])]), "wide"),
+    x.unlocks ? h("span", { class: "rec-note rec-icon" }, gameIcon(`class-${x.unlocks}`, `${classIconName(x.unlocks)} icon`)) : null,
+    remove(d.retirements, i, "retirement", "add-retire"));
+  // A newcomer: any unlocked class (or one unlocked tonight), at any level up
+  // to the prosperity level.
+  const prosperity = stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
+  const classOptions = [...new Set([...data.city.unlockedClasses.map(u => u.name),
+    ...d.retirements.filter(x => x.unlocks).map(x => className(classRef, x.unlocks))])].sort();
+  const newBlock = (x, i) => {
+    const level = Math.max(1, Math.min(prosperity, num(x.level) || 1));
+    return h("div", { class: "rec-row" },
+      field("Name", text(`new-${i}-n`, x, "name", { autocomplete: "off" }, true), "wide"),
+      field("Class", select(`new-${i}-c`, x, "class", [["", "Pick a class"], ...classOptions.map(n => [n, n])])),
+      prosperity > 1 ? field("Level", select(`new-${i}-l`, x, "level", Array.from({ length: prosperity }, (_, l) => [String(l + 1), String(l + 1)]))) : null,
+      h("span", { class: "small muted rec-note" }, `Starts at level ${level} with ${XP_FOR_LEVEL[level - 1]} XP and ${startingGold(level)} gold`),
+      remove(d.newCharacters, i, "new character", "add-new"));
+  };
+
   const perkBlock = (p, i) => {
     const c = data.characters.find(x => x.name === p.character);
     return h("div", { class: "rec-row" },
@@ -2193,6 +2313,11 @@ function renderRecorder(data) {
     h("button", { type: "button", class: "btn quiet", onclick: () => document.querySelector(".rec-summary")?.scrollIntoView({ block: "start" }) },
       "See what changes"));
   const refreshSummary = () => {
+    for (const el of document.querySelectorAll("[data-gain]")) {
+      const [i, name] = el.dataset.gain.split("|");
+      const s = d.scenarios[num(i)];
+      if (s) el.textContent = gainText(s, s.results[name] || {});
+    }
     const res = applyDraft(rawCampaign, d, data);
     document.querySelector(".rec-summary")?.replaceWith(summary(res));
     document.querySelector(".rec-top")?.replaceWith(topBar(res));
@@ -2217,10 +2342,16 @@ function renderRecorder(data) {
               c.name)))))),
     h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Scenarios"),
       d.scenarios.map(scenarioBlock),
-      addButton("add-scenario", "Add a scenario", () => d.scenarios.push(newScenario()), () => `sc-${d.scenarios.length - 1}-n`)),
+      addButton("add-scenario", "Add a scenario", () => d.scenarios.push(newScenario(data)), () => `sc-${d.scenarios.length - 1}-n`)),
     h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Events drawn"),
       d.events.length ? h("div", { class: "card rec-block" }, d.events.map(eventBlock)) : null,
       addButton("add-event", "Add an event", () => d.events.push(newEvent()), () => `ev-${d.events.length - 1}-d`)),
+    h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Retiring and joining"),
+      d.retirements.length ? h("div", { class: "card rec-block" }, d.retirements.map(retireBlock)) : null,
+      d.newCharacters.length ? h("div", { class: "card rec-block" }, d.newCharacters.map(newBlock)) : null,
+      h("div", { class: "rec-buttons" },
+        addButton("add-retire", "Retire a character", () => d.retirements.push({ character: "", unlocks: "" }), () => `ret-${d.retirements.length - 1}-c`),
+        addButton("add-new", "Add a new character", () => d.newCharacters.push({ name: "", class: "", level: "1" }), () => `new-${d.newCharacters.length - 1}-n`))),
     h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Shop, perks and the Sanctuary"),
       d.buys.length || d.sells.length || d.perks.length || d.donations.length
         ? h("div", { class: "card rec-block" }, d.buys.map(buyBlock), d.sells.map(sellBlock), d.perks.map(perkBlock),
@@ -2305,11 +2436,12 @@ function renderSessions(data) {
             const name = data.scenarios.find(x => x.number === sc.number)?.name;
             const before = eventsBefore(sc.number);
             const won = sc.result === "success";
+            const meta = [sc.level != null ? `Level ${sc.level}` : null, before.length ? `${before.join(", ")} drawn before` : null].filter(Boolean);
             return h("li", {},
               hex(sc.number, won ? "completed" : "blocked"),
               h("span", { class: "played-text" },
                 h("strong", {}, name || `Scenario ${sc.number}`),
-                before.length ? h("span", {}, `${before.join(", ")} drawn before`) : null),
+                meta.length ? h("span", {}, meta.join(" · ")) : null),
               h("span", { class: `result ${won ? "success" : "failure"}` }, icon(won ? "check" : "cross"), won ? "Success" : "Failure"));
           })) : null,
           haul.length ? h("div", { class: "haul" },
