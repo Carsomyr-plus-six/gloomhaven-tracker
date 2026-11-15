@@ -20,6 +20,7 @@
       "name": "Black Barrow",
       "status": "completed",
       "completed": null,
+      "players": ["Azorica", "Craig", "Flik Flak", "Kaktus"],
       "treasures": [
         { "number": "07", "drawn": false }
       ],
@@ -30,6 +31,7 @@
       "name": "Barrow Lair",
       "status": "completed",
       "completed": null,
+      "players": ["Azorica", "Craig", "Flik Flak", "Kaktus"],
       "treasures": [
         { "number": "67", "character": "Kaktus" }
       ],
@@ -40,6 +42,7 @@
       "name": "Inox Encampment",
       "status": "completed",
       "completed": null,
+      "players": ["Azorica", "Craig", "Flik Flak", "Kaktus"],
       "treasures": [
         "65"
       ],

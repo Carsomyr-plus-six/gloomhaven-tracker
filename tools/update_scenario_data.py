@@ -13,6 +13,13 @@ Keeps only what the tracker needs and writes three files:
   has).
 - data/gloomhaven-items.json: each item's name, cost, number of copies,
   slot and the prosperity level that puts it in the shop. No item text.
+- data/gloomhaven-quests.json: each personal quest card: its name, its steps
+  (a short label, the count, which step must come first, and how the source
+  tracks it), and the class box or envelope it opens. Characters' quests are
+  secret: campaign.json never says which card anyone holds.
+
+Each scenario also notes whether it has a boss (from the monster files), as
+a personal quest counts boss scenarios.
 
 Source: https://github.com/Lurkars/gloomhavensecretariat (AGPL-3.0)
 
@@ -31,6 +38,7 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 OUTPUT = DATA_DIR / "gloomhaven-scenarios.json"
 EVENTS_OUTPUT = DATA_DIR / "gloomhaven-events.json"
 ITEMS_OUTPUT = DATA_DIR / "gloomhaven-items.json"
+QUESTS_OUTPUT = DATA_DIR / "gloomhaven-quests.json"
 
 # Fields copied from each scenario file. Map layouts and monsters are left out.
 FIELDS = ["name", "unlocks", "blocks", "requires", "requirements", "rewards", "links"]
@@ -233,6 +241,80 @@ def build_events(labels, spoiler_labels):
     }
 
 
+def label(path, *sources):
+    """A label by its dotted key ("game.items.slots.head"), from the first
+    source that has it; a key naming a group gives the group's own label."""
+    for source in sources:
+        node = source
+        for part in path.split("."):
+            node = node.get(part) if isinstance(node, dict) else None
+            if node is None:
+                break
+        if isinstance(node, dict):
+            node = node.get("")
+        if isinstance(node, str):
+            return node
+    return None
+
+
+# The source app's own interface words, which its game data refers to but
+# doesn't hold.
+APP_LABELS = {
+    "game.items.slots.head": "Head", "game.items.slots.body": "Body", "game.items.slots.legs": "Legs",
+    "game.items.slots.onehand": "One Hand", "game.items.slots.twohand": "Two Hands",
+    "game.items.slots.small": "Small", "character.progress.gold": "Gold",
+    "game.checkmark": "checkmarks", "game.exhausted": "Times exhausted",
+}
+
+
+def resolve(text, labels, spoiler_labels, item_names):
+    """Fill in a label's %placeholders% until none are left."""
+    import re
+    def one(match):
+        key = match.group(1).removeprefix("data.")
+        return label(key, spoiler_labels, labels) or APP_LABELS.get(key) or match.group(0)
+    for _ in range(4):
+        text = re.sub(r"%([\w.-]+)%", one, text)
+    if text.startswith("items.gh-"):
+        return item_names.get(text.removeprefix("items.gh-"), text)
+    return label(text, labels, spoiler_labels) or APP_LABELS.get(text) or text
+
+
+# How the tracker counts a step the source leaves to the players, when
+# campaign.json records enough to count it.
+TRACK_OVERRIDES = {("510", 1): "scenarioName:Crypt"}
+
+
+def build_quests(labels, spoiler_labels, item_names):
+    cards = {}
+    for quest in fetch(f"{RAW}/personal-quests.json"):
+        card = quest["cardId"]
+        steps = []
+        for i, req in enumerate(quest["requirements"], start=1):
+            step = {"text": resolve(req["name"], labels, spoiler_labels, item_names), "count": req.get("counter", 1)}
+            track = TRACK_OVERRIDES.get((card, i)) or req.get("autotrack")
+            if track:
+                step["track"] = track
+            if req.get("requires"):
+                step["after"] = req["requires"]
+            steps.append(step)
+        cards[card] = {
+            "name": label(f"personalQuest.gh.{card}.", spoiler_labels, labels) or card,
+            "steps": steps,
+            **({"unlockClass": quest["unlockCharacter"]} if quest.get("unlockCharacter") else {}),
+            **({"openEnvelope": quest["openEnvelope"]} if quest.get("openEnvelope") else {}),
+        }
+    return cards
+
+
+def boss_monsters():
+    """Monster id -> True for the bosses."""
+    names = [entry["name"].removesuffix(".json")
+             for entry in fetch(f"https://api.github.com/repos/{REPO}/contents/data/gh/monster")
+             if entry["name"].endswith(".json")]
+    return {name for name in names if fetch(f"{RAW}/monster/{name}.json").get("boss")}
+
+
 def write_json(path, data):
     path.parent.mkdir(exist_ok=True)
     path.write_text(json.dumps(data, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
@@ -242,10 +324,13 @@ def main():
     labels = fetch(f"{RAW}/label/en.json")
     spoiler_labels = fetch(f"{RAW}/label/spoiler/en.json")
 
+    bosses = boss_monsters()
     scenarios = {}
     for number in range(1, 96):
         data = fetch(f"{RAW}/scenarios/{number:02d}.json")
         scenario = {field: data[field] for field in FIELDS if data.get(field)}
+        if bosses.intersection(data.get("monsters", [])):
+            scenario["boss"] = True
         if "requirements" in scenario:
             scenario["requirements"] = normalize_requirements(scenario["requirements"], labels)
         scenarios[str(number)] = scenario
@@ -283,6 +368,15 @@ def main():
         "items": items,
     })
     print(f"Wrote {len(items)} items to {ITEMS_OUTPUT}")
+
+    quests = build_quests(labels, spoiler_labels, {k: v["name"] for k, v in items.items()})
+    write_json(QUESTS_OUTPUT, {
+        "source": f"https://github.com/{REPO}",
+        "license": "AGPL-3.0",
+        "retrieved": date.today().isoformat(),
+        "quests": quests,
+    })
+    print(f"Wrote {len(quests)} personal quests to {QUESTS_OUTPUT}")
 
 
 if __name__ == "__main__":

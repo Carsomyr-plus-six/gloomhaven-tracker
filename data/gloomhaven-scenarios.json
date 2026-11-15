@@ -93,7 +93,8 @@
    "rewards": {
     "gold": 10,
     "prosperity": 1
-   }
+   },
+   "boss": true
   },
   "3": {
    "name": "Inox Encampment",
@@ -201,7 +202,8 @@
      "the-merchant-flees"
     ],
     "reputation": 2
-   }
+   },
+   "boss": true
   },
   "9": {
    "name": "Diamond Mine",
@@ -225,7 +227,8 @@
     ],
     "gold": 20,
     "prosperity": 1
-   }
+   },
+   "boss": true
   },
   "10": {
    "name": "Plane of Elemental Power",
@@ -276,7 +279,8 @@
     "itemDesigns": [
      "113"
     ]
-   }
+   },
+   "boss": true
   },
   "12": {
    "name": "Gloomhaven Square B",
@@ -303,7 +307,8 @@
     "itemDesigns": [
      "113"
     ]
-   }
+   },
+   "boss": true
   },
   "13": {
    "name": "Temple of the Seer",
@@ -401,7 +406,8 @@
     "gold": 20,
     "reputation": 2,
     "prosperity": 1
-   }
+   },
+   "boss": true
   },
   "21": {
    "name": "Infernal Throne",
@@ -426,7 +432,8 @@
     "events": [
      "city:78"
     ]
-   }
+   },
+   "boss": true
   },
   "22": {
    "name": "Temple of the Elements",
@@ -748,7 +755,8 @@
     "gold": 20,
     "reputation": 2,
     "prosperity": 1
-   }
+   },
+   "boss": true
   },
   "35": {
    "name": "Gloomhaven Battlements A",
@@ -787,7 +795,8 @@
     "events": [
      "city:79"
     ]
-   }
+   },
+   "boss": true
   },
   "36": {
    "name": "Gloomhaven Battlements B",
@@ -823,7 +832,8 @@
     "events": [
      "city:78"
     ]
-   }
+   },
+   "boss": true
   },
   "37": {
    "name": "Doom Trench",
@@ -1044,7 +1054,8 @@
     "globalAchievements": [
      "end-of-corruption"
     ]
-   }
+   },
+   "boss": true
   },
   "47": {
    "name": "Lair of the Unseeing Eye",
@@ -1067,7 +1078,8 @@
     "globalAchievements": [
      "end-of-corruption"
     ]
-   }
+   },
+   "boss": true
   },
   "48": {
    "name": "Shadow Weald",
@@ -1090,7 +1102,8 @@
     "globalAchievements": [
      "end-of-corruption"
     ]
-   }
+   },
+   "boss": true
   },
   "49": {
    "name": "Rebel's Stand",
@@ -1115,7 +1128,8 @@
     ],
     "gold": 50,
     "reputation": -3
-   }
+   },
+   "boss": true
   },
   "50": {
    "name": "Ghost Fortress",
@@ -1159,7 +1173,8 @@
      "city:81",
      "road:69"
     ]
-   }
+   },
+   "boss": true
   },
   "52": {
    "name": "Noxious Cellar",
@@ -1266,7 +1281,8 @@
     "experience": 10,
     "characterRetirement": "529",
     "unlockCharacter": "eclipse"
-   }
+   },
+   "boss": true
   },
   "63": {
    "name": "Magma Pit",
@@ -1388,7 +1404,8 @@
    ],
    "rewards": {
     "gold": 60
-   }
+   },
+   "boss": true
   },
   "76": {
    "name": "Harrower Hive"
@@ -1416,7 +1433,8 @@
    ],
    "rewards": {
     "gold": 15
-   }
+   },
+   "boss": true
   },
   "80": {
    "name": "Vigil Keep",
@@ -1428,7 +1446,8 @@
    "name": "Temple of the Eclipse",
    "rewards": {
     "experience": 10
-   }
+   },
+   "boss": true
   },
   "82": {
    "name": "Burning Mountain"
@@ -1499,7 +1518,8 @@
    "rewards": {
     "reputation": 1,
     "prosperity": 1
-   }
+   },
+   "boss": true
   },
   "88": {
    "name": "Plane of Water",
@@ -1522,7 +1542,8 @@
     "items": [
      "120"
     ]
-   }
+   },
+   "boss": true
   },
   "89": {
    "name": "Syndicate Hideout",
@@ -1610,7 +1631,8 @@
     "items": [
      "119"
     ]
-   }
+   },
+   "boss": true
   }
  },
  "treasures": {

@@ -237,7 +237,7 @@ function characterStats(c) {
 }
 
 function scenarioLabel(data, number) {
-  const name = data.scenarios.find(s => s.number === number)?.name;
+  const name = data.scenarios.find(s => s.number === number)?.name || scenarioRef?.scenarios?.[String(number)]?.name;
   return `#${number}${name ? ` ${name}` : ""}`;
 }
 
@@ -630,6 +630,17 @@ function todoItems(data) {
       add(`${c.name}'s personal quest is fulfilled: they must retire at this visit to town, before playing again.`, "#characters", go,
         rawCampaign ? { label: "Record it", run: () => recordRetire(data, c.name) } : null, sheet, true);
     }
+    // On the phone that knows their quest card: a scenario the quest opens,
+    // and a count the record has wrong. Neither names the quest.
+    const quest = questCard(c.name) ? questProgress(data, c, questCard(c.name)) : null;
+    for (const x of quest?.steps || []) {
+      if (!x.opens || data.scenarios.some(s => s.number === x.opens) || draft?.opened?.some(o => num(o.number) === x.opens)) continue;
+      add(`${c.name}'s personal quest opens ${scenarioLabel(data, x.opens)}.`, "#characters", go,
+        rawCampaign ? { label: "Record it", run: () => recordOpened(data, x.opens, c.name) } : null, sheet);
+    }
+    if (quest?.known && !quest.fits(draft?.quests?.[c.name] || c.personalQuest)) {
+      add(`${c.name}'s personal quest count differs from the record: see their sheet.`, "#characters", go, null, sheet);
+    }
     // Below the prosperity level: they may advance to it (rulebook p. 48).
     const prosperity = stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
     if (st.level < prosperity && !draft?.advances?.includes(c.name)) {
@@ -810,12 +821,24 @@ let showReplays = false;
 // fulfilled quest is no secret: the character retires.
 const questShown = new Set();
 
-// "Record it" for a fulfilled personal quest: a retirement row in the form.
+// "Record it" for a fulfilled personal quest: a retirement row in the form,
+// with what the quest opens filled in on the phone that knows the card.
 function recordRetire(data, name) {
   if (!draft) draft = newDraft(data);
+  const quest = questRef?.quests?.[questCard(name)];
+  const unlocks = quest?.unlockClass || (quest?.openEnvelope ? `envelope-${quest.openEnvelope.toLowerCase()}` : "");
   let i = draft.retirements.findIndex(x => x.character === name);
-  if (i < 0) { draft.retirements.push({ character: name, unlocks: "" }); i = draft.retirements.length - 1; }
+  if (i < 0) { draft.retirements.push({ character: name, unlocks }); i = draft.retirements.length - 1; }
   showInRecorder(data, `ret-${i}-u`);
+}
+
+// "Record it" for a scenario a personal quest opens.
+function recordOpened(data, number, name) {
+  if (!draft) draft = newDraft(data);
+  draft.opened ||= [];
+  let i = draft.opened.findIndex(o => num(o.number) === number);
+  if (i < 0) { draft.opened.push({ number: String(number), character: name }); i = draft.opened.length - 1; }
+  showInRecorder(data, `open-${i}-n`);
 }
 
 // "Record it" on an open question about a past treasure: the form at its
@@ -1686,7 +1709,7 @@ function deriveScenarios(data, ref, eventUnlocks = [], evRef = null) {
     const entry = entries.get(n) || {};
     const info = refOf(n) || {};
     const s = { treasures: [], notes: "", completed: null, ...entry,
-                number: n, name: nameOf(n), unlockedBy: parent.get(n), unlockedVia: via.get(n),
+                number: n, name: nameOf(n), unlockedBy: parent.get(n), unlockedVia: via.get(n) ?? entry.unlockedVia,
                 reasons: [], rewards: [] };
 
     if (completed.has(n)) {
@@ -2302,7 +2325,7 @@ function questMeter(text) {
 function questStat(data, c) {
   const open = c.retired || questDone(c.personalQuest);
   const shown = open || questShown.has(c.name);
-  const value = [h("span", { class: "quest" }, c.personalQuest), questMeter(c.personalQuest)];
+  const value = [h("span", { class: "quest" }, c.personalQuest || "Not recorded"), questMeter(c.personalQuest)];
   return h("div", { class: "quest-stat" },
     h("span", { class: "label" }, "Personal quest"),
     open ? value : h("button", {
@@ -2316,6 +2339,136 @@ function questStat(data, c) {
 
 function toggleQuest(name) {
   if (questShown.has(name)) questShown.delete(name); else questShown.add(name);
+}
+
+let questRef = null;   // data/gloomhaven-quests.json, once loaded
+
+// Which quest card a character holds is kept on their player's phone only:
+// campaign.json is public, and the quest is a secret until it's done.
+const questCardKey = name => storeKey(`questCard:${name}`);
+function questCard(name) {
+  try { return localStorage.getItem(questCardKey(name)) || null; } catch { return null; }
+}
+function setQuestCard(name, card) {
+  try { if (card) localStorage.setItem(questCardKey(name), card); else localStorage.removeItem(questCardKey(name)); } catch {}
+}
+
+// Who played each completed scenario, as far as campaign.json says: its
+// results, and who was there in the session it was completed in (a casual
+// replay doesn't count). null when nothing records who played.
+function completedBy(data) {
+  const who = new Map();
+  for (const s of data.scenarios.filter(s => s.status === "completed")) {
+    who.set(s.number, new Set([...(s.results || []).map(r => r.character), ...(s.players || [])]));
+  }
+  for (const session of data.sessions) {
+    for (const x of session.scenarios || []) {
+      if (x.result === "success" && !x.casual && who.has(x.number)) for (const n of session.characters || []) who.get(x.number).add(n);
+    }
+  }
+  for (const [n, names] of who) if (!names.size) who.set(n, null);
+  return who;
+}
+
+// A personal quest's steps, counted from what campaign.json records where it
+// can be (scenarios completed: by name, with a boss, side scenarios, any; a
+// scenario chain followed to its end; battle-goal checkmarks; gold; items).
+// Steps it can't count (kills, exhaustion, regions, donations) take the
+// count as recorded, when the record has one per step. A step that waits on
+// another counts nothing until that one is done. maybe: scenarios that would
+// count, but nothing records who played them. opens: the scenario the step
+// starts with, once it can begin.
+function questProgress(data, c, card) {
+  const quest = questRef?.quests?.[card];
+  if (!quest) return null;
+  const by = completedBy(data);
+  const recorded = questSteps(c.personalQuest);
+  const sameShape = recorded && recorded.length === quest.steps.length;
+  const refOf = n => scenarioRef?.scenarios?.[String(n)];
+  const steps = [];
+  quest.steps.forEach((step, i) => {
+    const out = { text: step.text, count: step.count, after: Boolean(step.after), n: null, auto: true, maybe: [], opens: null };
+    const ready = (step.after || []).every(k => steps[k - 1]?.n != null && steps[k - 1].n >= steps[k - 1].count);
+    const [kind, arg = ""] = (step.track || "").split(":");
+    const scenarios = test => {
+      let n = 0;
+      for (const [number, names] of by) {
+        if (!test(number)) continue;
+        if (!names) out.maybe.push(number); else if (names.has(c.name)) n++;
+      }
+      return n;
+    };
+    if (kind === "scenarioName") out.n = scenarios(n => (refOf(n)?.name || "").includes(arg));
+    else if (kind === "bossScenarios") out.n = scenarios(n => refOf(n)?.boss);
+    else if (kind === "scenariosCompleted") out.n = scenarios(() => true);
+    else if (kind === "sideScenarios") {
+      const [lo, hi] = arg.split("-").map(Number);
+      out.n = scenarios(n => n >= lo && n <= hi);
+    } else if (kind === "scenario") {
+      const [first, last] = arg.split("|").map(Number);
+      out.n = scenarios(n => n === last);
+      if (ready) out.opens = first;
+    } else if (kind === "battleGoals") out.n = c.checkmarks || 0;
+    else if (kind === "gold") out.n = c.gold || 0;
+    else if (kind === "itemType") out.n = c.items.filter(i => arg.split("|").includes(itemSlot(i))).length;
+    else if (kind === "item") {
+      const name = itemsRef?.items?.[arg]?.name;
+      out.n = c.items.some(i => name && i.toLowerCase() === name.toLowerCase()) ? 1 : 0;
+    } else {
+      out.auto = false;
+      if (sameShape) out.n = recorded[i][0];
+    }
+    if (!ready) { out.n = out.auto || out.n == null ? 0 : out.n; out.maybe = []; }
+    if (out.n != null) out.n = Math.min(out.n, step.count);
+    steps.push(out);
+  });
+  // Written out, only when every step is known for certain.
+  const text = steps.every(x => x.n != null && !x.maybe.length)
+    ? steps.map((x, i) => `${i ? (x.after ? ", then " : " + ") : ""}${x.n}/${x.count}`).join("") : null;
+  // A recorded count agrees when each step is between what's counted and
+  // that plus the scenarios no one recorded playing.
+  const fits = written => {
+    const r = questSteps(written);
+    return Boolean(r) && r.length === steps.length && r.every(([n, m], i) => m === steps[i].count && steps[i].n != null
+      && n >= steps[i].n && n <= Math.min(steps[i].count, steps[i].n + steps[i].maybe.length));
+  };
+  const known = steps.every(x => x.n != null);
+  return { name: quest.name, card, steps, text, known, fits, unlockClass: quest.unlockClass, openEnvelope: quest.openEnvelope };
+}
+
+// Below a sheet's stats, once its quest is shown: which card it is (on this
+// phone only), each step as the record counts it, and a way to put the
+// count right.
+function questDetail(data, c) {
+  if (c.retired || !questRef || !questShown.has(c.name) && !questDone(c.personalQuest)) return null;
+  const card = questCard(c.name);
+  const pick = h("select", { "data-key": `pq-card-${c.name}`, "aria-label": `${c.name}'s personal quest card`,
+      onchange: e => { setQuestCard(c.name, e.target.value); render(data); } },
+    h("option", { value: "" }, card ? "Forget it on this phone" : "Which card? Kept on this phone only"),
+    Object.entries(questRef.quests).map(([id, q]) => {
+      const o = h("option", { value: id }, `${id} ${q.name}`);
+      if (id === card) o.selected = true;
+      return o;
+    }));
+  const p = card ? questProgress(data, c, card) : null;
+  const pending = draft?.quests?.[c.name];
+  const differs = p?.known && !p.fits(pending || c.personalQuest);
+  return h("div", { class: "block quest-detail" },
+    h("div", { class: "block-head" }, h("span", { class: "label" }, "Quest card"), pick),
+    p ? h("ul", { class: "quest-steps" }, p.steps.map(x => h("li", {},
+      h("span", { class: "quest-step-text" }, x.after ? h("span", { class: "then" }, "then ") : null, x.text,
+        h("span", { class: "sub" }, [
+          x.auto ? "counted from the record" : "as recorded by hand",
+          x.maybe.length ? `${plural(x.maybe.length, "more")} if they played ${x.maybe.map(n => `#${n}`).join(", ")}` : null,
+          x.opens && !data.scenarios.some(s => s.number === x.opens) ? `opens #${x.opens} ${scenarioRef?.scenarios?.[String(x.opens)]?.name || ""}`.trim() : null,
+        ].filter(Boolean).join(" · "))),
+      h("span", { class: "num" }, x.n == null ? `?/${x.count}` : `${x.n}/${x.count}`)))) : null,
+    p && !p.known ? h("p", { class: "small muted" }, "Some steps can't be counted from the record: write the quest as one count per step (like 1/3 + 0/1) to fill them in.") : null,
+    differs && !p.text ? h("p", { class: "small muted" }, `The record says ${pending || c.personalQuest || "nothing"}, which doesn't fit the count above.`) : null,
+    differs && p.text && rawCampaign ? h("button", { type: "button", class: "todo-do", "data-key": `pq-use-${c.name}`,
+        onclick: () => { if (!draft) draft = newDraft(data); draft.quests[c.name] = p.text; showInRecorder(data, `pq-${c.name}`); } },
+      `Record ${p.text}`) : null,
+    pending ? h("p", { class: "small muted" }, `${pending} is in the session being recorded.`) : null);
 }
 
 function renderCharacters(data) {
@@ -2358,7 +2511,8 @@ function renderCharacters(data) {
         nudge("plus", `Reached level ${u.level} last session`, `Add an ability card of level ${u.level} or lower.`)),
       h("div", { class: "char-stats" },
         h("div", {}, h("span", { class: "label" }, "Gold"), h("span", { class: "gold num" }, c.gold)),
-        c.personalQuest ? questStat(data, c) : null),
+        c.personalQuest || questCard(c.name) ? questStat(data, c) : null),
+      questDetail(data, c),
       // A fulfilled quest: they retire before playing again (p. 48).
       !c.retired && questDone(c.personalQuest)
         ? (draft?.retirements?.some(x => x.character === c.name)
@@ -2782,7 +2936,7 @@ function newDraft(data) {
   const party = [...(levelParty || defaultLevelParty(data))].filter(n => active.has(n));
   return { id: draftId(), date: today(), title: "", party, notes: "", advances: [],
            scenarios: [], events: [], buys: [], sells: [], perks: [], donations: [],
-           enhancements: [], claims: {}, quests: {}, retirements: [], newCharacters: [] };
+           enhancements: [], claims: {}, quests: {}, opened: [], retirements: [], newCharacters: [] };
 }
 // A scenario starts at the level for who is playing in the form (newcomers
 // included), at the Overview's difficulty; the form can change it.
@@ -2882,6 +3036,18 @@ function applyDraft(raw, d, data) {
     for (const item of c.items || []) returnItem(item);
     joinLog.push(`${c.name} retires: a prosperity checkmark, the ${c.class} retirement events go into the decks, and their items go back to the shop`);
     if (!x.unlocks) continue;
+    // Two quests open Envelope X instead of a class box.
+    if (x.unlocks === "envelope-x") {
+      if (data.city.envelopeX) {
+        c.questDraws = { itemDesign: null, scenario: null };
+        joinLog.push(`${c.name}'s personal quest opens Envelope X, which is already open: instead, draw a random item design and a random side scenario`);
+      } else {
+        out.city ||= {};
+        out.city.envelopeX = true;
+        joinLog.push(`${c.name}'s personal quest opens Envelope X`);
+      }
+      continue;
+    }
     // A box already opened gives a random item design and a random side
     // scenario instead (rulebook p. 48): the Campaign record asks for both.
     if (data.city.unlockedClasses.some(u => u.id === x.unlocks)) {
@@ -2992,7 +3158,7 @@ function applyDraft(raw, d, data) {
     // A scenario already completed can be replayed in casual mode: its XP,
     // gold, loot and battle goals count, but not its rewards or unlocks, and
     // its record stays as it was (rulebook p. 34).
-    const casual = s.casual ?? (known?.status === "completed");
+    const casual = known?.status === "completed" && s.casual !== false;
     if (info && known && !casual) {
       if (known.status === "completed" && s.result === "success") warnings.push(`${label} is already completed: tick Casual to replay it.`);
       else if (known.status === "blocked" && s.result === "success") warnings.push(`${label} is blocked.`);
@@ -3102,6 +3268,17 @@ function applyDraft(raw, d, data) {
   session.characters = [...party];
   session.notes = d.notes || "";
   if (evening) out.sessions.push(session);
+
+  // Scenarios a personal quest opens (the second step of some quests).
+  for (const o of d.opened || []) {
+    const n = num(o.number);
+    if (!n) continue;
+    const name = scenarioRef?.scenarios?.[String(n)]?.name;
+    if (!name) { warnings.push(`#${o.number} isn't a scenario number.`); continue; }
+    if (out.scenarios.some(s => s.number === n)) { warnings.push(`#${n} ${name} is already on the list.`); continue; }
+    out.scenarios.push({ number: n, name, status: "available", unlockedVia: o.character ? `${o.character}'s personal quest` : "a personal quest" });
+    log.push(`#${n} ${name} opens${o.character ? `, from ${o.character}'s personal quest` : ""}`);
+  }
 
   // Personal quest progress, as updated in the form; once fulfilled, the
   // character must retire before playing again (p. 48).
@@ -3366,7 +3543,7 @@ function renderRecorder(data) {
     const info = scenarioRef?.scenarios?.[String(n)];
     if (!info) return "Not a scenario number.";
     const rewards = describeRewards(scenarioRef, info.rewards, classRef);
-    const casual = s.casual ?? (data.scenarios.find(x => x.number === n)?.status === "completed");
+    const casual = data.scenarios.find(x => x.number === n)?.status === "completed" && s.casual !== false;
     if (casual) return `${info.name} · a casual replay: XP, gold, loot and battle goals, but no rewards or unlocks`;
     return `${info.name}${s.result === "success" && rewards.length ? ` · rewards: ${rewards.join(", ")}` : ""}`;
   };
@@ -3384,8 +3561,8 @@ function renderRecorder(data) {
     const n = num(s.number);
     s.level ??= String(draftLevel(s, data));
     const known = data.scenarios.find(x => x.number === n);
-    const casualOk = Boolean(known);
-    const casual = s.casual ?? (known?.status === "completed");
+    const casualOk = known?.status === "completed";
+    const casual = known?.status === "completed" && s.casual !== false;
     const st = scenarioStats(draftLevel(s, data));
     return h("fieldset", { class: "card rec-block" },
       h("legend", {}, `Scenario ${i + 1}`),
@@ -3503,8 +3680,9 @@ function renderRecorder(data) {
   const retireBlock = (x, i) => h("div", { class: "rec-row" },
     field("Who retires", select(`ret-${i}-c`, x, "character", activeOptions)),
     field("Their personal quest unlocks", select(`ret-${i}-u`, x, "unlocks",
-      [["", "No class, or not yet"], ...locked.map(id => [id, `The class with the ${classIconName(id)} icon${unlocked.has(id) ? " (already open)" : ""}`])]), "wide"),
-    x.unlocks ? h("span", { class: "rec-note rec-icon" }, gameIcon(`class-${x.unlocks}`, `${classIconName(x.unlocks)} icon`)) : null,
+      [["", "No class, or not yet"], ...locked.map(id => [id, `The class with the ${classIconName(id)} icon${unlocked.has(id) ? " (already open)" : ""}`]),
+       ["envelope-x", `Envelope X${data.city.envelopeX ? " (already open)" : ""}`]]), "wide"),
+    x.unlocks && x.unlocks !== "envelope-x" ? h("span", { class: "rec-note rec-icon" }, gameIcon(`class-${x.unlocks}`, `${classIconName(x.unlocks)} icon`)) : null,
     remove(d.retirements, i, "retirement", "add-retire"));
   // A newcomer: any unlocked class (or one unlocked tonight), at any level up
   // to the prosperity level.
@@ -3631,7 +3809,15 @@ function renderRecorder(data) {
                 c.name, h("span", {}, "new"))))))),
     h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Scenarios"),
       d.scenarios.map(scenarioBlock),
-      addButton("add-scenario", "Add a scenario", () => d.scenarios.push(newScenario(data, party)), () => `sc-${d.scenarios.length - 1}-n`)),
+      // A scenario a personal quest opens, ready to play next time.
+      (d.opened ||= []).length ? h("div", { class: "card rec-block" }, d.opened.map((o, i) => h("div", { class: "rec-row" },
+        field("Opened by a quest: #", text(`open-${i}-n`, o, "number", { type: "number", min: 1, max: 95, inputmode: "numeric", "aria-label": "Scenario a personal quest opens" }, true), "short"),
+        field("Whose quest", select(`open-${i}-c`, o, "character", activeOptions)),
+        h("span", { class: "small muted rec-note" }, scenarioRef?.scenarios?.[String(num(o.number))]?.name || ""),
+        remove(d.opened, i, "scenario", "add-opened")))) : null,
+      h("div", { class: "rec-buttons" },
+        addButton("add-scenario", "Add a scenario", () => d.scenarios.push(newScenario(data, party)), () => `sc-${d.scenarios.length - 1}-n`),
+        addButton("add-opened", "A personal quest opens one", () => d.opened.push({ number: "", character: "" }), () => `open-${d.opened.length - 1}-n`))),
     h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Events drawn"),
       d.events.length ? h("div", { class: "card rec-block" }, d.events.map(eventBlock)) : null,
       addButton("add-event", "Add an event", () => d.events.push(newEvent()), () => `ev-${d.events.length - 1}-d`)),
@@ -3984,7 +4170,9 @@ function dataUrl() {
 // campaign.json lists.
 async function loadReference(path) {
   try {
-    const response = await fetch(path);
+    // Checked with the server each time (cheap when unchanged), so a phone
+    // picks up refreshed reference data rather than an old cached copy.
+    const response = await fetch(path, { cache: "no-cache" });
     return response.ok ? await response.json() : null;
   } catch {
     return null;
@@ -3995,13 +4183,15 @@ async function start() {
   const status = document.getElementById("status");
   const url = dataUrl();
   try {
-    const [response, ref, evRef, items] = await Promise.all([
+    const [response, ref, evRef, items, quests] = await Promise.all([
       fetch(url, { cache: "no-cache" }),
       loadReference("data/gloomhaven-scenarios.json"),
       loadReference("data/gloomhaven-events.json"),
       loadReference("data/gloomhaven-items.json"),
+      loadReference("data/gloomhaven-quests.json"),
     ]);
     itemsRef = items;
+    questRef = quests;
     classRef = evRef;
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
     const json = await response.json();
