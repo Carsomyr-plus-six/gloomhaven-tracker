@@ -258,6 +258,19 @@ function characterOrder(data) {
 // Adventuring: neither retired nor sitting out.
 const playable = c => !c.retired && !c.inactive;
 
+// Inactive characters (sitting out for now) stay out of sight until asked
+// for: "+ 1 inactive" shows them everywhere at once, "Hide inactive" puts
+// them away again. Anyone already picked for something (tonight, the form,
+// the shop, the sheet open on a phone) shows regardless.
+let showInactive = false;
+const hiddenAway = (c, picked = false) => c.inactive && !c.retired && !showInactive && !picked;
+function inactiveToggle(data, count, key) {
+  if (!count && !showInactive) return null;
+  return h("button", { type: "button", class: "chip quiet-chip inactive-toggle", "data-key": key, "aria-expanded": String(showInactive),
+      onclick: () => { showInactive = !showInactive; render(data); } },
+    showInactive ? "Hide inactive" : `+ ${count} inactive`);
+}
+
 // --- Overview ---------------------------------------------------------------
 
 // The next reputation at which the shop gets cheaper, or null at the best price.
@@ -422,10 +435,13 @@ function tonight(data) {
 }
 
 function levelTile(data) {
-  // The inactive come last, quieter, and can be picked for a night.
-  const active = characterOrder(data).filter(c => !c.retired);
-  if (!active.length) return null;
+  // The inactive come last, quieter, and can be picked for a night: hidden
+  // until asked for, unless already picked.
+  const everyone = characterOrder(data).filter(c => !c.retired);
+  if (!everyone.length) return null;
   if (!levelParty) levelParty = defaultLevelParty(data);
+  const active = everyone.filter(c => !hiddenAway(c, levelParty.has(c.name)));
+  const away = everyone.length - active.length;
   const playing = active.filter(c => levelParty.has(c.name));
   const levels = playing.map(c => characterStats(c).level);
   const recommended = recommendedLevel(levels);
@@ -439,23 +455,20 @@ function levelTile(data) {
   const stat = (label, value) => h("div", {}, h("span", { class: "label" }, label), h("span", { class: "num" }, value));
   const average = levels.length ? (levels.reduce((a, b) => a + b, 0) / levels.length).toFixed(1).replace(/\.0$/, "") : null;
   const diffLabel = DIFFICULTIES.find(([key]) => key === difficulty)[1].toLowerCase();
-  // The scenario levels, 0 to 7, as hexes: tonight's lit and larger, and the
-  // normal level ringed when the difficulty moves it. It is the tile's
-  // figure, so it says the level, and how it was reached, in words.
-  const ladder = h("div", { class: "ladder", role: "img",
-      "aria-label": playing.length
-        ? `Scenario level ${level}${shift ? `, on ${diffLabel}; ${recommended} on normal` : ""}. Average character level ${average}.`
-        : "No one picked to play." },
-    Array.from({ length: 8 }, (_, l) =>
-      hex(l, !playing.length ? "quiet" : l === level ? "now" : l === recommended && shift ? "goal" : "quiet")));
+  const levelAt = d => Math.max(0, Math.min(7, recommended + d));
 
-  // What the level means first, then what sets it: who plays, and how hard.
+  // Tonight's level, the tile's figure, beside what it means at the table;
+  // under it, how it was reached. The other levels worth seeing are the
+  // ones a difficulty gives, so each difficulty says its own.
   return h("div", { class: "card tile level-tile" },
     h("span", { class: "label" }, "Scenario level"),
-    ladder,
     playing.length
-      // Monster level is the scenario level, which the ladder shows.
-      ? h("div", { class: "level-stats" }, stat("Gold per coin", st.gold), stat("Trap damage", st.trap), stat("Bonus XP", st.xp))
+      ? [h("div", { class: "level-now" },
+          h("span", { role: "img", "aria-label": `Scenario level ${level}` }, hex(level, "now")),
+          h("p", { class: "level-why" }, `Average character level ${average}, halved and rounded up`,
+            shift ? `: ${recommended}, ${signed(shift)} on ${diffLabel}` : null)),
+        // Monster level is the scenario level, which the hex shows.
+        h("div", { class: "level-stats" }, stat("Gold per coin", st.gold), stat("Trap damage", st.trap), stat("Bonus XP", st.xp))]
       : h("p", { class: "small muted" }, "Pick who is playing."),
     h("div", { class: "filters party-pick", role: "group", "aria-label": "Who is playing",
                style: `--wide: ${Math.min(active.length, 4)}; --narrow: ${active.length === 3 ? 3 : Math.min(active.length, 2)}` }, active.map(c =>
@@ -464,10 +477,13 @@ function levelTile(data) {
                     "aria-label": c.inactive ? `${c.name}, level ${characterStats(c).level}, inactive` : null,
                     onclick: () => toggle(c.name) },
         h("span", { class: "pick-name" }, c.name), h("span", {}, characterStats(c).level)))),
+    inactiveToggle(data, away, "level-inactive"),
     playing.length
-      ? h("div", { class: "segmented", role: "group", "aria-label": "Difficulty" }, DIFFICULTIES.map(([key, label]) =>
+      ? h("div", { class: "segmented", role: "group", "aria-label": "Difficulty" }, DIFFICULTIES.map(([key, label, d]) =>
           h("button", { type: "button", "data-key": `difficulty-${key}`, "aria-pressed": String(difficulty === key),
-                        onclick: () => { difficulty = key; render(data); } }, label)))
+                        "aria-label": `${label}: level ${levelAt(d)}`,
+                        onclick: () => { difficulty = key; render(data); } },
+            h("span", {}, label), h("span", { class: "seg-level" }, levelAt(d)))))
       : null);
 }
 
@@ -478,11 +494,20 @@ function furtherDown(links) {
 }
 
 // A few hexes behind the party name, one of them lit.
+// A band of honeycomb beside the party's name, fading towards it, with one
+// cell lit in brass: the map the campaign is played on, quietly. Wide
+// screens only; on a phone the name takes the width.
 function heroDecor() {
   const at = (cx, cy) => [[0, -26], [22.5, -13], [22.5, 13], [0, 26], [-22.5, 13], [-22.5, -13]]
     .map(([dx, dy]) => `${cx + dx},${cy + dy}`).join(" ");
-  const cells = [[45, 26], [90, 26], [135, 26], [67.5, 65], [112.5, 65, "lit"], [157.5, 65], [135, 104]];
-  return svg("0 0 182 132",
+  const cells = [];
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 8; col++) {
+      const cx = 24 + col * 45 + (row % 2 ? 22.5 : 0);
+      cells.push([cx, 27 + row * 39, row === 1 && col === 5 ? "lit" : ""]);
+    }
+  }
+  return svg("0 0 408 132",
     cells.map(([cx, cy, cls]) => `<polygon points="${at(cx, cy)}"${cls ? ` class="${cls}"` : ""}/>`).join(""),
     { class: "hero-decor", "aria-hidden": "true" });
 }
@@ -910,12 +935,14 @@ function todoList(data) {
 // The party at a glance, on phones. Each row opens that character's sheet.
 function partyList(data) {
   const order = characterOrder(data);
-  const active = order.filter(c => !c.retired);
-  if (!active.length) return null;
-  const away = active.filter(c => c.inactive).length;
+  const everyone = order.filter(c => !c.retired);
+  if (!everyone.length) return null;
+  const away = everyone.filter(c => c.inactive).length;
+  const active = everyone.filter(c => !hiddenAway(c));
   return h("div", { class: "party" },
     h("div", { class: "party-head" }, h("h2", {}, "The party"),
-      h("span", { class: "small muted" }, [plural(active.length - away, "character"), away ? `${away} inactive` : null].filter(Boolean).join(" · "))),
+      h("span", { class: "small muted" }, plural(everyone.length - away, "character")),
+      inactiveToggle(data, away, "party-inactive")),
     // Anyone sitting out comes last, quieter, with "Inactive" in place of
     // what they're working towards.
     active.map(c => {
@@ -2579,12 +2606,15 @@ function renderCharacters(data) {
   // inactive and then retired characters come last, each after a divider,
   // dimmed.
   const group = c => c.retired ? 2 : c.inactive ? 1 : 0;
+  const shownInactive = inactive.filter(c => !hiddenAway(c, order.indexOf(c) === characterIndex));
   const switcher = h("div", { class: "char-switch", role: "group", "aria-label": "Choose a character" },
     order.map((c, i) => {
+      if (hiddenAway(c, i === characterIndex)) return null;
       const st = characterStats(c);
       const mine = !c.retired && c.name === me;
       const state = c.retired ? "retired" : c.inactive ? "inactive" : null;
-      return [i > 0 && group(c) !== group(order[i - 1]) ? h("span", { class: "switch-sep", "aria-hidden": "true" }) : null,
+      const before = order.slice(0, i).filter((x, k) => !hiddenAway(x, k === characterIndex)).at(-1);
+      return [before && group(c) !== group(before) ? h("span", { class: "switch-sep", "aria-hidden": "true" }) : null,
         h("button", {
           type: "button", "data-key": `char-${i}`, class: state,
           "aria-pressed": String(i === characterIndex),
@@ -2596,19 +2626,20 @@ function renderCharacters(data) {
             ? h("span", { class: "dot", role: "img", "aria-label": questDone(c.personalQuest) ? "Must retire" : "Has a perk to choose" }) : null),
         h("span", { class: "switch-name" }, c.name),
         mine ? h("span", { class: "you", "aria-hidden": "true" }, "You") : null)];
-    }));
+    }),
+    inactiveToggle(data, inactive.length - shownInactive.length, "switch-inactive"));
 
   return [
-    sectionHead("Characters", [`${active.length} active`, inactive.length ? `${inactive.length} inactive` : null,
-                               retired.length ? `${retired.length} retired` : null].filter(Boolean).join(" · ")),
+    sectionHead("Characters", [[`${active.length} active`, retired.length ? `${retired.length} retired` : null].filter(Boolean).join(" · "),
+                               inactiveToggle(data, inactive.length, "chars-inactive")]),
     // Phones: the Shop, further down this tab, as a small link on the line
     // under the row, so the sheet starts with the characters.
     h("div", { class: "switch-wrap" }, switcher,
       h("a", { class: "switch-shop", href: "#shop", "aria-label": "Shop, further down" }, "Shop", icon("chevron"))),
-    // Inactive sheets follow the active ones in the same grid (dashed, and
-    // "inactive" under the name), so they fill the gaps rather than a row of their own.
-    active.length ? h("div", { class: "char-grid" }, [...active, ...inactive].map(card))
-      : [empty("No active characters."), inactive.length ? h("div", { class: "char-grid" }, inactive.map(card)) : null],
+    // Inactive sheets, once shown, follow the active ones in the same grid
+    // (dashed, and "inactive" under the name), filling the gaps.
+    active.length ? h("div", { class: "char-grid" }, [...active, ...shownInactive].map(card))
+      : [empty("No active characters."), shownInactive.length ? h("div", { class: "char-grid" }, shownInactive.map(card)) : null],
     active.length || inactive.length ? meLine(data) : null,
     retired.length ? [h("h3", { class: "subhead" }, "Retired"), h("div", { class: "char-grid" }, retired.map(card))] : null,
   ];
@@ -2698,8 +2729,9 @@ function renderShop(data) {
   // Whoever is shopping (this phone's character to start with, or anyone
   // picked above the list): their gold, their room, and on each item whether
   // they could take it, with Buy, or Sell on what they carry.
-  const active = characterOrder(data).filter(c => !c.retired);
-  const shopper = active.find(c => c.name === (shopFor === undefined ? me : shopFor));
+  const everyone = characterOrder(data).filter(c => !c.retired);
+  const shopper = everyone.find(c => c.name === (shopFor === undefined ? me : shopFor));
+  const active = everyone.filter(c => !hiddenAway(c, c === shopper));
   // The draft counts: what it buys takes slots, gold and copies; what it
   // sells frees them.
   const buys = (draft?.buys || []).filter(b => b.character && b.item);
@@ -2764,7 +2796,8 @@ function renderShop(data) {
       h("span", { class: "label", id: "shop-for-label" }, "Shopping for"),
       h("div", { class: "filters", role: "group", "aria-labelledby": "shop-for-label" }, active.map(c =>
         h("button", { type: "button", "data-key": `shop-for-${c.name}`, "aria-pressed": String(shopper?.name === c.name), onclick: pick(c.name) },
-          classIcon(c.class), c.name)))) : null,
+          classIcon(c.class), c.name)),
+        inactiveToggle(data, everyone.length - active.length, "shop-inactive"))) : null,
     shopper ? h("div", { class: "shop-me" },
       h("span", {}, `${shopper.name} has `, h("strong", {}, `${shopper.gold} gold`), spent ? `, ${gold} after the draft` : null),
       slotStrip({ ...shopper, items: owned }, characterStats(shopper).level),
@@ -3798,7 +3831,7 @@ function renderRecorder(data) {
           field("Title (optional)", text("rec-title", d, "title", { placeholder: "Under the date, or instead of it" }), "wide")),
         h("div", { class: "field" },
           h("span", { id: "rec-who-label" }, "Who played"),
-          h("div", { class: "filters", role: "group", "aria-labelledby": "rec-who-label" }, active.map(c =>
+          h("div", { class: "filters", role: "group", "aria-labelledby": "rec-who-label" }, active.filter(c => !hiddenAway(c, d.party.includes(c.name))).map(c =>
             h("button", { type: "button", "data-key": `rec-who-${c.name}`, "aria-pressed": String(d.party.includes(c.name)),
                           onclick: () => { d.party = d.party.includes(c.name) ? d.party.filter(n => n !== c.name) : [...d.party, c.name]; rerender(); } },
               // Someone sitting out can still be marked: it brings them back.
@@ -3806,7 +3839,8 @@ function renderRecorder(data) {
             newcomers.map((c, i) =>
               h("button", { type: "button", "data-key": `rec-who-new-${i}`, "aria-pressed": String(c.draft.playing !== false),
                             onclick: () => { c.draft.playing = c.draft.playing === false; rerender(); } },
-                c.name, h("span", {}, "new"))))))),
+                c.name, h("span", {}, "new"))),
+            inactiveToggle(data, active.filter(c => hiddenAway(c, d.party.includes(c.name))).length, "rec-who-inactive"))))),
     h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Scenarios"),
       d.scenarios.map(scenarioBlock),
       // A scenario a personal quest opens, ready to play next time.
