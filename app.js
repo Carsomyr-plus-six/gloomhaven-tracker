@@ -269,10 +269,41 @@ function ledgerFoot(t, unit) {
       h("span", { class: "num" }, `${rangeText(e.range)}${unit}`)))));
 }
 
-// The track is cut into the stretches that share a shop price (the price
-// changes every 4 points past ±3). Today's stretch is lit, a brass hexagon
-// stands on the reputation, an outline spans what it could be while events
-// are open, and the next step's price is labelled in brass under it.
+// A value on a track cut into stretches, each with its own effect:
+// reputation's shop prices, prosperity's levels. Today's stretch is lit (and
+// any passed, more quietly), the next one edged, a brass hexagon stands on
+// the value, a brass rule spans what it could be while that's unsettled, and
+// the next step is labelled in brass under where it starts. Positions are
+// percentages along the track.
+function stepTrack({ zones, at, maybe, step, ends, said }) {
+  const place = (el, from, to) => { el.style.left = `${from}%`; el.style.width = `${to - from}%`; return el; };
+  const marker = svg("0 0 20 22", '<path d="M10 1.5l8 4.6v9.8l-8 4.6-8-4.6V6.1z"/>', { class: "marker", "aria-hidden": "true" });
+  marker.style.left = `${at}%`;
+  // The end label on the step's side gives way to it, and right by an end
+  // the step lines up with that end instead, so it stays on even a narrow
+  // phone tile.
+  const low = step && step.at < 50;
+  const near = step && (step.at <= 33 || step.at >= 65);
+  const atEnd = step && (step.at <= 15 || step.at >= 82);
+  const label = step ? h("span", { class: `step${atEnd ? (low ? " start" : " end") : ""}` }, step.text) : null;
+  if (label && !atEnd) label.style.left = `${step.at}%`;
+  return h("div", { role: "img", "aria-label": said },
+    h("div", { class: "track" },
+      maybe ? place(h("b", { class: "maybe" }), maybe[0], maybe[1]) : null,
+      zones.map(z => {
+        const el = place(h("i", { class: z.cls || null }), z.from, z.to);
+        el.style.width = `calc(${el.style.width} - var(--gap))`;
+        return el;
+      }),
+      marker),
+    h("div", { class: "track-scale", "aria-hidden": "true" },
+      near && low ? null : h("span", {}, ends[0]),
+      label,
+      near && !low ? null : h("span", { class: "end" }, ends[1])));
+}
+
+// Reputation's stretches share a shop price (the price changes every 4
+// points past ±3), drawn to scale.
 function reputationTile(party, ledger) {
   const rep = party.reputation;
   const modifier = shopModifier(rep);
@@ -281,11 +312,6 @@ function reputationTile(party, ledger) {
   // stretch runs from its first place's left edge to its last's right edge.
   const clamp = r => Math.max(-20, Math.min(20, r));
   const edge = r => (r + 20) / 41 * 100;
-  const span = (el, from, to) => {
-    el.style.left = `${edge(from)}%`;
-    el.style.width = `${edge(to + 1) - edge(from)}%`;
-    return el;
-  };
   const zones = [];
   for (let r = -20; r <= 20; r++) {
     const last = zones.at(-1);
@@ -293,33 +319,17 @@ function reputationTile(party, ledger) {
     else zones.push({ from: r, to: r, modifier: shopModifier(r) });
   }
   const range = ledger?.reputation?.range;
-  const maybe = range && !isExact(range) ? span(h("b", { class: "maybe" }), clamp(range.lo), clamp(range.hi)) : null;
-  const marker = svg("0 0 20 22", '<path d="M10 1.5l8 4.6v9.8l-8 4.6-8-4.6V6.1z"/>', { class: "marker", "aria-hidden": "true" });
-  marker.style.left = `${(edge(rep) + edge(rep + 1)) / 2}%`;
-  const said = `Reputation ${signed(rep)}: shop ${modifier === 0 ? "prices normal" : priceText(modifier)}${next ? `, ${priceText(next.modifier)} from ${signed(next.at)}` : ""}.`;
-  // The next step's label sits under its step. The end label on its side
-  // gives way to it, and right by an end it lines up with the end instead,
-  // so it stays on the tile, even a narrow phone one.
-  const near = next && Math.abs(next.at) >= 7;
-  const atEnd = next && Math.abs(next.at) >= 14;
-  const step = next ? h("span", { class: `step${atEnd ? (next.at < 0 ? " start" : " end") : ""}` },
-    next.modifier === 0 ? "Normal" : `${signed(next.modifier)} gold`) : null;
-  if (step && !atEnd) step.style.left = `${edge(next.at)}%`;
   return h("div", { class: "card tile" },
     h("div", { class: "tile-top" }, h("span", { class: "label" }, "Reputation"), h("span", { class: "figure" }, signed(rep))),
-    h("div", { role: "img", "aria-label": said },
-      h("div", { class: "track" },
-        maybe,
-        zones.map(z => {
-          const el = span(h("i", { class: z.modifier === modifier ? "now" : next?.at === z.from ? "next" : null }), z.from, z.to);
-          el.style.width = `calc(${el.style.width} - var(--gap))`;
-          return el;
-        }),
-        marker),
-      h("div", { class: "track-scale", "aria-hidden": "true" },
-        near && next.at < 0 ? null : h("span", {}, "−20"),
-        step,
-        near && next.at > 0 ? null : h("span", { class: "end" }, "+20"))),
+    stepTrack({
+      zones: zones.map(z => ({ from: edge(z.from), to: edge(z.to + 1),
+                               cls: z.modifier === modifier ? "now" : next?.at === z.from ? "next" : null })),
+      at: (edge(rep) + edge(rep + 1)) / 2,
+      maybe: range && !isExact(range) ? [edge(clamp(range.lo)), edge(clamp(range.hi) + 1)] : null,
+      step: next ? { at: edge(next.at), text: next.modifier === 0 ? "Normal" : `${signed(next.modifier)} gold` } : null,
+      ends: ["−20", "+20"],
+      said: `Reputation ${signed(rep)}: shop ${modifier === 0 ? "prices normal" : priceText(modifier)}${next ? `, ${priceText(next.modifier)} from ${signed(next.at)}` : ""}.`,
+    }),
     h("div", { class: "tile-foot" },
       h("strong", {}, modifier === 0 ? "Prices normal" : `Prices ${signed(modifier)} gold`)),
     ledgerFoot(ledger?.reputation, ""));
@@ -338,15 +348,33 @@ function sanctuaryMeter(city) {
     h("div", { class: "pips", "aria-hidden": "true" }, Array.from({ length: steps }, (_, i) => h("i", { class: i < given ? "on" : null }))));
 }
 
+// Prosperity's stretches are its levels, each the same width: drawn to
+// scale, level 1's 4 checkmarks would be a sliver beside level 8's 14. The
+// hexagon moves through the current level as its checkmarks are ticked.
 function prosperityTile(city, ledger) {
-  const level = stepFor(city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
-  const toNext = progressFor(city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
+  const marks = city.prosperityCheckmarks;
+  const level = stepFor(marks, CHECKMARKS_FOR_PROSPERITY);
+  const toNext = progressFor(marks, CHECKMARKS_FOR_PROSPERITY);
   const from = CHECKMARKS_FOR_PROSPERITY[level - 1];
+  const levels = CHECKMARKS_FOR_PROSPERITY.length - 1;   // stretches: levels 1 to 8, then 9 at the end
+  const pos = m => {
+    const l = stepFor(m, CHECKMARKS_FOR_PROSPERITY);
+    if (l > levels) return 100;
+    const [lo, hi] = [CHECKMARKS_FOR_PROSPERITY[l - 1], CHECKMARKS_FOR_PROSPERITY[l]];
+    return (l - 1 + (m - lo) / (hi - lo)) / levels * 100;
+  };
+  const range = ledger?.prosperity?.range;
   return h("div", { class: "card tile" },
     h("div", { class: "tile-top" }, h("span", { class: "label" }, "Prosperity"), h("span", { class: "figure" }, level)),
-    toNext ? h("div", { class: "ticks", role: "img",
-        "aria-label": `${city.prosperityCheckmarks - from} of ${toNext.next - from} checkmarks towards prosperity ${level + 1}` },
-      Array.from({ length: toNext.next - from }, (_, i) => h("span", { class: i < city.prosperityCheckmarks - from ? "on" : null }))) : null,
+    stepTrack({
+      zones: Array.from({ length: levels }, (_, i) => ({ from: i / levels * 100, to: (i + 1) / levels * 100,
+        cls: i + 1 < level ? "done" : i + 1 === level ? "now" : i === level ? "next" : null })),
+      at: pos(marks),
+      maybe: range && !isExact(range) ? [pos(Math.max(0, range.lo)), pos(Math.min(64, range.hi))] : null,
+      step: toNext ? { at: level / levels * 100, text: `Level ${level + 1}` } : null,
+      ends: ["1", "9"],
+      said: `Prosperity ${level}${toNext ? `: ${marks - from} of ${toNext.next - from} checkmarks towards level ${level + 1}` : ", the highest level"}.`,
+    }),
     h("div", { class: "tile-foot" },
       h("strong", {}, toNext ? `${toNext.remaining} more to level ${level + 1}` : "Maximum level")),
     sanctuaryMeter(city),
@@ -393,11 +421,16 @@ function levelTile(data) {
     render(data);
   };
   const stat = (label, value) => h("div", {}, h("span", { class: "label" }, label), h("span", { class: "num" }, value));
+  // The scenario levels, 0 to 7, as hexes: tonight's lit, and the normal
+  // level ringed when the difficulty moves it. The figure says it in words.
+  const ladder = h("div", { class: "ladder", "aria-hidden": "true" }, Array.from({ length: 8 }, (_, l) =>
+    hex(l, !playing.length ? "quiet" : l === level ? "" : l === recommended && shift ? "goal" : "quiet")));
 
   return h("div", { class: "card tile level-tile" },
     h("div", { class: "tile-top" },
       h("span", { class: "label" }, "Scenario level"),
       h("span", { class: "figure" }, playing.length ? level : "–")),
+    ladder,
     h("div", { class: "filters", role: "group", "aria-label": "Who is playing" }, active.map(c =>
       h("button", { type: "button", "data-key": `playing-${c.name}`, "aria-pressed": String(levelParty.has(c.name)),
                     onclick: () => toggle(c.name) },
@@ -407,7 +440,7 @@ function levelTile(data) {
         h("button", { type: "button", "data-key": `difficulty-${key}`, "aria-pressed": String(difficulty === key),
                       onclick: () => { difficulty = key; render(data); } }, label))),
       h("div", { class: "level-stats" },
-        stat("Monsters", `Level ${st.monsters}`), stat("Gold per coin", st.gold),
+        stat("Monster level", st.monsters), stat("Gold per coin", st.gold),
         stat("Trap damage", st.trap), stat("Bonus XP", st.xp)),
     ] : h("p", { class: "small muted" }, "Pick who is playing."),
     h("div", { class: "tile-foot" },
