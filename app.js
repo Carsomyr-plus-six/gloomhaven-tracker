@@ -1334,6 +1334,23 @@ function classPerks(cls) {
   return id ? classRef.classEvents?.[id]?.perks || null : null;
 }
 
+// Perk text with the game's icon in front of each keyword, as on the
+// character sheet. The word stays, so the text reads the same without the
+// icons. Icons: icons/README.md (Creator Pack, CC BY-NC-SA 4.0).
+const PERK_ICONS = {
+  "ADD TARGET": "target", EARTH: "earth", AIR: "air", FIRE: "fire", ICE: "ice", LIGHT: "light", DARK: "dark",
+  STUN: "stun", MUDDLE: "muddle", IMMOBILIZE: "immobilize", WOUND: "wound", POISON: "poison", CURSE: "curse",
+  DISARM: "disarm", INVISIBLE: "invisible", PIERCE: "pierce", PUSH: "push", PULL: "pull",
+  SHIELD: "shield", HEAL: "heal", REFRESH: "refresh",
+};
+const PERK_KEYWORD = new RegExp(`\\b(${Object.keys(PERK_ICONS).join("|")})\\b`, "g");
+
+function perkText(text) {
+  return String(text).split(PERK_KEYWORD).map((part, i) => i % 2
+    ? h("span", { class: "kw" }, h("img", { class: "glyph", src: `icons/${PERK_ICONS[part]}.svg`, alt: "", width: 16, height: 16 }), part)
+    : part);
+}
+
 const NUMBER_WORDS = { "1": "one", "2": "two", "3": "three", "4": "four" };
 
 // How a perk reads with the wording differences that don't matter taken out.
@@ -1479,13 +1496,13 @@ function renderCharacters(data) {
         perks.length
           ? h("ul", { class: "perks" }, perks.map(p => h("li", { class: p.note && !p.quiet ? "unsure" : null },
               icon(p.note && !p.quiet ? "question" : "check"),
-              h("span", {}, p.text, p.note ? h("span", { class: "note" }, p.note) : null),
+              h("span", {}, perkText(p.text), p.note ? h("span", { class: "note" }, p.note) : null),
               p.count > 1 ? h("span", { class: "times" }, `×${p.count}`) : null)))
           : h("span", { class: "small muted" }, "None taken yet."),
         st.unspent && check.open.length ? h("details", { class: "open-perks", open: true },
           h("summary", {}, `Perks still open on the ${c.class} sheet`),
           h("ul", {}, check.open.map(p => h("li", {},
-            h("span", {}, p.text), p.left > 1 ? h("span", { class: "times" }, `${p.left} boxes`) : null)))) : null),
+            h("span", {}, perkText(p.text)), p.left > 1 ? h("span", { class: "times" }, `${p.left} boxes`) : null)))) : null),
       c.items.length ? h("div", { class: "block" },
         h("div", { class: "block-head" }, h("span", { class: "label" }, "Items"), h("span", {}, `${c.items.length} carried`)),
         itemProblems.map(text => nudge("question", "Too many items", text)),
@@ -2197,6 +2214,8 @@ async function start() {
       h("br"),
       ...(ref ? ["Scenario data from ", h("a", { href: ref.source }, "Gloomhaven Secretariat"), ` (${ref.license}). `]
               : ["Scenario reference data couldn't be loaded. "]),
+      "Icons from the Gloomhaven Creator Pack by Isaac Childres (",
+      h("a", { href: "https://creativecommons.org/licenses/by-nc-sa/4.0/" }, "CC BY-NC-SA 4.0"), "), converted to SVG. ",
       "Unofficial fan project; Gloomhaven is © Cephalofair Games.");
 
     render(data);
