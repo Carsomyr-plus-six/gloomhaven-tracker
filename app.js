@@ -1584,7 +1584,7 @@ function renderShop(data) {
       h("strong", {}, item.name, item.design ? h("span", { class: "tag" }, "design") : null),
       h("span", { class: "sub" }, [
         item.left ? `${copies(item.left)} left` : "Sold out",
-        item.held.length ? `${item.held.join(", ")} ${item.held.length === 1 ? "has" : "have"} ${item.held.length === 1 ? "one" : "them"} · sells for ${item.sells}` : null,
+        item.held.length ? `${item.held.join(", ")} ${item.held.length === 1 ? "has" : "have"} ${item.held.length === 1 ? "one" : "them"} · sells for ${item.sells}` : null,
       ].filter(Boolean).join(" · "))),
     h("span", { class: "price num" }, `${item.price} gold`));
 
