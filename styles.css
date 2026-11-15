@@ -93,6 +93,10 @@ button { font: inherit; color: inherit; }
   clip-path: var(--hexagon);
   color: var(--ink);
   font: 700 calc(var(--w) * 0.55) / 1 var(--display);
+  /* Grenze Gotisch has old-style figures (x-height digits, some with
+     descenders) and a tall ascent, so a centred line box puts the digits
+     low. Lift them so the body of the digit sits on the hex's centre. */
+  padding-bottom: 0.26em;
 }
 .hex.completed { --ring: var(--verdigris); --fill: var(--under); --ink: var(--verdigris); }
 .hex.blocked { --ring: var(--line-strong); --fill: var(--under); --ink: var(--muted); }
@@ -472,7 +476,7 @@ main {
 .map-canvas > i { position: absolute; background: #34413c; }
 .node {
   position: absolute;
-  width: 176px;
+  width: 160px;
   height: 48px;
   display: flex;
   align-items: center;
@@ -623,6 +627,13 @@ main {
   .tabs svg { display: block; width: 24px; height: 24px; }
 
   main { padding: 32px 20px calc(96px + env(safe-area-inset-bottom, 0px)); gap: 32px; overflow-x: clip; }
+  /* Tablets get this layout too: keep it a readable column, not stretched. */
+  main > *, .pair > * { width: 100%; max-width: 640px; margin-inline: auto; }
+  .topbar-inner { max-width: 680px; }
+  /* Everything tappable is at least 44px tall, as at the table it's a thumb. */
+  .segmented button { min-height: 44px; }
+  .todo-go, .ready-head a { display: inline-flex; align-items: center; min-height: 44px; }
+  .ledger summary, .deck summary, .open-perks summary { padding-block: 13px; margin-block: -9px; }
   .panel { gap: 16px; scroll-margin-top: 16px; }
   .panel.off, .site-footer.off { display: none; }
   .pair { display: contents; }
@@ -730,4 +741,9 @@ main {
   .deck-top .display { font-size: 34px; }
   .record { gap: 12px; }
   .record .card { padding: 12px 14px; }
+}
+
+/* Small phones: the overview tiles get a row each. */
+@media (max-width: 359px) {
+  .tiles { grid-template-columns: minmax(0, 1fr); }
 }

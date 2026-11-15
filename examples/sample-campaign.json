@@ -27,7 +27,6 @@
     {
       "name": "Grunt",
       "class": "Brute",
-      "player": "Alex",
       "xp": 102,
       "gold": 35,
       "checkmarks": 4,
@@ -40,7 +39,6 @@
     {
       "name": "Sparks",
       "class": "Spellweaver",
-      "player": "Sam",
       "xp": 30,
       "gold": 12,
       "checkmarks": 1,

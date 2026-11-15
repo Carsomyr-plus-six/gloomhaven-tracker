@@ -322,6 +322,13 @@ function heroDecor() {
     { class: "hero-decor", "aria-hidden": "true" });
 }
 
+// The edition, then where the party is, unless the edition already says it
+// (no "Gloomhaven (1st edition) · Gloomhaven").
+function eyebrowText(edition, location) {
+  const here = location && !edition.toLowerCase().includes(location.trim().toLowerCase()) ? location : null;
+  return [edition, here].filter(Boolean).join(" · ");
+}
+
 function renderOverview(data) {
   const { party, city } = data;
   const ready = data.scenarios.filter(s => s.status === "available").sort((a, b) => a.number - b.number);
@@ -332,7 +339,7 @@ function renderOverview(data) {
     h("div", { class: "hero" },
       h("div", { class: "hero-head" },
         heroDecor(),
-        h("div", { class: "eyebrow" }, [data.edition || "Gloomhaven", party.location].filter(Boolean).join(" · ")),
+        h("div", { class: "eyebrow" }, eyebrowText(data.edition || "Gloomhaven", party.location)),
         h("h1", { class: "party-name" }, party.name || "Unnamed party")),
       h("div", { class: "ready" },
         h("div", { class: "ready-head" },
@@ -385,6 +392,10 @@ function todoItems(data) {
   return items;
 }
 
+// What each "Before you play" link says: the section it goes to.
+const TODO_PLACES = { "#characters": "Characters", "#shop": "Shop", "#sessions": "Sessions",
+  "#events": "Event decks", "#record": "Campaign record", "#overview": "Overview" };
+
 function todoList(data) {
   const items = todoItems(data);
   return h("div", { class: "card todo" },
@@ -394,7 +405,7 @@ function todoList(data) {
     items.length
       ? h("ul", { class: "rows" }, items.map(item => h("li", {},
           h("span", {}, item.text),
-          h("a", { class: "todo-go", href: item.href, onclick: item.onclick || null }, "Open"))))
+          h("a", { class: "todo-go", href: item.href, onclick: item.onclick || null }, TODO_PLACES[item.href] || "Open"))))
       : h("p", { class: "small muted" }, "Nothing to sort out before the next scenario."));
 }
 
@@ -411,7 +422,7 @@ function partyList(data) {
         hex(st.level, "level"),
         h("span", { class: "party-who" },
           h("strong", {}, c.name),
-          h("span", {}, classIcon(c.class), [c.class, c.player].filter(Boolean).join(" · ")),
+          h("span", {}, classIcon(c.class), c.class),
           st.unspent ? h("em", {}, `${plural(st.unspent, "perk")} to choose`) : null),
         h("span", { class: "party-xp" },
           h("span", { class: st.close ? "close" : null }, st.nextText),
@@ -1229,7 +1240,7 @@ function scenarioRow(data, s, depth = 0) {
 // The unlock map for wide screens: scenarios laid out left to right, with the
 // picked one described underneath.
 function unlockMap(data, all, layout) {
-  const W = 176, H = 48, GAP = 36, ROW = 64, T = 2;
+  const W = 160, H = 48, GAP = 28, ROW = 64, T = 2;   // W matches .node in styles.css
   const x = n => layout.pos.get(n).col * (W + GAP);
   const y = n => Math.round(layout.pos.get(n).row * ROW);
 
@@ -1490,7 +1501,7 @@ function renderCharacters(data) {
         h("div", { class: "char-level" }, hex(st.level, "level"), h("span", { class: "label" }, "Level")),
         h("div", {},
           h("h3", {}, c.name),
-          h("p", {}, classIcon(c.class), [c.class, c.player ? `played by ${c.player}` : null, c.retired ? "retired" : null].filter(Boolean).join(" · ")))),
+          h("p", {}, classIcon(c.class), [c.class, c.retired ? "retired" : null].filter(Boolean).join(" · ")))),
       h("div", { class: "block" },
         h("div", { class: "block-head" },
           h("span", { class: "xp-now num" }, `${c.xp} XP`),
@@ -1513,14 +1524,16 @@ function renderCharacters(data) {
       h("div", { class: "block" },
         h("div", { class: "block-head" },
           h("span", { class: "label" }, "Perks"),
-          h("span", {}, `${c.perks.length} of ${st.earned} taken`)),
+          st.earned || c.perks.length ? h("span", {}, `${c.perks.length} of ${st.earned} taken`) : null),
         st.unspent ? nudge("plus", `${plural(st.unspent, "perk")} to choose`, null, "perk-nudge") : null,
         perks.length
           ? h("ul", { class: "perks" }, perks.map(p => h("li", { class: p.note && !p.quiet ? "unsure" : null },
               icon(p.note && !p.quiet ? "question" : "check"),
               h("span", {}, perkText(p.text), p.note ? h("span", { class: "note" }, p.note) : null),
               p.count > 1 ? h("span", { class: "times" }, `×${p.count}`) : null)))
-          : h("span", { class: "small muted" }, "None taken yet."),
+          : h("span", { class: "small muted" }, st.earned ? "None taken yet."
+              // Only a level 1 character with under 3 checkmarks has none earned.
+              : `None yet: the first comes at level 2, or with ${plural(3 - c.checkmarks % 3, "more battle-goal checkmark")}.`),
         st.unspent && check.open.length ? h("details", { class: "open-perks", open: true },
           h("summary", {}, `Perks still open on the ${c.class} sheet`),
           h("ul", {}, check.open.map(p => h("li", {},
@@ -2129,6 +2142,13 @@ function render(data, only) {
   if (key) document.querySelector(`[data-key="${key}"]`)?.focus({ preventScroll: true });
   const map = document.querySelector(".map-scroll");
   if (map && mapScroll) map.scrollLeft = mapScroll;
+  // The first time the map is drawn wider than its box, scroll so the
+  // picked scenario (usually the newest, at the deep end) is in view.
+  else if (map && map.scrollWidth > map.clientWidth) {
+    const picked = map.querySelector('.node[aria-pressed="true"]');
+    const over = picked ? picked.getBoundingClientRect().right - map.getBoundingClientRect().right : 0;
+    if (over > 0) map.scrollLeft = over + 28;
+  }
 }
 
 // On a phone, show the current tab's sections and hide the rest.

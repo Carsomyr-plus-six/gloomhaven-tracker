@@ -95,7 +95,7 @@ Add an entry that isn't completed only when the reference data can't know about 
 
 ```json
 {
-  "name": "Grunt", "class": "Brute", "player": "Alex",
+  "name": "Grunt", "class": "Brute",
   "xp": 102, "gold": 35, "checkmarks": 4,
   "perks": ["..."], "items": ["..."],
   "personalQuest": "", "retired": false, "notes": ""
