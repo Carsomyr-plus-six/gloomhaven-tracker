@@ -15,7 +15,8 @@ It runs on GitHub Pages, so it works on phones and desktops without installing a
 | `styles.css` | How it looks, including dark mode. |
 | `app.js` | Reads `campaign.json` and fills in the page. Also works out levels, prosperity, shop prices, and which scenarios are unlocked or blocked. |
 | `data/gloomhaven-scenarios.json` | Reference data for all 95 scenarios: unlocks, blocks, requirements, rewards. Generated, don't edit by hand. **Contains spoilers.** |
-| `tools/update_scenario_data.py` | Regenerates the reference data: `py tools/update_scenario_data.py` |
+| `data/gloomhaven-events.json` | Reference data for city and road events: starting decks, and what each option adds, removes or unlocks. No event text. Generated, **contains spoilers**. |
+| `tools/update_scenario_data.py` | Regenerates both reference files: `py tools/update_scenario_data.py` |
 | `examples/sample-campaign.json` | Made-up data for testing. View it at `?data=examples/sample-campaign.json`. |
 
 ## Running it locally
@@ -83,8 +84,16 @@ Add an entry that isn't completed only when the reference data can't know about 
 }
 ```
 
+**events**: city and road events drawn, in order, with the option chosen. The tracker works out the decks from the starting decks plus what each option does. `scenario` is the scenario it was drawn before (optional). If an option has several outcomes (for example depending on reputation), add `"outcome": 1` (counting from 1); the Overview asks when it needs this. `"card": "removed"` or `"returned"` overrides what happened to the card.
+
+```json
+{ "deck": "city", "number": 21, "option": "B", "scenario": 8 }
+```
+
+**eventDecks**: cards added or removed some other way, such as a new class's events or a retirement: `{ "added": [{ "deck": "road", "number": 31, "notes": "Why" }], "removed": [] }`.
+
 ## Credits and license
 
-Scenario data comes from [Gloomhaven Secretariat](https://github.com/Lurkars/gloomhavensecretariat) by Lurkars and contributors, licensed under the GNU Affero General Public License v3.0. This project uses the same license; see [LICENSE](LICENSE).
+Scenario and event data comes from [Gloomhaven Secretariat](https://github.com/Lurkars/gloomhavensecretariat) by Lurkars and contributors, licensed under the GNU Affero General Public License v3.0. This project uses the same license; see [LICENSE](LICENSE).
 
 This is an unofficial fan project. Gloomhaven and its content are © Cephalofair Games.

@@ -120,7 +120,40 @@ function renderOverview(data) {
       h("div", { class: "card" }, h("h3", {}, "Item designs"),
         h("p", { class: "muted small" }, "Added to the shop for good."),
         achievementList(city.itemDesigns))),
+    renderEventDecks(data),
   ];
+}
+
+function renderEventDecks(data) {
+  const ev = data.eventState;
+  if (!ev) return null;
+
+  const changes = (deck, map, verb) => [...map].sort((a, b) => a[0] - b[0]).map(([number, source]) =>
+    h("li", {}, `${verb} ${eventLabel(deck, number)}`, h("span", { class: "muted small" }, ` · ${source}`)));
+
+  return h("div", { class: "card", style: "margin-top:12px" },
+    h("h3", {}, "Event decks"),
+    stats(Object.keys(DECK_NAMES).map(deck => [`${DECK_NAMES[deck]} deck`, `${ev.decks[deck].size} cards`])),
+    ev.questions.length ? h("div", { class: "stack", style: "margin-top:8px" },
+      ev.questions.map(q => h("div", { class: "reason small" }, q))) : null,
+    h("div", { class: "grid", style: "margin-top:8px" },
+      Object.keys(DECK_NAMES).map(deck => {
+        const items = [...changes(deck, ev.added[deck], "Added"), ...changes(deck, ev.removed[deck], "Removed")];
+        return h("div", {},
+          h("div", { class: "muted small" }, `${DECK_NAMES[deck]} deck changes`),
+          items.length ? h("ul", { class: "plain" }, items) : h("p", { class: "muted small" }, "None yet."));
+      })),
+    ev.history.length ? [
+      h("div", { class: "muted small", style: "margin-top:12px" }, "Events drawn"),
+      h("ul", { class: "plain" }, ev.history.map(e => h("li", {},
+        `${e.label}: option ${e.option}`,
+        h("span", { class: "muted small" }, [
+          e.fate ? ` · ${e.fate}` : null,
+          e.adds.length ? ` · added ${e.adds.map(([d, n]) => eventLabel(d, n)).join(", ")}` : null,
+          e.scenario ? ` · before #${e.scenario}` : null,
+        ].filter(Boolean).join("")),
+        e.notes ? h("div", { class: "muted small" }, e.notes) : null))),
+    ] : null);
 }
 
 // --- Scenario rules from the reference data ------------------------------
@@ -193,9 +226,84 @@ function describeRewards(ref, rewards) {
   return parts;
 }
 
+// --- Event decks ------------------------------------------------------------
+// data/gloomhaven-events.json says what each event option does to the decks.
+// campaign.json's "events" lists the events drawn and the option chosen;
+// "eventDecks" holds manual additions and removals the data can't know about.
+
+const DECK_NAMES = { city: "City", road: "Road" };
+const eventLabel = (deck, number) => `${DECK_NAMES[deck] || deck} ${number}`;
+
+function describeCondition(c) {
+  if (!c || c.type === "otherwise") return "otherwise";
+  if (c.type === "reputationGT") return `reputation above ${c.values[0]}`;
+  if (c.type === "reputationLT") return `reputation below ${c.values[0]}`;
+  if (c.type === "character") return `with ${c.values.join(" or ")}`;
+  if (c.type.startsWith("pay")) return "if you paid";
+  return c.type;
+}
+
+function deriveEvents(data, evRef) {
+  const decks = {};
+  const added = {};
+  const removed = {};
+  for (const deck of Object.keys(DECK_NAMES)) {
+    decks[deck] = new Set(evRef?.startingDecks?.[deck] || []);
+    added[deck] = new Map();
+    removed[deck] = new Map();
+  }
+  const history = [];
+  const questions = [];
+  const unlocks = [];
+
+  const add = (deck, number, source) => {
+    decks[deck]?.add(number);
+    added[deck]?.set(number, source);
+    removed[deck]?.delete(number);
+  };
+  const remove = (deck, number, source) => {
+    decks[deck]?.delete(number);
+    removed[deck]?.set(number, source);
+  };
+
+  for (const e of data.events) {
+    const label = eventLabel(e.deck, e.number);
+    const outcomes = evRef?.events?.[e.deck]?.[String(e.number)]?.[e.option] || [];
+    const outcome = e.outcome ? outcomes[e.outcome - 1]
+                  : outcomes.length === 1 ? outcomes[0] : null;
+
+    // Removed or returned: the campaign entry wins, then the outcome, then
+    // all outcomes agreeing.
+    const fates = new Set(outcomes.map(o => o.card));
+    const fate = e.card || outcome?.card || (fates.size === 1 ? [...fates][0] : null);
+    if (fate === "removed") remove(e.deck, e.number, `${label}, option ${e.option}`);
+    if (!fate) questions.push(`${label}: check whether the card was removed or returned to the deck.`);
+
+    const adds = outcome?.adds || [];
+    for (const [deck, number] of adds) add(deck, number, `from ${label}`);
+    for (const n of outcome?.unlocks || []) unlocks.push({ number: n, source: `${label} event` });
+
+    if (!outcome && outcomes.length > 1) {
+      const choices = outcomes.map((o, i) => `${i + 1}: ${describeCondition(o.condition)}`).join("; ");
+      questions.push(`${label}, option ${e.option}: which outcome? (${choices})`);
+    }
+    for (const [deck, number] of outcome?.mayAdd || []) {
+      questions.push(`${label}: ${eventLabel(deck, number)} may have been added, depending on the characters present.`);
+    }
+
+    history.push({ ...e, label, fate, adds });
+  }
+
+  for (const a of data.eventDecks.added) add(a.deck, a.number, a.notes || "added by hand");
+  for (const r of data.eventDecks.removed) remove(r.deck, r.number, r.notes || "removed by hand");
+
+  return { decks, added, removed, history, questions, unlocks };
+}
+
 // Turn campaign.json's scenario entries plus the reference data into the full
 // list of unlocked scenarios, each with a status and, if blocked, the reasons.
-function deriveScenarios(data, ref) {
+// eventUnlocks are scenarios unlocked by events: [{ number, source }].
+function deriveScenarios(data, ref, eventUnlocks = []) {
   const entries = new Map(data.scenarios.map(s => [s.number, s]));
   const refOf = n => ref?.scenarios?.[String(n)];
   const done = data.scenarios.filter(s => s.status === "completed").map(s => s.number).sort((a, b) => a - b);
@@ -206,6 +314,10 @@ function deriveScenarios(data, ref) {
   if (ref) parent.set(1, null);
   for (const c of done) {
     for (const u of refOf(c)?.unlocks || []) if (!parent.has(Number(u))) parent.set(Number(u), c);
+  }
+  const via = new Map();
+  for (const { number, source } of eventUnlocks) {
+    if (!parent.has(number)) { parent.set(number, null); via.set(number, source); }
   }
   for (const s of data.scenarios) {
     if (s.unlockedBy != null) parent.set(s.number, s.unlockedBy);
@@ -219,7 +331,8 @@ function deriveScenarios(data, ref) {
     const entry = entries.get(n) || {};
     const info = refOf(n) || {};
     const s = { treasures: [], notes: "", completed: null, ...entry,
-                number: n, name: nameOf(n), unlockedBy: parent.get(n), reasons: [], rewards: [] };
+                number: n, name: nameOf(n), unlockedBy: parent.get(n), unlockedVia: via.get(n),
+                reasons: [], rewards: [] };
 
     if (completed.has(n)) {
       s.status = "completed";
@@ -330,7 +443,8 @@ function renderScenarios(data) {
       h("span", { class: `badge ${s.status}` }, STATUS_LABELS[s.status] || s.status),
       h("div", { class: "body" },
         h("div", { class: "muted small" },
-          [s.unlockedBy ? `Unlocked by #${s.unlockedBy}${name(s.unlockedBy) ? ` ${name(s.unlockedBy)}` : ""}` : null,
+          [s.unlockedBy ? `Unlocked by #${s.unlockedBy}${name(s.unlockedBy) ? ` ${name(s.unlockedBy)}` : ""}`
+             : s.unlockedVia ? `Unlocked by ${s.unlockedVia}` : null,
            s.completed ? `Completed ${formatDate(s.completed)}` : null,
            s.treasures?.length ? `${s.treasures.length > 1 ? "Treasures" : "Treasure"} ${s.treasures.join(", ")} looted` : null].filter(Boolean).join(" · ")),
         s.reasons.map(r => h("div", { class: "reason small" }, r)),
@@ -431,6 +545,8 @@ function withDefaults(raw) {
     scenarios: raw.scenarios || [],
     characters: (raw.characters || []).map(c => ({ xp: 0, gold: 0, checkmarks: 0, perks: [], items: [], ...c })),
     sessions: (raw.sessions || []).map(s => ({ scenarios: [], ...s })),
+    events: raw.events || [],
+    eventDecks: { added: [], removed: [], ...raw.eventDecks },
   };
 }
 
@@ -444,11 +560,11 @@ function dataUrl() {
   return new URL("campaign.json", location.href);
 }
 
-// The scenario reference data. Without it the tracker still works, showing
-// only what campaign.json lists.
-async function loadReference() {
+// Reference data. Without it the tracker still works, showing only what
+// campaign.json lists.
+async function loadReference(path) {
   try {
-    const response = await fetch("data/gloomhaven-scenarios.json");
+    const response = await fetch(path);
     return response.ok ? await response.json() : null;
   } catch {
     return null;
@@ -459,10 +575,15 @@ async function start() {
   const status = document.getElementById("status");
   const url = dataUrl();
   try {
-    const [response, ref] = await Promise.all([fetch(url, { cache: "no-cache" }), loadReference()]);
+    const [response, ref, evRef] = await Promise.all([
+      fetch(url, { cache: "no-cache" }),
+      loadReference("data/gloomhaven-scenarios.json"),
+      loadReference("data/gloomhaven-events.json"),
+    ]);
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
     const data = withDefaults(await response.json());
-    data.scenarios = deriveScenarios(data, ref);
+    data.eventState = evRef ? deriveEvents(data, evRef) : null;
+    data.scenarios = deriveScenarios(data, ref, data.eventState?.unlocks);
 
     if (data.party.name) {
       document.getElementById("title").textContent = data.party.name;
