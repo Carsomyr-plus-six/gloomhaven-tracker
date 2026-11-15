@@ -1387,9 +1387,11 @@ function classIcon(cls) {
   return id ? gameIcon(`class-${id}`) : null;
 }
 
-// Perk text with the game's icon in front of each keyword, as on the
-// character sheet. The word stays, so the text reads the same without the
-// icons. Icons: icons/README.md (Creator Pack, CC BY-NC-SA 4.0).
+// Perk text with each keyword shown as the game's icon instead of the word,
+// as on the character sheet: "Add one [rolling] [earth] card". The word
+// becomes the icon's alt text (and hover title), so a screen reader still
+// reads "Add one rolling earth card". Icons: icons/README.md (Creator Pack,
+// CC BY-NC-SA 4.0).
 const PERK_ICONS = {
   "ADD TARGET": "target", EARTH: "earth", AIR: "air", FIRE: "fire", ICE: "ice", LIGHT: "light", DARK: "dark",
   STUN: "stun", MUDDLE: "muddle", IMMOBILIZE: "immobilize", WOUND: "wound", POISON: "poison", CURSE: "curse",
@@ -1400,9 +1402,13 @@ const PERK_ICONS = {
 const PERK_KEYWORD = new RegExp(`\\b(${Object.keys(PERK_ICONS).join("|")})\\b`, "g");
 
 function perkText(text) {
-  return String(text).split(PERK_KEYWORD).map((part, i) => i % 2
-    ? h("span", { class: "kw" }, h("img", { class: "glyph", src: `icons/${PERK_ICONS[part]}.svg`, alt: "", width: 16, height: 16 }), part)
-    : part);
+  // Once the icon stands in for REFRESH, the rest needn't shout.
+  const plain = String(text).replace(/\bREFRESH AN ITEM\b/g, "REFRESH an item");
+  return plain.split(PERK_KEYWORD).map((part, i) => {
+    if (i % 2 === 0) return part;
+    const word = part.toLowerCase();
+    return h("img", { class: "glyph", src: `icons/${PERK_ICONS[part]}.svg`, alt: word, title: word, width: 16, height: 16 });
+  });
 }
 
 const NUMBER_WORDS = { "1": "one", "2": "two", "3": "three", "4": "four" };

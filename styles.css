@@ -397,9 +397,8 @@ main {
 .perks .icon { font-size: var(--t-md); color: var(--verdigris); stroke-width: 2.8; }
 .perks .unsure .icon { color: var(--brass); stroke-width: 2.2; }
 .perk-box { flex: none; width: 11px; height: 11px; margin: 0 2px; border-radius: var(--r-xs); background: var(--verdigris); }
-/* A game icon in front of a keyword, kept on the same line as its word. */
-.kw { white-space: nowrap; }
-.glyph { width: 1.2em; height: 1.2em; margin-right: 0.25em; vertical-align: -0.25em; }
+/* A game icon standing in for a keyword in perk text. */
+.glyph { width: 1.25em; height: 1.25em; vertical-align: -0.28em; }
 /* A single-colour game icon (class, item slot, checkmark): the SVG is a
    mask, filled with the text colour. */
 .gicon {
