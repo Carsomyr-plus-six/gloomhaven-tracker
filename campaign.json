@@ -18,7 +18,8 @@
     "globalAchievements": [],
     "unlockedClasses": ["Brute", "Tinkerer", "Spellweaver", "Scoundrel", "Cragheart", "Mindthief"],
     "itemDesigns": [
-      { "name": "Horned Helm", "scenario": 3, "notes": "From treasure 65" }
+      { "name": "Horned Helm", "scenario": 3, "notes": "From treasure 65" },
+      { "name": "Ring of Skulls", "scenario": 4, "notes": "From treasure 38" }
     ]
   },
   "scenarios": [
@@ -52,8 +53,25 @@
     {
       "number": 4,
       "name": "Crypt of the Damned",
-      "status": "available",
+      "status": "completed",
       "unlockedBy": 2,
+      "completed": null,
+      "treasures": ["38", "46"],
+      "notes": "First scenario without Kaktus: Azorica, Craig and Flik Flak.\nTreasure 38 gave the Ring of Skulls design.\nTreasure 46 was a trap (3 damage and poisoned), with no lasting effect."
+    },
+    {
+      "number": 5,
+      "name": "Ruinous Crypt",
+      "status": "available",
+      "unlockedBy": 4,
+      "completed": null,
+      "notes": ""
+    },
+    {
+      "number": 6,
+      "name": "Decaying Crypt",
+      "status": "available",
+      "unlockedBy": 4,
       "completed": null,
       "notes": ""
     },
