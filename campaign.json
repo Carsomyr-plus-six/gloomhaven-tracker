@@ -208,12 +208,12 @@
       "name": "Kaktus",
       "class": "Scoundrel",
       "player": "Thorstein",
-      "xp": 0,
-      "gold": 30,
-      "checkmarks": 0,
+      "xp": 59,
+      "gold": 46,
+      "checkmarks": 2,
       "perks": [],
-      "items": [],
-      "personalQuest": "",
+      "items": ["Leather Armor", "Minor Stamina Potion", "Balanced Blade", "Iron Helmet"],
+      "personalQuest": "5?",
       "retired": false,
       "notes": "Thorstein lives far away, so Kaktus misses some sessions."
     }
