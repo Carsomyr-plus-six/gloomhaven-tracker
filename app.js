@@ -166,6 +166,8 @@ const ICONS = {
   chevron: '<path d="M6 9l6 6 6-6"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   question: '<circle cx="12" cy="12" r="9"/><path d="M9.500 9.500a2.500 2.500 0 1 1 3.600 2.200c-.700.400-1.100 1-1.100 1.800"/><path d="M12 17h.010"/>',
+  replay: '<path d="M4 12a8 8 0 1 0 2.400-5.700"/><path d="M4 4v4h4"/>',
+  eye: '<path d="M2.500 12S6 5.500 12 5.500 21.500 12 21.500 12 18 18.500 12 18.500 2.500 12 2.500 12z"/><circle cx="12" cy="12" r="2.800"/>',
 };
 
 function svg(viewBox, inner, attrs = {}) {
@@ -524,7 +526,8 @@ function renderOverview(data) {
                   hex(s.number),
                   h("span", {},
                     h("span", { class: "ready-name" }, s.name || "Untitled"),
-                    from(s) ? h("span", { class: "ready-from" }, from(s)) : null))))
+                    from(s) ? h("span", { class: "ready-from" }, from(s)) : null,
+                    attemptsText(data, s.number) ? h("span", { class: "ready-tried" }, capitalize(attemptsText(data, s.number))) : null))))
             : empty("Nothing is unlocked to play right now.")))),
     partyList(data),
   ];
@@ -543,6 +546,13 @@ function straightOn(data) {
 // An evening of Gloomhaven, in the order it runs: a city event, the town
 // (shop, perks, the Sanctuary), a road event, then the scenario. Each step
 // links to where it's handled; the strip ends with recording the evening.
+// A donation to the Sanctuary: two Bless cards each for the next scenario
+// (p. 45). Said with the donation, in town, where it's made.
+function blessings() {
+  const who = new Set((draft?.donations || []).filter(x => x.character).map(x => x.character));
+  return who.size ? ` (${who.size * 2} Bless)` : "";
+}
+
 function tonightStrip(data) {
   const t = tonight(data);
   const decks = data.eventState?.decks;
@@ -564,12 +574,7 @@ function tonightStrip(data) {
     [(draft.perks || []).filter(p => p.character && p.perk).length, "perk"],
     [(draft.donations || []).filter(x => x.character).length, "donation"],
     [(draft.enhancements || []).filter(x => x.character).length, "enhancement"],
-  ].filter(([n]) => n).map(([n, what]) => plural(n, what)).join(", ") : "";
-  // A donation to the Sanctuary: two Bless cards each for the next scenario (p. 45).
-  const blessings = () => {
-    const who = [...new Set((draft?.donations || []).filter(x => x.character).map(x => x.character))];
-    return who.length ? ` · 2 Bless: ${who.join(", ")}` : "";
-  };
+  ].filter(([n]) => n).map(([n, what]) => plural(n, what)).join(", ") + blessings() : "";
   const played = (draft?.scenarios || []).filter(s => num(s.number));
   const firstPlayed = (draft?.scenarios || []).findIndex(s => num(s.number));
   return h("nav", { class: "tonight", "aria-label": "Tonight, step by step" },
@@ -580,7 +585,7 @@ function tonightStrip(data) {
     step(3, "Road event", drawn("road") || (decks ? `${decks.road.size} in the deck` : "Draw one") + straightOn(data), "#events",
       () => recordEvent(data, "road"), Boolean(drawn("road"))),
     step(4, "Scenario", (played.length ? played.map(s => scenarioLabel(data, num(s.number))).join(", ")
-      : t ? `Level ${t.level} · deal battle goals` : "Pick who is playing") + blessings(), "#scenarios",
+      : t ? `Level ${t.level} · deal battle goals` : "Pick who is playing"), "#scenarios",
       played.length ? () => showInRecorder(data, `sc-${firstPlayed}-n`) : null, played.length > 0),
     rawCampaign ? h("button", { type: "button", class: `btn${recording ? "" : " primary"} tonight-record`, "data-key": "tonight-record",
       onclick: () => { if (!draft) draft = newDraft(data); showInRecorder(data, "rec-date"); } },
@@ -592,7 +597,8 @@ function tonightStrip(data) {
 function todoItems(data) {
   const items = [];
   // place: what the link says, if not the section's name.
-  const add = (text, href, onclick, action, place) => items.push({ text, href, onclick, action, place });
+  // urgent: it stops someone playing, so it goes first, marked.
+  const add = (text, href, onclick, action, place, urgent) => items.push({ text, href, onclick, action, place, urgent });
   const order = characterOrder(data);
 
   if (draftChanges(draft, data)) add("What's been recorded on this phone isn't saved yet: download it from Sessions and commit it.", "#sessions");
@@ -622,7 +628,7 @@ function todoItems(data) {
     // A fulfilled personal quest: they must retire at this visit (p. 48).
     if (questDone(c.personalQuest) && !draft?.retirements?.some(x => x.character === c.name)) {
       add(`${c.name}'s personal quest is fulfilled: they must retire at this visit to town, before playing again.`, "#characters", go,
-        rawCampaign ? { label: "Record it", run: () => recordRetire(data, c.name) } : null, sheet);
+        rawCampaign ? { label: "Record it", run: () => recordRetire(data, c.name) } : null, sheet, true);
     }
     // Below the prosperity level: they may advance to it (rulebook p. 48).
     const prosperity = stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
@@ -673,7 +679,7 @@ function todoItems(data) {
   for (const q of data.shop?.questions || []) add(q, "#shop");
 
   if (!data.city.envelopeB && data.city.donations >= ENVELOPE_B_DONATIONS) add("Donations have reached 100 gold: Envelope B can be opened.", "#overview");
-  return items;
+  return [...items.filter(i => i.urgent), ...items.filter(i => !i.urgent)];
 }
 
 // Who passed a level in the last session played, and to which: each owes a
@@ -715,7 +721,7 @@ function attackDeck(perkTexts) {
     }
     if (!ok) unread.push(text);
   }
-  const order = ["−2", "−1", "+0", "+1", "+2", "+3", "+4", "2×", "Null"];
+  const order = ["Null", "−2", "−1", "+0", "+1", "+2", "+3", "+4", "2×"];
   const rank = k => order.includes(k) ? order.indexOf(k) : order.length;
   const cards = [...deck].filter(([, n]) => n > 0).sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b));
   return { cards, total: cards.reduce((sum, [, n]) => sum + n, 0), unread };
@@ -780,11 +786,29 @@ function recordEnhancement(data, what, cost) {
   showInRecorder(data, `enr-${draft.enhancements.length - 1}-c`);
 }
 
-// Personal quest progress written as "n/m", reached.
-function questDone(text) {
-  const m = String(text || "").match(/^\s*(\d+)\s*\/\s*(\d+)\s*$/);
-  return Boolean(m) && Number(m[2]) > 0 && Number(m[1]) >= Number(m[2]);
+// Personal quest progress written as "n/m", or as steps taken in order
+// ("1/3, then 0/1": three of something, then one more thing): each step's
+// count and target. Any other wording ("2? (noted as II)") gives null.
+function questSteps(text) {
+  const parts = String(text || "").trim().split(/\s*(?:,\s*then\b|\bthen\b|,|\+)\s*/i);
+  const steps = parts.map(p => p.match(/^(\d+)\s*\/\s*(\d+)$/));
+  if (!parts[0] || steps.some(m => !m || !Number(m[2]))) return null;
+  return steps.map(m => [Number(m[1]), Number(m[2])]);
 }
+
+// Reached: every step done.
+function questDone(text) {
+  const steps = questSteps(text);
+  return Boolean(steps) && steps.every(([n, m]) => n >= m);
+}
+
+// The recorder's quick picks: completed scenarios too, once asked for.
+let showReplays = false;
+
+// Personal quests are secret at the table, so a sheet's progress shows only
+// once its player taps it (until they tap again, or the page reloads). A
+// fulfilled quest is no secret: the character retires.
+const questShown = new Set();
 
 // "Record it" for a fulfilled personal quest: a retirement row in the form.
 function recordRetire(data, name) {
@@ -852,8 +876,8 @@ function todoList(data) {
       h("h2", { class: "label" }, "Before you play"),
       h("span", {}, items.length ? plural(items.length, "thing") + " to see to" : "All clear")),
     items.length
-      ? h("ul", { class: "rows" }, items.map(item => h("li", {},
-          h("span", {}, item.text),
+      ? h("ul", { class: "rows" }, items.map(item => h("li", { class: item.urgent ? "urgent" : null },
+          h("span", {}, item.urgent ? icon("lock", "Stops play") : null, item.text),
           h("span", { class: "todo-acts" },
             item.action ? h("button", { type: "button", class: "todo-do", onclick: item.action.run }, item.action.label) : null,
             h("a", { class: "todo-go", href: item.href, onclick: item.onclick || null }, item.place || TODO_PLACES[item.href] || "Open")))))
@@ -946,8 +970,9 @@ function renderEvents(data) {
         e.notes ? h("div", { class: "small muted" }, e.notes) : null,
         (asks.get(e) || []).map(text => h("div", { class: "ask" }, icon("question"), text))),
       h("span", { class: `fate ${e.fate || (e.unknown ? "unknown" : "open")}` },
-        // The icons printed on event cards say it; the word is for screen readers and hover.
-        e.fate ? h("span", { title: capitalize(e.fate) }, gameIcon(`event-${e.fate}`, capitalize(e.fate))) : e.unknown ? "Not known" : "Needs an answer"));
+        // The icon printed on event cards, and the word: the two icons look
+        // alike at this size.
+        e.fate ? [gameIcon(`event-${e.fate}`), h("span", { class: "fate-word" }, capitalize(e.fate))] : e.unknown ? "Not known" : "Needs an answer"));
   };
 
   return [
@@ -1794,11 +1819,32 @@ function scenarioFacts(data, s) {
     ["Tonight", t ? `Scenario level ${t.level} (${t.difficulty.toLowerCase()}): monster level ${t.monsters}, ${t.gold} gold a coin, trap damage ${t.trap}, ${t.xp} bonus XP` : null],
     ["Unlocked by", s.unlockedBy != null ? scenarioLink(data, s.unlockedBy) : s.unlockedVia],
     ["Completed", formatDate(s.completed)],
+    ["Also played", attemptsOf(data, s.number).map(a => `${a.failed ? "failed" : "replayed casually"} ${formatDate(a.date)}`).join("; ")],
     ["Rewards", s.rewards.length ? capitalize(s.rewards.join(", ")) : null],
     ["Treasure", data.treasureInfo?.get(s.number)?.join("; ")
       || (s.treasures?.length ? `${s.treasures.map(t => t.number || t).join(", ")} looted` : null)],
   ].filter(([, value]) => value);
   return pairs.length ? h("dl", { class: "facts" }, pairs.map(([k, v]) => h("div", {}, h("dt", {}, k), h("dd", {}, v)))) : null;
+}
+
+// The times a scenario was played without completing it for the record: a
+// failure, or a casual replay of one already completed. Oldest first.
+function attemptsOf(data, n) {
+  return data.sessions.filter(s => s.date).sort((a, b) => a.date.localeCompare(b.date))
+    .flatMap(s => (s.scenarios || []).filter(x => x.number === n && (x.result !== "success" || x.casual))
+      .map(x => ({ date: s.date, failed: x.result !== "success" })));
+}
+
+// "failed once (Nov 14)", "replayed twice (last Dec 2)": short, for a row.
+function attemptsText(data, n) {
+  const all = attemptsOf(data, n);
+  const times = k => k === 1 ? "once" : k === 2 ? "twice" : `${k} times`;
+  const when = list => {
+    const d = formatDate(list.at(-1).date, { day: "numeric", month: "short" });
+    return list.length > 1 ? ` (last ${d})` : ` (${d})`;
+  };
+  return [[all.filter(a => a.failed), "failed"], [all.filter(a => !a.failed), "replayed"]]
+    .filter(([list]) => list.length).map(([list, what]) => `${what} ${times(list.length)}${when(list)}`).join(" · ");
 }
 
 // After playing a scenario that's open to play: record it, as a perk is.
@@ -1817,10 +1863,11 @@ const TREE_STEP = 14;
 function scenarioRow(data, s, depth = 0, lines = []) {
   const open = scenarioOpen === s.number;
   const blockedWhy = s.status === "blocked" && s.reasons.length ? s.reasons.join(" · ") : null;
+  const tried = attemptsText(data, s.number);
   const meta = s.status === "completed"
-    ? [formatDate(s.completed), s.treasures?.length ? `treasure ${s.treasures.map(t => t.number || t).join(", ")}` : null].filter(Boolean).join(" · ")
+    ? [formatDate(s.completed), s.treasures?.length ? `treasure ${s.treasures.map(t => t.number || t).join(", ")}` : null, tried || null].filter(Boolean).join(" · ")
     : s.status === "available"
-      ? (s.unlockedBy != null ? `from #${s.unlockedBy}` : s.unlockedVia ? `from ${s.unlockedVia}` : "")
+      ? [s.unlockedBy != null ? `from #${s.unlockedBy}` : s.unlockedVia ? `from ${s.unlockedVia}` : null, tried || null].filter(Boolean).join(" · ")
       : "";
   // A line runs the full height of the row at each depth that carries on,
   // so siblings far apart are visibly joined; the row's own branch turns
@@ -2228,19 +2275,47 @@ function attackDeckBlock(c, rows) {
   const blessed = (draft?.donations || []).some(x => x.character === c.name);
   return h("div", { class: "block deck-block" },
     h("div", { class: "block-head" }, h("span", { class: "label" }, "Attack modifier deck"),
-      h("span", {}, `${total} cards${blessed ? ", +2 Bless next scenario" : ""}`)),
-    h("ul", { class: "deck-cards" }, cards.map(([label, n]) => h("li", {}, h("span", {}, perkText(label)), h("b", {}, `×${n}`)))),
+      h("span", {}, `${total} cards${blessed ? " + 2 Bless" : ""}`)),
+    // Worst to best, the bad cards quieter; each count in a badge of its own,
+    // so the 2× card doesn't read "2× ×1".
+    h("ul", { class: "deck-cards" }, cards.map(([label, n]) => h("li", { class: /^(Null|−)/.test(label) ? "bad" : label === "+0" ? null : "good" },
+        h("span", {}, perkText(label)), h("span", { class: "sr-only" }, ", "), h("b", { "aria-label": plural(n, "card") }, String(n)))),
+      blessed ? h("li", { class: "bless", title: "From a Sanctuary donation, for the next scenario only" },
+        h("span", {}, "Bless"), h("span", { class: "sr-only" }, ", "), h("b", { "aria-label": "2 cards, next scenario only" }, "2")) : null),
     unread.length ? h("p", { class: "small muted" }, `Not counted, as written: ${unread.join("; ")}`) : null);
 }
 
-// Personal quest progress written as "2/15" gets a thin bar under it; any
-// other wording ("2? (noted as II)") stays as written, with no bar.
+// Personal quest progress written as "2/15" gets a thin bar under it, one
+// per step for a quest in steps, each as long as its target; any other
+// wording ("2? (noted as II)") stays as written, with no bar.
 function questMeter(text) {
-  const m = String(text).match(/^\s*(\d+)\s*\/\s*(\d+)\s*$/);
-  if (!m || !Number(m[2])) return null;
-  const bar = meter(Math.min(1, Number(m[1]) / Number(m[2])));
-  bar.classList.add("quest-meter");
-  return bar;
+  const steps = questSteps(text);
+  if (!steps) return null;
+  return h("div", { class: "quest-meter" }, steps.map(([n, m]) => {
+    const bar = meter(Math.min(1, n / m));
+    bar.style.flexGrow = m;
+    return bar;
+  }));
+}
+
+// The personal quest on a sheet: hidden behind a tap while it's a secret.
+function questStat(data, c) {
+  const open = c.retired || questDone(c.personalQuest);
+  const shown = open || questShown.has(c.name);
+  const value = [h("span", { class: "quest" }, c.personalQuest), questMeter(c.personalQuest)];
+  return h("div", { class: "quest-stat" },
+    h("span", { class: "label" }, "Personal quest"),
+    open ? value : h("button", {
+        type: "button", class: `quest-reveal${shown ? " shown" : ""}`, "data-key": `pq-show-${c.name}`,
+        "aria-expanded": String(shown), "aria-label": shown ? null : `Show ${c.name}'s personal quest progress`,
+        title: shown ? "Tap to hide" : null,
+        onclick: () => { toggleQuest(c.name); render(data, "characters"); render(data, "sessions"); },
+      },
+      shown ? value : h("span", { class: "quest quest-hidden" }, icon("eye"), "Show")));
+}
+
+function toggleQuest(name) {
+  if (questShown.has(name)) questShown.delete(name); else questShown.add(name);
 }
 
 function renderCharacters(data) {
@@ -2258,7 +2333,7 @@ function renderCharacters(data) {
     // While a perk waits to be chosen, the whole class list in the sheet's
     // order, taken boxes filled and untaken perks quiet, as the paper sheet
     // reads; otherwise just the perks taken. Perks not on the sheet come last.
-    const choosing = st.unspent && check.known;
+    const choosing = st.unspent && check.known && !c.retired;
     const taken = r => ({ text: r.text, count: r.count, total: r.match ? r.match.count : r.count, note: r.note, quiet: r.quiet });
     const perks = choosing
       ? [...classPerks(c.class).map(p => {
@@ -2267,7 +2342,7 @@ function renderCharacters(data) {
         }), ...check.rows.filter(r => !r.match).map(taken)]
       : check.rows.map(taken);
     const itemProblems = itemCheck(c, st.level);
-    return h("article", { class: `char-card${order.indexOf(c) === characterIndex ? " current" : ""}`, "data-char": c.name },
+    return h("article", { class: `char-card${order.indexOf(c) === characterIndex ? " current" : ""}${c.inactive && !c.retired ? " inactive" : ""}`, "data-char": c.name },
       h("header", { class: "char-head" },
         h("div", { class: "char-level" }, hex(st.level, "level"), h("span", { class: "label" }, "Level")),
         h("div", {},
@@ -2276,17 +2351,28 @@ function renderCharacters(data) {
       h("div", { class: "block" },
         h("div", { class: "block-head" },
           h("span", { class: "xp-now num" }, `${c.xp} XP`),
-          h("span", { class: `xp-next${st.close ? " close" : ""}` }, st.nextText)),
+          h("span", { class: `xp-next${st.close && !c.retired ? " close" : ""}` }, c.retired ? "Retired" : st.nextText)),
         meter(st.toNext ? st.toNext.fraction : 1, st.close),
       ),
       c.retired ? null : lastLevelUps(data).filter(u => u.character === c.name).map(u =>
         nudge("plus", `Reached level ${u.level} last session`, `Add an ability card of level ${u.level} or lower.`)),
       h("div", { class: "char-stats" },
         h("div", {}, h("span", { class: "label" }, "Gold"), h("span", { class: "gold num" }, c.gold)),
-        c.personalQuest ? h("div", {},
-          h("span", { class: "label" }, "Personal quest"),
-          h("span", { class: "quest" }, c.personalQuest),
-          questMeter(c.personalQuest)) : null),
+        c.personalQuest ? questStat(data, c) : null),
+      // A fulfilled quest: they retire before playing again (p. 48).
+      !c.retired && questDone(c.personalQuest)
+        ? (draft?.retirements?.some(x => x.character === c.name)
+            ? nudge("check", "Retiring", "In the session being recorded; it counts once that's saved.", "saved")
+            : rawCampaign
+              ? h("button", { type: "button", class: "nudge perk-nudge", "data-key": `retire-record-${c.name}`, onclick: () => recordRetire(data, c.name) },
+                  icon("lock"), h("span", {}, "Quest fulfilled: retire before playing again"), h("span", { class: "nudge-go" }, "Record it"))
+              : nudge("lock", "Quest fulfilled: retire before playing again", null, "perk-nudge"))
+        : null,
+      // A retirement whose quest opened a box already open: what's left to draw.
+      c.retired && c.questDraws && (!c.questDraws.itemDesign || !c.questDraws.scenario)
+        ? nudge("question", "Still to draw", capitalize([!c.questDraws.itemDesign ? "a random item design" : null,
+            !c.questDraws.scenario ? "a random side scenario" : null].filter(Boolean).join(" and ")) + ", for their personal quest.")
+        : null,
       h("div", { class: "block goal-block" },
         h("div", { class: "block-head" },
           h("span", { class: "label" }, "Battle goals")),
@@ -2296,7 +2382,8 @@ function renderCharacters(data) {
           h("span", { class: "label" }, "Perks"),
         ),
         // Records the perk straight from the sheet, as "Before you play" does.
-        perksLeft(c) ? (rawCampaign && !c.retired
+        // A retired sheet asks for nothing.
+        perksLeft(c) && !c.retired ? (rawCampaign
           ? h("button", { type: "button", class: "nudge perk-nudge", "data-key": `perk-record-${c.name}`, onclick: () => recordPerk(data, c.name) },
               icon("plus"), h("span", {}, `${plural(perksLeft(c), "perk")} to choose`), h("span", { class: "nudge-go" }, "Record it"))
           : nudge("plus", `${plural(perksLeft(c), "perk")} to choose`, null, "perk-nudge"))
@@ -2351,7 +2438,8 @@ function renderCharacters(data) {
           onclick: () => pickCharacter(data, i),
         },
         h("span", {}, hex(st.level, "quiet"),
-          playable(c) && perksLeft(c) ? h("span", { class: "dot", role: "img", "aria-label": "Has a perk to choose" }) : null),
+          playable(c) && (perksLeft(c) || questDone(c.personalQuest))
+            ? h("span", { class: "dot", role: "img", "aria-label": questDone(c.personalQuest) ? "Must retire" : "Has a perk to choose" }) : null),
         h("span", { class: "switch-name" }, c.name),
         mine ? h("span", { class: "you", "aria-hidden": "true" }, "You") : null)];
     }));
@@ -2363,8 +2451,10 @@ function renderCharacters(data) {
     // under the row, so the sheet starts with the characters.
     h("div", { class: "switch-wrap" }, switcher,
       h("a", { class: "switch-shop", href: "#shop", "aria-label": "Shop, further down" }, "Shop", icon("chevron"))),
-    active.length ? h("div", { class: "char-grid" }, active.map(card)) : empty("No active characters."),
-    inactive.length ? [h("h3", { class: "subhead" }, "Inactive"), h("div", { class: "char-grid" }, inactive.map(card))] : null,
+    // Inactive sheets follow the active ones in the same grid (dashed, and
+    // "inactive" under the name), so they fill the gaps rather than a row of their own.
+    active.length ? h("div", { class: "char-grid" }, [...active, ...inactive].map(card))
+      : [empty("No active characters."), inactive.length ? h("div", { class: "char-grid" }, inactive.map(card)) : null],
     active.length || inactive.length ? meLine(data) : null,
     retired.length ? [h("h3", { class: "subhead" }, "Retired"), h("div", { class: "char-grid" }, retired.map(card))] : null,
   ];
@@ -2495,7 +2585,7 @@ function renderShop(data) {
         // What it sells for: on the shopper's own items that's their Sell button.
         !shopper && item.held.length ? `sells for ${item.sells}` : null,
       ].filter(Boolean).join(" · "))),
-    h("span", { class: "price-col" }, h("span", { class: "price num" }, `${item.price} gold`), action(item)));
+    h("span", { class: "price-col" }, h("span", { class: "price num" }, `${item.price} `, h("span", { class: "unit" }, "gold")), action(item)));
 
   // One mark per copy of the item: empty while it's in the shop, the
   // holder's class icon once someone carries it.
@@ -3276,10 +3366,14 @@ function renderRecorder(data) {
     const info = scenarioRef?.scenarios?.[String(n)];
     if (!info) return "Not a scenario number.";
     const rewards = describeRewards(scenarioRef, info.rewards, classRef);
+    const casual = s.casual ?? (data.scenarios.find(x => x.number === n)?.status === "completed");
+    if (casual) return `${info.name} · a casual replay: XP, gold, loot and battle goals, but no rewards or unlocks`;
     return `${info.name}${s.result === "success" && rewards.length ? ` · rewards: ${rewards.join(", ")}` : ""}`;
   };
   // Playable scenarios not already in this draft.
   const pickable = i => available.filter(sc => !d.scenarios.some((x, j) => j !== i && num(x.number) === sc.number));
+  // Completed ones, to replay casually: shown on asking.
+  const replayable = data.scenarios.filter(sc => sc.status === "completed").sort((a, b) => a.number - b.number);
 
   // What a character's row adds up to, kept current as the boxes are typed in.
   const gainText = (s, r) => {
@@ -3299,14 +3393,23 @@ function renderRecorder(data) {
         field("Number", text(`sc-${i}-n`, s, "number", { type: "number", min: 1, max: 95, list: "rec-available", inputmode: "numeric", "aria-label": "Scenario number" }, true), "short"),
         field("Level", select(`sc-${i}-l`, s, "level", Array.from({ length: 8 }, (_, l) => [String(l), String(l)]))),
         field("Result", select(`sc-${i}-r`, s, "result", [["success", "Success"], ["failure", "Failure"]]))),
+      // Casual: a scenario already completed, replayed for XP, gold and loot.
+      // Next to the result, as it changes what the scenario gives.
+      casualOk ? h("label", { class: "rec-check" },
+        h("input", { type: "checkbox", "data-key": `sc-${i}-casual`, checked: casual, onchange: set(s, "casual", true) }),
+        "Casual replay: no rewards or unlocks, and its record stays as it was") : null,
       // Its name, kept current as you type; and while it's empty, the
       // scenarios the party can play, to tap (phones don't list a number
       // box's suggestions).
       h("p", { class: "small muted", "data-sc-name": i }, scenarioNameText(s)),
-      !n && pickable(i).length ? h("div", { class: "rec-picks", "data-sc-picks": i, role: "group", "aria-label": "Playable scenarios" },
-        pickable(i).map(sc => h("button", { type: "button", class: "chip", "data-key": `sc-${i}-pick-${sc.number}`,
+      !n && (pickable(i).length || replayable.length) ? h("div", { class: "rec-picks", "data-sc-picks": i, role: "group", "aria-label": "Playable scenarios" },
+        [...pickable(i), ...(showReplays ? replayable : [])].map(sc => h("button", { type: "button", class: "chip", "data-key": `sc-${i}-pick-${sc.number}`,
           onclick: () => { s.number = String(sc.number); rerender(); focusOn(party.length ? `sc-${i}-${party[0].name}-xp` : `sc-${i}-r`); } },
-          hex(sc.number), sc.name || `#${sc.number}`))) : null,
+          hex(sc.number, sc.status === "completed" ? "completed" : ""), sc.name || `#${sc.number}`)),
+        replayable.length && !showReplays ? h("button", { type: "button", class: "chip quiet-chip", "data-key": `sc-${i}-replays`,
+          onclick: () => { showReplays = true; rerender(); focusOn(`sc-${i}-replays-shown`); } },
+          icon("replay"), "Replay a completed one") : null,
+        showReplays ? h("span", { class: "sr-only", tabindex: "-1", "data-key": `sc-${i}-replays-shown` }, "Completed scenarios listed") : null) : null,
       party.length ? h("div", { class: "rec-results" },
         h("span", { class: "label" }, "What each character gained there"),
         h("p", { class: "small muted" }, s.result === "success"
@@ -3328,10 +3431,6 @@ function renderRecorder(data) {
             h("span", { class: "rec-gain", "data-gain": `${i}|${c.name}` }, gainText(s, r)));
         })) : null,
       // A reward item goes to one of the characters there: who takes it.
-      // Casual: a scenario already completed, replayed for XP, gold and loot.
-      casualOk ? h("label", { class: "rec-check" },
-        h("input", { type: "checkbox", "data-key": `sc-${i}-casual`, checked: casual, onchange: set(s, "casual", true) }),
-        "Casual: no rewards or unlocks, and its record stays as it was") : null,
       s.result === "success" && !casual && rewardCopies(scenarioRef?.scenarios?.[String(n)]).length ? h("div", { class: "rec-results" },
         h("span", { class: "label" }, "Reward items"),
         // The scenario book sometimes says who: the reference data keeps it.
@@ -3540,10 +3639,15 @@ function renderRecorder(data) {
       d.retirements.length ? h("div", { class: "card rec-block" }, d.retirements.map(retireBlock)) : null,
       d.newCharacters.length ? h("div", { class: "card rec-block" }, d.newCharacters.map(newBlock)) : null,
       // Personal quest progress, for those who track it as "n/m".
+      // The current progress is a secret, as on the sheet: tap to see it.
       h("div", { class: "field" },
-        h("span", {}, "Personal quests (only what's changed)"),
-        h("div", { class: "rec-row" }, active.map(c => field(c.name, text(`pq-${c.name}`, d.quests, c.name,
-          { autocomplete: "off", placeholder: c.personalQuest || "3/15", "aria-label": `${c.name}'s personal quest progress` }), "short")))),
+        h("span", {}, "Personal quests (only what's changed, as 3/15 or 1/3, then 0/1)"),
+        h("div", { class: "rec-row" }, active.map(c => h("div", { class: "pq-field" },
+          field(c.name, text(`pq-${c.name}`, d.quests, c.name,
+            { autocomplete: "off", "aria-label": `${c.name}'s personal quest progress, if it changed` })),
+          c.personalQuest ? h("button", { type: "button", class: "pq-now", "data-key": `pq-now-${c.name}`, "aria-expanded": String(questShown.has(c.name)),
+              onclick: () => { toggleQuest(c.name); rerender(); focusOn(`pq-now-${c.name}`); } },
+            questShown.has(c.name) || questDone(c.personalQuest) ? `Now ${c.personalQuest}` : [icon("eye"), "Now"]) : null)))),
       // Anyone below the prosperity level may advance to it (p. 48).
       behind.length ? h("div", { class: "field" },
         h("span", { id: "rec-adv-label" }, `Advance to level ${prosperity}, the prosperity level`),
@@ -3558,7 +3662,7 @@ function renderRecorder(data) {
       d.buys.length || d.sells.length || d.perks.length || d.donations.length || d.enhancements.length
         ? h("div", { class: "card rec-block" }, d.buys.map(buyBlock), d.sells.map(sellBlock), d.perks.map(perkBlock),
             d.donations.map((x, i) => h("div", { class: "rec-row" },
-              field(`Donates ${DONATION} gold`, select(`don-${i}-c`, x, "character", partyOptions)),
+              field(`Donates ${DONATION} gold, for 2 Bless next scenario`, select(`don-${i}-c`, x, "character", partyOptions)),
               remove(d.donations, i, "donation", "add-donation"))),
             // Enhancements, from the calculator's Record it.
             d.enhancements.map((x, i) => h("div", { class: "rec-row" },
@@ -3671,16 +3775,20 @@ function renderSessions(data) {
             const name = data.scenarios.find(x => x.number === sc.number)?.name;
             const before = eventsBefore(sc.number);
             const won = sc.result === "success";
-            const meta = [sc.casual ? "Casual" : null, sc.level != null ? `Level ${sc.level}` : null, before.length ? `${before.join(", ")} drawn before` : null].filter(Boolean);
+            const replay = won && sc.casual;
+            const meta = [sc.level != null ? `Level ${sc.level}` : null, before.length ? `${before.join(", ")} drawn before` : null].filter(Boolean);
+            const outcome = !won ? "Failed" : replay ? "Replayed casually" : null;
             // The scenario opens on the Scenarios tab.
             return h("li", {},
               h("a", { class: "played-link", href: "#scenarios", onclick: () => openScenario(data, sc.number) },
-                hex(sc.number, won ? "completed" : "blocked"),
+                hex(sc.number, !won ? "failed" : replay ? "replay" : "completed"),
                 h("span", { class: "played-text" },
                   h("strong", {}, name || `Scenario ${sc.number}`),
-                  meta.length ? h("span", {}, meta.join(" · ")) : null)),
-              h("span", { class: `result ${won ? "success" : "failure"}`, role: "img", "aria-label": won ? "Success" : "Failure", title: won ? "Success" : "Failure" },
-                icon(won ? "check" : "cross")));
+                  outcome || meta.length ? h("span", {},
+                    outcome ? h("b", { class: won ? "ink-replay" : "ink-failed" }, outcome) : null,
+                    outcome && meta.length ? " · " : null, meta.join(" · ")) : null)),
+              h("span", { class: `result ${!won ? "failure" : replay ? "replay" : "success"}`, "aria-hidden": "true" },
+                icon(!won ? "cross" : replay ? "replay" : "check")));
           })) : null,
           haul.length ? h("div", { class: "haul" },
             h("h4", { class: "label" }, "The evening's haul"),
@@ -3725,6 +3833,7 @@ function render(data, only) {
     panel.hidden = !nodes.length;
   }
 
+  packGrids();
   if (key) document.querySelector(`[data-key="${key}"]`)?.focus({ preventScroll: true });
   const map = document.querySelector(".map-scroll");
   if (map && mapScroll) map.scrollLeft = mapScroll;
@@ -3746,6 +3855,23 @@ function render(data, only) {
       if (b.right > r.right) row.scrollLeft += b.right - r.right + 8;
       else if (b.left < r.left) row.scrollLeft -= r.left - b.left + 8;
     }
+  }
+}
+
+// Wide screens: pack the character sheets like bricks (see .char-grid.packed
+// in styles.css). Each card spans as many 1px rows as it is tall, plus the
+// gap; auto-placement keeps the party's order and puts each sheet in the
+// first place it fits. A card that changes size (fonts loading, a wider
+// window, a phone with one sheet showing) is measured again.
+const CARD_GAP = 16;   // matches .char-grid's gap
+const spanCard = card => { card.style.gridRowEnd = `span ${Math.ceil(card.getBoundingClientRect().height) + CARD_GAP}`; };
+const packer = typeof ResizeObserver === "function" ? new ResizeObserver(entries => entries.forEach(e => spanCard(e.target))) : null;
+function packGrids() {
+  if (!packer) return;
+  packer.disconnect();
+  for (const grid of document.querySelectorAll(".char-grid")) {
+    for (const card of grid.children) { spanCard(card); packer.observe(card); }
+    grid.classList.add("packed");
   }
 }
 
