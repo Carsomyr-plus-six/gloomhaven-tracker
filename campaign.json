@@ -3,7 +3,7 @@
   "edition": "Gloomhaven (1st edition)",
   "updated": null,
   "party": {
-    "name": "",
+    "name": "Craig's List",
     "reputation": 0,
     "location": "",
     "achievements": [],
@@ -16,6 +16,59 @@
     "unlockedClasses": ["Brute", "Tinkerer", "Spellweaver", "Scoundrel", "Cragheart", "Mindthief"]
   },
   "scenarios": [],
-  "characters": [],
+  "characters": [
+    {
+      "name": "Azorica",
+      "class": "Spellweaver",
+      "player": "Mathias",
+      "xp": 0,
+      "gold": 30,
+      "checkmarks": 0,
+      "perks": [],
+      "items": [],
+      "personalQuest": "",
+      "retired": false,
+      "notes": ""
+    },
+    {
+      "name": "Craig",
+      "class": "Cragheart",
+      "player": "Eirik",
+      "xp": 0,
+      "gold": 30,
+      "checkmarks": 0,
+      "perks": [],
+      "items": [],
+      "personalQuest": "",
+      "retired": false,
+      "notes": ""
+    },
+    {
+      "name": "Flik Flak",
+      "class": "Tinkerer",
+      "player": "Jørgen",
+      "xp": 0,
+      "gold": 30,
+      "checkmarks": 0,
+      "perks": [],
+      "items": [],
+      "personalQuest": "",
+      "retired": false,
+      "notes": ""
+    },
+    {
+      "name": "Kaktus",
+      "class": "Scoundrel",
+      "player": "Thorstein",
+      "xp": 0,
+      "gold": 30,
+      "checkmarks": 0,
+      "perks": [],
+      "items": [],
+      "personalQuest": "",
+      "retired": false,
+      "notes": "Thorstein lives far away, so Kaktus misses some sessions."
+    }
+  ],
   "sessions": []
 }
