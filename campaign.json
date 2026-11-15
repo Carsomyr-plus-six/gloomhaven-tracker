@@ -151,11 +151,15 @@
       "name": "Azorica",
       "class": "Spellweaver",
       "player": "Mathias",
-      "xp": 0,
-      "gold": 30,
-      "checkmarks": 0,
-      "perks": [],
-      "items": [],
+      "xp": 149,
+      "gold": 44,
+      "checkmarks": 7,
+      "perks": [
+        "Remove four +0 cards",
+        "Replace one -1 card with one +1 card",
+        "Replace one -1 card with one +1 card"
+      ],
+      "items": ["Cloak of Invisibility", "Minor Power Potion", "Minor Stamina Potion"],
       "personalQuest": "",
       "retired": false,
       "notes": ""
