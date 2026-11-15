@@ -32,11 +32,17 @@ At the table, open **Sessions** and choose **Record a session**. Fill in:
 - items bought or sold, perks taken, and donations to the Sanctuary (10 gold each, once per player per visit)
 - whether you opened Envelope B, once donations reach 100 gold
 
-The page adds scenario rewards and treasure gold and XP to the characters itself, and lists every change, with anything that looks wrong, before you save.
+The page adds scenario rewards and treasure gold and XP to the characters itself, and lists every change, with anything that looks wrong, before you save. A bar at the top of the form says how many things there are to check.
 
-The site has nowhere to save, so **Download campaign.json** (or **Copy to clipboard**) gives you the updated file. Put it in place of `campaign.json` in the repository and commit it. Until then the draft stays in that browser, so a reload at the table loses nothing; **Discard draft** clears it.
+A perk to choose can also be recorded straight from **Before you play** on the Overview: **Record it** opens the form with a perk row for that character.
 
-Some rewards still need a hand edit afterwards, and the page says so: gold to share between the party, and a choice of location.
+The site has nowhere to save, so it hands you the updated file:
+- **Copy and edit on GitHub** (on the live site) copies it and opens `campaign.json` in GitHub's editor, which works on a phone too: select everything, paste, and commit.
+- **Download campaign.json** or **Copy to clipboard**: put it in place of `campaign.json` in the repository and commit it.
+
+Until then the draft stays in that browser, so a reload at the table loses nothing; **Discard draft** clears it. Once the session is in `campaign.json`, the page notices on its next load and clears the draft itself, so the session can't be recorded twice.
+
+Some things still need a hand edit afterwards, and the page says what to write: gold to share between the party, a choice of location, a random scenario or item design once drawn, and the option of an event recorded without one.
 
 ## Running it locally
 
