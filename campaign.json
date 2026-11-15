@@ -97,10 +97,10 @@
     {
       "number": 9,
       "name": "Diamond Mine",
-      "status": "available",
+      "status": "blocked",
       "unlockedBy": 3,
       "completed": null,
-      "notes": ""
+      "notes": "Blocked by #8: needs The Merchant Flees to be incomplete."
     },
     {
       "number": 13,
