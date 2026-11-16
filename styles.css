@@ -627,9 +627,9 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .perks > li.open { color: var(--fg-3); }
 .item-list > li { gap: 10px; }
 .item-list .gicon, .slot-blank { flex: none; width: 1.15em; height: 1.15em; margin: 0; color: var(--fg-3); }
-/* Cards, items and conditions to track at the table, and tonight's
-   scenario to set up: phones only. */
-.item-track, .cond-block, .card-block, .scen-ref { display: none; }
+/* Cards, items and conditions to track at the table, tonight's scenario to
+   set up and what it gave: phones only. */
+.item-track, .cond-block, .card-block, .scen-ref, .summary { display: none; }
 .perks .perk-text { flex: 1; }
 .perks .icon { font-size: var(--t-md); color: var(--verdigris); stroke-width: 2.8; }
 .perks .unsure .icon { color: var(--brass); stroke-width: 2.2; }
@@ -1151,6 +1151,21 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .ref-players li span { color: var(--fg-2); }
   .ref-more { display: inline-flex; align-items: center; min-height: 44px; align-self: flex-start; font-weight: 600; color: var(--fg-2); }
   .ready-card.picked { border-color: var(--brass); }
+
+  /* Town: what the scenario gave, above the Shop. */
+  .summary { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+  .summary .section-head h2 { font-size: var(--d-md); }
+  .sum-card { display: flex; flex-direction: column; gap: 4px; }
+  .sum-card h3 { font: 700 var(--t-xl)/1.2 var(--text); margin-bottom: 4px; }
+  .sum-row { display: flex; align-items: center; gap: 10px; min-height: 44px; border-bottom: 1px solid var(--line-soft); }
+  .sum-row > .label { width: 6.5em; flex: none; }
+  .sum-how { flex: 1; min-width: 0; font-size: var(--t-sm); color: var(--muted); }
+  .sum-row > b { font-size: var(--t-xl); }
+  .sum-row > .sum-goal-label { flex: 1; width: auto; }
+  .sum-goal { display: flex; align-items: center; gap: 6px; }
+  .sum-goal b { width: 1.4em; text-align: center; font-size: var(--t-xl); }
+  .sum-after { padding-top: 8px; font-size: var(--t-sm); color: var(--fg-2); }
+  .sum-gains { display: block; margin-top: 4px; color: var(--brass); }
   .tiles { order: 2; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .level-tile { grid-area: auto; grid-column: 1 / -1; }
   .rep-tile, .prosp-tile { grid-area: auto; }
