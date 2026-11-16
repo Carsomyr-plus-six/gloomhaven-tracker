@@ -451,6 +451,7 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 
 .level-stats .num { font-size: var(--d-sm); line-height: 1.15; }
 .ledger summary { font-size: var(--t-sm); color: var(--fg-3); cursor: pointer; padding: 2px 0; }
+.ledger .open-tag { margin-left: 6px; font-size: var(--t-xs); font-weight: 600; color: var(--muted); }
 .ledger ul { list-style: none; margin: 6px 0 0; padding: 0; }
 .ledger li { display: flex; justify-content: space-between; gap: 12px; font-size: var(--t-sm); padding: 3px 0; border-top: 1px solid var(--line); }
 
@@ -984,8 +985,9 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 input[type="number"][list]::-webkit-inner-spin-button, input[type="number"][list]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; }
 .field.wide { flex: 1 1 220px; }
+/* Outlined in --box, 3:1 on the page and on a card, so a box reads as one. */
 .field input, .field select, .rec-block textarea {
-  min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--r-md);
+  min-height: 44px; padding: 8px 12px; border: 1px solid var(--box); border-radius: var(--r-md);
   background: var(--bg); color: var(--fg); font: inherit; font-size: var(--t-base);
 }
 .field input:focus, .field select:focus, .rec-block textarea:focus { outline: 2px solid var(--brass); outline-offset: 1px; }
@@ -1098,6 +1100,8 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .segmented button { min-height: 44px; }
   .todo-go, .ready-head a { display: inline-flex; align-items: center; min-height: 44px; }
   .todo-do { min-height: 44px; }
+  .inactive-toggle, .party-head .inactive-toggle, .section-head .inactive-toggle,
+  .pq-now, .quest-reveal, .rec-picks .chip { min-height: 44px; }
   /* Before you play: the text gets the full width, the actions go under it. */
   .todo .rows > li { flex-wrap: wrap; row-gap: 0; padding-top: 10px; }
   .todo .rows > li > span:first-child { flex: 1 1 100%; }
@@ -1122,7 +1126,7 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .hero-decor { display: none; }
   .hero-side { display: contents; }
   .ready { align-self: stretch; order: 1; }
-  .tiles { order: 2; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .tiles { order: 2; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .level-tile { grid-area: auto; grid-column: 1 / -1; }
   .rep-tile, .prosp-tile { grid-area: auto; }
   .todo { order: 3; }
@@ -1135,7 +1139,6 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .ready-card .hex { --w: 44px; }
   .ready-name { font: 600 var(--t-lg)/1.2 var(--text); }
   .ready-from { font-size: var(--t-xs); color: var(--muted); }
-  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .tile { gap: 10px; }
   .track { --gap: 2px; }
   .track > .marker { width: 17px; height: 19px; }
@@ -1167,6 +1170,8 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
 
   /* Characters: one sheet at a time, picked from the row of hexes. */
   #characters .section-head, .subhead { display: none; }
+  /* With no characters there's no row of hexes to stand for the heading. */
+  #characters .keep-head .section-head { display: flex; }
   /* Each character gets at least 72px, enough for most names; a bigger
      party scrolls sideways rather than cutting names short. */
   .char-switch { display: flex; margin: -12px -8px 0; padding-bottom: 10px; border-bottom: 1px solid var(--line-soft); overflow-x: auto; scrollbar-width: none; }
