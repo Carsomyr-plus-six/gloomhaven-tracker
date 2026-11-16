@@ -246,6 +246,18 @@ async function runTests(load, loadText) {
   tiles.scenarios[2].treasures = ["65a"];
   same("numbers: a treasure number that isn't one is asked about", fileQuestions(tiles).length, 1);
 
+  // A treasure with two items ("item:110+115", treasure 62) gives both, each
+  // by its name, onto the looter's sheet.
+  const twoItems = copy(raw);
+  twoItems.scenarios.push({ number: 82 });   // Burning Mountain, open for the test: treasure 62 is on its map
+  const lootDraft = { ...copy(draft), scenarios: [{ number: "82", level: "3", result: "failure", treasures: [{ number: "62", character: "Azorica" }],
+      results: { Azorica: { xp: "5" }, Craig: { xp: "5" }, "Flik Flak": { xp: "5" } } }],
+    events: [], buys: [], sells: [], perks: [], donations: [], enhancements: [], claims: {}, quests: {}, newCharacters: [] };
+  const looted = toFile(applyDraft(fromFile(copy(twoItems)), lootDraft, buildData(copy(twoItems))).out);
+  same("treasure: a tile with two items gives both, by name",
+    [treasureParts(scenarioRef, 62).map(describeTreasurePart), looted.characters.find(c => c.name === "Azorica").log.at(-1), fileQuestions(looted)],
+    [[itemName(110), itemName(115)], { date: "2026-11-20", for: "treasure", treasure: "62", gained: [itemName(110), itemName(115)] }, []]);
+
   // Every quest card, for every character in campaign.json and the sample,
   // as the page counts it from the record (which card a character holds is
   // kept on their phone, so each is tried). Progress is left out, so nothing

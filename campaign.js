@@ -250,10 +250,16 @@ function itemInfo(name) {
 }
 function itemSlot(name) { return itemInfo(name)?.slot || null; }
 
-// What a treasure tile gives, from the reference data ("gold:10|...").
+// What a treasure tile gives, from the reference data ("gold:10|..."). A
+// tile with several items or designs lists them joined by "+" ("item:110+115"
+// is both): each is a part of its own.
 function treasureParts(ref, number) {
   const raw = ref?.treasures?.[String(Number(number))];
-  return raw ? raw.split("|").map(part => { const [type, value] = part.split(":"); return { type, value }; }) : [];
+  return raw ? raw.split("|").flatMap(part => {
+    const [type, value] = part.split(":");
+    return (type === "item" || type === "itemDesign") && value?.includes("+")
+      ? value.split("+").map(v => ({ type, value: v })) : [{ type, value }];
+  }) : [];
 }
 
 function describeTreasurePart({ type, value }) {
