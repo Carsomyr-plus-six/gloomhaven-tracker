@@ -196,7 +196,8 @@ function gameIcon(name, label) {
 // A hex tile holding a scenario number or a level. kind: "" (solid brass),
 // "completed", "blocked", "level" or "quiet".
 function hex(text, kind = "") {
-  return h("span", { class: `hex ${kind}`.trim() }, h("span", {}, text));
+  // The comma keeps a button's name from running "5Ruinous Crypt".
+  return h("span", { class: `hex ${kind}`.trim() }, h("span", {}, text), h("span", { class: "sr-only" }, ", "));
 }
 
 function meter(fraction, close) {
@@ -293,9 +294,11 @@ function ledgerFoot(t, unit) {
   return h("details", { class: "ledger" },
     // The track draws what it could be; the fold says how many are open.
     h("summary", {}, isExact(t.range) ? `From ${plural(t.entries.length, "source")}`
-      : `Could be ${rangeText(t.range)} · ${t.unsure.length + (t.unknown?.length || 0)} open`),
+      : `Could be ${rangeText(t.range)} · ${[t.unsure.length ? `${t.unsure.length} to answer` : null,
+                                              t.unknown?.length ? `${t.unknown.length} not known` : null].filter(Boolean).join(", ")}`),
     h("ul", {}, t.entries.map(e => h("li", {},
-      h("span", {}, e.label),
+      h("span", {}, e.label, isExact(e.range) ? null
+        : h("span", { class: "open-tag" }, t.unsure.some(u => e.label.startsWith(u)) ? "to answer" : "not known")),
       h("span", { class: "num" }, `${rangeText(e.range)}${unit}`)))));
 }
 
@@ -350,7 +353,7 @@ function reputationTile(party, ledger) {
   }
   const range = ledger?.reputation?.range;
   return h("div", { class: "card tile rep-tile" },
-    h("div", { class: "tile-top" }, h("span", { class: "label" }, "Reputation"), h("span", { class: "figure" }, signed(rep))),
+    h("div", { class: "tile-top" }, h("h2", { class: "label" }, "Reputation"), h("span", { class: "figure" }, signed(rep))),
     stepTrack({
       zones: zones.map(z => ({ from: edge(z.from), to: edge(z.to + 1),
                                cls: z.modifier === modifier ? "now" : next?.at === z.from ? "next" : null })),
@@ -395,7 +398,7 @@ function prosperityTile(city, ledger) {
   };
   const range = ledger?.prosperity?.range;
   return h("div", { class: "card tile prosp-tile" },
-    h("div", { class: "tile-top" }, h("span", { class: "label" }, "Prosperity"), h("span", { class: "figure" }, level)),
+    h("div", { class: "tile-top" }, h("h2", { class: "label" }, "Prosperity"), h("span", { class: "figure" }, level)),
     stepTrack({
       zones: Array.from({ length: levels }, (_, i) => ({ from: i / levels * 100, to: (i + 1) / levels * 100,
         cls: i + 1 < level ? "done" : i + 1 === level ? "now" : i === level ? "next" : null })),
@@ -462,7 +465,7 @@ function levelTile(data) {
   // under it, how it was reached. The other levels worth seeing are the
   // ones a difficulty gives, so each difficulty says its own.
   return h("div", { class: "card tile level-tile" },
-    h("span", { class: "label" }, "Scenario level"),
+    h("h2", { class: "label" }, "Scenario level"),
     playing.length
       ? [h("div", { class: "level-now" },
           h("span", { role: "img", "aria-label": `Scenario level ${level}` }, hex(level, "now")),
@@ -481,7 +484,7 @@ function levelTile(data) {
                style: `--wide: ${Math.min(active.length, 4)}; --narrow: ${active.length === 3 ? 3 : Math.min(active.length, 2)}` }, active.map(c =>
       h("button", { type: "button", "data-key": `playing-${c.name}`, "aria-pressed": String(levelParty.has(c.name)),
                     class: c.inactive ? "away" : null, title: c.inactive ? `${c.name} is inactive: pick them to count them tonight` : null,
-                    "aria-label": c.inactive ? `${c.name}, level ${characterStats(c).level}, inactive` : null,
+                    "aria-label": `${c.name}, level ${characterStats(c).level}${c.inactive ? ", inactive" : ""}`,
                     onclick: () => toggle(c.name) },
         h("span", { class: "pick-name" }, c.name), h("span", {}, characterStats(c).level)))),
     inactiveToggle(data, away, "level-inactive"),
@@ -555,7 +558,8 @@ function renderOverview(data) {
           ready.length
             ? h("div", { class: "ready-list" }, ready.map(s => {
                 const tried = attemptsText(data, s.number);
-                return h("a", { class: "ready-card", href: "#scenarios", onclick: () => openScenario(data, s.number) },
+                return h("a", { class: "ready-card", href: "#scenarios", onclick: () => openScenario(data, s.number),
+                                "aria-label": [`#${s.number} ${s.name || "Untitled"}`, from(s), tried ? capitalize(tried) : null].filter(Boolean).join(", ") },
                   hex(s.number),
                   h("span", {},
                     h("span", { class: "ready-name" }, s.name || "Untitled"),
@@ -609,7 +613,7 @@ function tonightStrip(data) {
   // A step already in the draft says what it was, ticked; the event steps
   // open the form at an event row for that deck, ready for its number.
   const step = (n, label, value, href, run, done) => h("a", {
-      class: `tonight-step${done ? " done" : ""}`, href,
+      class: `tonight-step${done ? " done" : ""}`, href, "aria-label": `${n}. ${label}: ${value}${done ? ", in the draft" : ""}`,
       onclick: run && rawCampaign ? e => { e.preventDefault(); run(); } : null },
     hex(n, done ? "completed" : "quiet"),
     h("span", { class: "tonight-text" }, h("span", { class: "label" }, label), h("span", { class: "tonight-value" }, value)),
@@ -626,6 +630,8 @@ function tonightStrip(data) {
   ].filter(([n]) => n).map(([n, what]) => plural(n, what)).join(", ") + blessings() : "";
   const played = (draft?.scenarios || []).filter(s => num(s.number));
   const firstPlayed = (draft?.scenarios || []).findIndex(s => num(s.number));
+  // Anyone to play: a new campaign has no one until characters are added.
+  const anyone = data.characters.some(c => !c.retired) || Boolean(draft?.newCharacters?.some(x => x.name));
   return h("nav", { class: "tonight", "aria-label": "Tonight, step by step" },
     step(1, "City event", drawn("city") || (decks ? `${decks.city.size} in the deck` : "Draw one"), "#events",
       () => recordEvent(data, "city"), Boolean(drawn("city"))),
@@ -634,8 +640,8 @@ function tonightStrip(data) {
     step(3, "Road event", drawn("road") || (decks ? `${decks.road.size} in the deck` : "Draw one") + straightOn(data), "#events",
       () => recordEvent(data, "road"), Boolean(drawn("road"))),
     step(4, "Scenario", (played.length ? played.map(s => scenarioLabel(data, num(s.number))).join(", ")
-      : t ? `Level ${t.level} · deal battle goals` : "Pick who is playing"), "#scenarios",
-      played.length ? () => showInRecorder(data, `sc-${firstPlayed}-n`) : null, played.length > 0),
+      : t ? `Level ${t.level} · deal battle goals` : anyone ? "Pick who is playing" : "Add characters first"), anyone ? "#scenarios" : "#sessions",
+      played.length ? () => showInRecorder(data, `sc-${firstPlayed}-n`) : anyone ? null : () => addNewcomer(data), played.length > 0),
     rawCampaign ? h("button", { type: "button", class: `btn${recording ? "" : " primary"} tonight-record`, "data-key": "tonight-record",
       onclick: () => { if (!draft) draft = newDraft(data); showInRecorder(data, "rec-date"); } },
       recording ? "Go on recording" : "Record the evening") : null);
@@ -656,6 +662,12 @@ function todoItems(data) {
   if (!order.some(c => !c.retired) && !draft?.newCharacters?.some(x => x.name)) {
     add("The party has no characters yet. Add them, and they can play the first scenario in the same session.", "#sessions", null,
       rawCampaign ? { label: "Add them", run: () => addNewcomer(data) } : null);
+  }
+
+  // A party with no name: the title says "Unnamed party" until it has one.
+  if (!data.party.name && !draft?.partyName) {
+    add("The party has no name yet.", "#sessions", null,
+      rawCampaign ? { label: "Name it", run: () => { if (!draft) draft = newDraft(data); showInRecorder(data, "rec-party-name"); } } : null);
   }
 
   // Who passed a level in the last session: a new ability card to pick. It
@@ -1022,7 +1034,7 @@ function partyList(data) {
 // recorded, or can't be known.
 function optionBadge(e) {
   const said = e.option ? `Option ${e.option}` : e.unknown ? "Option not known" : "Option not recorded";
-  return h("span", { class: `opt${e.option ? "" : " unknown"}`, title: said, "aria-label": said }, e.option || "?");
+  return h("span", { class: `opt${e.option ? "" : " unknown"}`, role: "img", title: said, "aria-label": said }, e.option || "?");
 }
 
 function renderEvents(data) {
@@ -2476,7 +2488,6 @@ function cardKind(label) {
 // The deck as counts, with the perks' icons; any perk it couldn't read is
 // listed, so nothing is silently left out.
 function attackDeckBlock(c, rows) {
-  if (!rows.length) return null;
   const sheet = classPerks(c.class);
   const inOrder = [...rows].sort((a, b) => (a.match ? sheet.indexOf(a.match) : sheet.length) - (b.match ? sheet.indexOf(b.match) : sheet.length));
   const { cards, total, unread } = attackDeck(inOrder.flatMap(r => Array(r.count).fill(r.match ? r.match.text : r.written)));
@@ -2489,19 +2500,19 @@ function attackDeckBlock(c, rows) {
     .sort((a, b) => KINDS.indexOf(a) - KINDS.indexOf(b));
   const tally = k => segments.filter(x => k.includes(x)).length;
   return h("div", { class: "block deck-block" },
-    h("div", { class: "block-head" }, h("span", { class: "label" }, "Attack modifier deck"),
+    h("div", { class: "block-head" }, h("h4", { class: "label" }, "Attack modifier deck"),
       h("span", {}, `${total} cards${blessed ? " + 2 Bless" : ""}`)),
     h("div", { class: "deck-bar", role: "img",
                "aria-label": `${tally(["null", "bad"])} below +0, ${tally(["zero"])} at +0, ${tally(["good", "crit", "bless"])} above` },
       segments.map(k => h("i", { class: `k-${k}` }))),
     // Worst to best, the bad cards quieter; each count in a badge of its own,
     // so the 2× card doesn't read "2× ×1".
-    h("ul", { class: "deck-cards" }, cards.map(([label, n]) => h("li", { class: /^(Null|−)/.test(label) ? "bad" : label === "+0" ? null : "good" },
+    h("ul", { class: "deck-cards" }, cards.map(([label, n]) => h("li", { class: { null: "bad", bad: "bad", good: "good", crit: "good" }[cardKind(label)] || null },
         h("i", { class: `swatch k-${cardKind(label)}`, "aria-hidden": "true" }),
-        h("span", {}, perkText(label)), h("span", { class: "sr-only" }, ", "), h("b", { "aria-label": plural(n, "card") }, String(n)))),
+        h("span", {}, perkText(label)), h("span", { class: "sr-only" }, ", "), h("b", { role: "img", "aria-label": plural(n, "card") }, String(n)))),
       blessed ? h("li", { class: "bless", title: "From a Sanctuary donation, for the next scenario only" },
         h("i", { class: "swatch k-bless", "aria-hidden": "true" }),
-        h("span", {}, "Bless"), h("span", { class: "sr-only" }, ", "), h("b", { "aria-label": "2 cards, next scenario only" }, "2")) : null),
+        h("span", {}, "Bless"), h("span", { class: "sr-only" }, ", "), h("b", { role: "img", "aria-label": "2 cards, next scenario only" }, "2")) : null),
     unread.length ? h("p", { class: "small muted" }, `Not counted, as written: ${unread.join("; ")}`) : null);
 }
 
@@ -2699,7 +2710,7 @@ function questDetail(data, c) {
 }
 
 function renderCharacters(data) {
-  if (!data.characters.length) return [sectionHead("Characters"),
+  if (!data.characters.length) return [h("div", { class: "keep-head" }, sectionHead("Characters")),
     h("div", { class: "empty" }, h("p", {}, "No characters yet."),
       rawCampaign ? h("button", { type: "button", class: "btn primary", "data-key": "add-first", onclick: () => addNewcomer(data) }, "Add the party's characters") : null)];
 
@@ -2738,7 +2749,8 @@ function renderCharacters(data) {
         nudge("plus", `Reached level ${u.level} last session`, `Add an ability card of level ${u.level} or lower.`)),
       h("div", { class: "char-stats" },
         h("div", {}, h("span", { class: "label" }, "Gold"), h("span", { class: "gold num" }, c.gold)),
-        c.personalQuest || questCard(c.name) ? questStat(data, c) : null),
+        // Shown from the start, so a new character can pick their card.
+        c.personalQuest || questCard(c.name) || (questRef && !c.retired) ? questStat(data, c) : null),
       questDetail(data, c),
       // A fulfilled quest: they retire before playing again (p. 48).
       !c.retired && questDone(c.personalQuest)
@@ -2756,11 +2768,11 @@ function renderCharacters(data) {
         : null,
       h("div", { class: "block goal-block" },
         h("div", { class: "block-head" },
-          h("span", { class: "label" }, "Battle goals")),
+          h("h4", { class: "label" }, "Battle goals")),
         goalBoxes(c.checkmarks)),
       h("div", { class: "block perk-block", style: `--boxes: ${Math.max(2, ...perks.map(p => Math.max(p.count, p.total)))}` },
         h("div", { class: "block-head" },
-          h("span", { class: "label" }, "Perks"),
+          h("h4", { class: "label" }, "Perks"),
         ),
         // Records the perk straight from the sheet, as "Before you play" does.
         // A retired sheet asks for nothing.
@@ -2788,13 +2800,13 @@ function renderCharacters(data) {
       attackDeckBlock(c, check.rows),
       // Items as a plain list, each with its slot: they aren't buttons.
       c.items.length ? h("div", { class: "block item-block" },
-        h("div", { class: "block-head" }, h("span", { class: "label" }, "Items"), slotStrip(c, st.level)),
+        h("div", { class: "block-head" }, h("h4", { class: "label" }, "Items"), slotStrip(c, st.level)),
         itemProblems.map(text => nudge("question", "More than can be equipped", text, "note")),
         h("ul", { class: "item-list" }, c.items.map(i => {
           const slot = itemSlot(i);
           return h("li", {}, slot ? gameIcon(`slot-${slot}`) : h("span", { class: "slot-blank", "aria-hidden": "true" }), i);
         }))) : null,
-      c.notes ? h("div", { class: "block char-notes" }, h("span", { class: "label" }, "Notes"), notes(c.notes)) : null);
+      c.notes ? h("div", { class: "block char-notes" }, h("h4", { class: "label" }, "Notes"), notes(c.notes)) : null);
   };
 
   const active = order.filter(playable);
@@ -2818,7 +2830,8 @@ function renderCharacters(data) {
         h("button", {
           type: "button", "data-key": `char-${i}`, class: state,
           "aria-pressed": String(i === characterIndex),
-          "aria-label": state ? `${c.name}, ${state}` : mine ? `${c.name}, you` : null,
+          "aria-label": [c.name, `level ${st.level}`, state || (mine ? "you" : null),
+            playable(c) && questDone(c.personalQuest) ? "must retire" : playable(c) && perksLeft(c) ? "has a perk to choose" : null].filter(Boolean).join(", "),
           onclick: () => pickCharacter(data, i),
         },
         h("span", {}, hex(st.level, "quiet"),
@@ -2971,8 +2984,7 @@ function renderShop(data) {
         // What it sells for: on the shopper's own items that's their Sell button.
         !shopper && item.held.length ? `sells for ${item.sells}` : null,
       ].filter(Boolean).join(" · "))),
-    h("span", { class: "price-col" }, h("span", { class: "price num" }, `${item.price} `, h("span", { class: "unit" }, "gold"),
-      ), action(item)));
+    h("span", { class: "price-col" }, h("span", { class: "price num" }, `${item.price} `, h("span", { class: "unit" }, "gold")), action(item)));
 
   // One mark per copy of the item: empty while it's in the shop, the
   // holder's class icon once someone carries it.
@@ -2995,7 +3007,7 @@ function renderShop(data) {
   return [
     // How far prices could be off, said once beside them all.
     sectionHead("Shop", [`Prosperity ${shop.level} · ${priceNote}`,
-      doubt ? h("span", { class: "price-doubt", title: doubt.why, "aria-label": doubt.why }, doubt.text) : null]),
+      doubt ? h("span", { class: "price-doubt", role: "img", title: doubt.why, "aria-label": doubt.why }, doubt.text) : null]),
     active.length ? h("div", { class: "shop-for" },
       h("span", { class: "label", id: "shop-for-label" }, "Shopping for"),
       h("div", { class: "filters", role: "group", "aria-labelledby": "shop-for-label" }, active.map(c =>
@@ -3028,7 +3040,7 @@ function pricesNote(shop, rep) {
     return nudge("question", "Prices may be off",
       `Reputation could be ${rangeText(shop.range)}, which would change prices. Settle the open events on the Overview.`);
   }
-  // What can never be known needs no box: each price carries its tag.
+  // What can never be known needs no box: the Shop's heading carries a tag.
   return null;
 }
 
@@ -3245,6 +3257,11 @@ function applyDraft(raw, d, data) {
   const log = [];
   const warnings = [];
   for (const c of out.characters) { c.items ||= []; c.perks ||= []; }
+  if (String(d.partyName || "").trim()) {
+    out.party ||= {};
+    out.party.name = String(d.partyName).trim();
+    log.push(`The party is named ${out.party.name}`);
+  }
   const who = name => out.characters.find(c => c.name === name);
   // Handing someone an item (bought, looted or a reward): one of each item
   // per character, and whoever's items change gets the slot check below.
@@ -3354,6 +3371,9 @@ function applyDraft(raw, d, data) {
   // Events, in the order drawn.
   for (const e of d.events.filter(e => num(e.number))) {
     const entry = { deck: e.deck, number: num(e.number) };
+    // The evening it was drawn, so the session log shows it there, even when
+    // it names a scenario played on other evenings too.
+    if (d.date) entry.date = d.date;
     if (e.option) entry.option = e.option;
     if (num(e.scenario)) entry.scenario = num(e.scenario);
     else entry.characters = [...party];
@@ -4163,10 +4183,11 @@ function renderRecorder(data) {
   };
   // A slim bar pinned above the form: how many checks are waiting, and a way
   // down to them, so they're seen while filling it in, not only at the end.
+  // The count is a status: a screen reader hears it when it changes.
   const topBar = res => h("div", { class: "rec-top" },
     res.warnings.length
-      ? h("span", { class: "rec-checks" }, icon("question"), `${plural(res.warnings.length, "thing")} to check`)
-      : h("span", { class: "muted" }, "Nothing to check"),
+      ? h("span", { class: "rec-checks", role: "status" }, icon("question"), `${plural(res.warnings.length, "thing")} to check`)
+      : h("span", { class: "muted", role: "status" }, "Nothing to check"),
     h("button", { type: "button", class: "btn quiet", onclick: () => document.querySelector(".rec-summary")?.scrollIntoView({ block: "start" }) },
       "See what changes"));
   const refreshSummary = () => {
@@ -4192,7 +4213,11 @@ function renderRecorder(data) {
     const close = document.querySelector('[data-key="rec-toggle"]');
     if (close) close.textContent = res.evening || res.log.length ? "Close the form (keep the draft)" : "Close the form";
     document.querySelector(".rec-summary")?.replaceWith(summary(res));
-    document.querySelector(".rec-top")?.replaceWith(topBar(res));
+    // Only the count changes, in place, so it's announced once, not at
+    // every keystroke.
+    const status = document.querySelector(".rec-top [role=status]");
+    const next = topBar(res).firstChild;
+    if (status && status.textContent !== next.textContent) { status.className = next.className; status.replaceChildren(...next.childNodes); }
   };
   const first = applyDraft(rawCampaign, d, data);
   const firstAfter = after(first);
@@ -4207,6 +4232,8 @@ function renderRecorder(data) {
         h("div", { class: "rec-row" },
           field("Date", text("rec-date", d, "date", { type: "date" })),
           field("Title (optional)", text("rec-title", d, "title", { placeholder: "Under the date, or instead of it" }), "wide")),
+        // A party without a name gets it here (a new campaign).
+        !data.party.name || d.partyName ? field("Party name", text("rec-party-name", d, "partyName", { placeholder: "What the party calls itself" })) : null,
         h("div", { class: "field" },
           h("span", { id: "rec-who-label" }, "Who played"),
           h("div", { class: "filters", role: "group", "aria-labelledby": "rec-who-label" }, active.filter(c => !hiddenAway(c, d.party.includes(c.name))).map(c =>
@@ -4239,14 +4266,14 @@ function renderRecorder(data) {
       d.newCharacters.length ? h("div", { class: "card rec-block" }, d.newCharacters.map(newBlock)) : null,
       // Personal quest progress, for those who track it as "n/m".
       // The current progress is a secret, as on the sheet: tap to see it.
-      h("div", { class: "field" },
+      active.length ? h("div", { class: "field" },
         h("span", {}, "Personal quests that moved"),
         h("div", { class: "rec-row" }, active.map(c => h("div", { class: "pq-field" },
           field(c.name, text(`pq-${c.name}`, d.quests, c.name,
             { autocomplete: "off", placeholder: "3/15", "aria-label": `${c.name}'s personal quest progress, if it changed, as 3/15, or 1/3, then 0/1` })),
           c.personalQuest ? h("button", { type: "button", class: "pq-now", "data-key": `pq-now-${c.name}`, "aria-expanded": String(questShown.has(c.name)),
               onclick: () => { toggleQuest(c.name); rerender(); focusOn(`pq-now-${c.name}`); } },
-            questShown.has(c.name) || questDone(c.personalQuest) ? `Now ${c.personalQuest}` : [icon("eye"), "Now"]) : null)))),
+            questShown.has(c.name) || questDone(c.personalQuest) ? `Now ${c.personalQuest}` : [icon("eye"), "Now"]) : null)))) : null,
       // Anyone below the prosperity level may advance to it (p. 48).
       behind.length ? h("div", { class: "field" },
         h("span", { id: "rec-adv-label" }, `Advance to level ${prosperity}, the prosperity level`),
@@ -4255,7 +4282,7 @@ function renderRecorder(data) {
             onclick: () => { d.advances = d.advances.includes(c.name) ? d.advances.filter(n => n !== c.name) : [...d.advances, c.name]; rerender(); } },
             c.name, h("span", {}, characterStats(c).level))))) : null,
       h("div", { class: "rec-buttons" },
-        addButton("add-retire", "Retire a character", () => d.retirements.push({ character: "", unlocks: "" }), () => `ret-${d.retirements.length - 1}-c`),
+        active.length ? addButton("add-retire", "Retire a character", () => d.retirements.push({ character: "", unlocks: "" }), () => `ret-${d.retirements.length - 1}-c`) : null,
         addButton("add-new", "Add a new character", () => d.newCharacters.push({ name: "", class: "", level: "1", playing: true }), () => `new-${d.newCharacters.length - 1}-n`))),
     h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Shop, perks and the Sanctuary"),
       d.buys.length || d.sells.length || d.perks.length || d.donations.length || d.enhancements.length
@@ -4344,6 +4371,18 @@ function renderSessions(data) {
         h("strong", {}, h("span", { class: "sr-only" }, `${e.label}: `), `${DECK_NAMES[e.deck]} event`),
         e.effects.length ? h("span", {}, capitalize(e.effects.join(", "))) : null)),
     optionBadge(e));
+  // Which session each event was drawn in: the one dated as it is; failing
+  // that (an event saved before events carried a date), the first session
+  // that played the scenario it came before or after. Each shows in one only.
+  const chrono = [...sorted].reverse();
+  const playedIn = (s, n) => (s.scenarios || []).some(x => x.number === n);
+  const home = new Map();
+  for (const e of history) {
+    const s = (e.date && sorted.find(x => x.date === e.date))
+      || (e.scenario != null && chrono.find(x => playedIn(x, e.scenario)))
+      || (e.after != null && chrono.find(x => playedIn(x, e.after)));
+    if (s) home.set(e, s);
+  }
   const toggle = () => {
     if (!draft) draft = newDraft(data);
     recorderOpen = !recorderOpen;
@@ -4368,6 +4407,7 @@ function renderSessions(data) {
     sorted.length ? h("p", { class: "aside" }, "Newest first") : null,
     h("div", {}, sorted.map(s => {
       const haul = sessionHaul(data, s);
+      const rows = playedRows(s);
       const long = formatDate(s.date, { day: "numeric", month: "long", year: "numeric" });
       return h("article", { class: "session" },
         h("div", { class: "rail", "aria-hidden": "true" }, h("i")),
@@ -4382,33 +4422,49 @@ function renderSessions(data) {
               s.date ? formatDate(s.date, { weekday: "long" }) : "Undated",
               s.characters?.length ? s.characters.join(", ") : null,
             ].filter(Boolean).join(" · "))),
-          s.scenarios.length ? h("ul", { class: "card played" }, s.scenarios.map(sc => {
-            const name = data.scenarios.find(x => x.number === sc.number)?.name;
-            const won = sc.result === "success";
-            const replay = won && sc.casual;
-            const meta = [sc.level != null ? `Level ${sc.level}` : null].filter(Boolean);
-            const outcome = !won ? "Failed" : replay ? "Replayed casually" : null;
-            // The scenario opens on the Scenarios tab.
-            return [history.filter(e => e.scenario === sc.number).map(eventRow), h("li", {},
-              h("a", { class: "played-link", href: "#scenarios", onclick: () => openScenario(data, sc.number) },
-                hex(sc.number, !won ? "failed" : replay ? "replay" : "completed"),
-                h("span", { class: "played-text" },
-                  h("strong", {}, name || `Scenario ${sc.number}`),
-                  outcome || meta.length ? h("span", {},
-                    outcome ? h("b", { class: won ? "ink-replay" : "ink-failed" }, outcome) : null,
-                    outcome && meta.length ? " · " : null, meta.join(" · ")) : null)),
-              // Failures and replays say so in words; a plain clear says it here.
-              h("span", { class: `result ${!won ? "failure" : replay ? "replay" : "success"}`,
-                ...(outcome ? { "aria-hidden": "true" } : { role: "img", "aria-label": "Success" }) },
-                icon(!won ? "cross" : replay ? "replay" : "check"))),
-              history.filter(e => e.scenario == null && e.after === sc.number).map(eventRow)];
-          })) : null,
+          rows.length ? h("ul", { class: "card played" }, rows) : null,
           haul.length ? h("div", { class: "haul" },
             h("h4", { class: "label" }, "The evening's haul"),
             resultsList(haul, "+")) : null,
           notes(s.notes)));
     })),
   ];
+
+  // A session's scenarios in the order played, each with the events drawn
+  // on the way to it or back in town after it; events from an evening in
+  // town only, or tied to no scenario that evening, come last.
+  function playedRows(s) {
+    const mine = history.filter(e => home.get(e) === s);
+    const used = new Set();
+    const take = test => mine.filter(e => !used.has(e) && test(e)).map(e => { used.add(e); return e; });
+    const rows = (s.scenarios || []).flatMap(sc => [
+      take(e => e.scenario === sc.number).map(eventRow),
+      scenarioRow(sc),
+      take(e => e.scenario == null && e.after === sc.number).map(eventRow),
+    ]).flat();
+    return [...rows, ...take(() => true).map(eventRow)];
+  }
+
+  function scenarioRow(sc) {
+    const name = data.scenarios.find(x => x.number === sc.number)?.name;
+    const won = sc.result === "success";
+    const replay = won && sc.casual;
+    const meta = [sc.level != null ? `Level ${sc.level}` : null].filter(Boolean);
+    const outcome = !won ? "Failed" : replay ? "Replayed casually" : null;
+    // The scenario opens on the Scenarios tab.
+    return h("li", {},
+      h("a", { class: "played-link", href: "#scenarios", onclick: () => openScenario(data, sc.number) },
+        hex(sc.number, !won ? "failed" : replay ? "replay" : "completed"),
+        h("span", { class: "played-text" },
+          h("strong", {}, name || `Scenario ${sc.number}`),
+          outcome || meta.length ? h("span", {},
+            outcome ? h("b", { class: won ? "ink-replay" : "ink-failed" }, outcome) : null,
+            outcome && meta.length ? " · " : null, meta.join(" · ")) : null)),
+      // Failures and replays say so in words; a plain clear says it here.
+      h("span", { class: `result ${!won ? "failure" : replay ? "replay" : "success"}`,
+        ...(outcome ? { "aria-hidden": "true" } : { role: "img", "aria-label": "Success" }) },
+        icon(!won ? "cross" : replay ? "replay" : "check")));
+  }
 }
 
 // --- Tabs and loading -----------------------------------------------------------
