@@ -430,10 +430,10 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 .level-now { display: flex; align-items: center; gap: 14px; }
 .level-now .hex { --w: 56px; }
 .level-why { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: var(--t-sm); color: var(--fg-3); }
-.level-why .eq { display: inline-flex; align-items: baseline; gap: 4px; padding: 1px 9px; border: 1px solid var(--line-strong); border-radius: var(--r-pill);
+.sum-how .eq, .level-why .eq { display: inline-flex; align-items: baseline; gap: 4px; padding: 1px 9px; border: 1px solid var(--line-strong); border-radius: var(--r-pill);
   font-weight: 700; color: var(--fg); font-variant-numeric: lining-nums tabular-nums; }
-.level-why .eq small { font-size: var(--t-xs); font-weight: 600; color: var(--muted); }
-.level-why .op { font-size: var(--t-xs); font-weight: 600; color: var(--muted); white-space: nowrap; }
+.sum-how .eq small, .level-why .eq small { font-size: var(--t-xs); font-weight: 600; color: var(--muted); }
+.sum-how .op, .level-why .op { font-size: var(--t-xs); font-weight: 600; color: var(--muted); white-space: nowrap; }
 /* Each difficulty with the level it gives. */
 .level-tile .segmented button { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; line-height: 1.15; }
 .seg-level { font-size: var(--t-xs); font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -629,7 +629,11 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .item-list .gicon, .slot-blank { flex: none; width: 1.15em; height: 1.15em; margin: 0; color: var(--fg-3); }
 /* Cards, items and conditions to track at the table, tonight's scenario and
    battle goal to set up by and what it gave: phones only. */
-.item-track, .cond-block, .card-block, .scen-ref, .goal-card, .summary, .town-jobs, .play-line, .sheet-divider { display: none; }
+.item-track, .cond-block, .card-block, .scen-ref, .goal-card, .summary, .town-jobs, .play-line, .sheet-divider, .deck-counters, .level-line { display: none; }
+/* A sheet on a phone (app.js); on a wide screen its content is just part of
+   the page. */
+.sheet, .sheet-body { display: contents; }
+.sheet-head { display: none; }
 .perks .perk-text { flex: 1; }
 .perks .icon { font-size: var(--t-md); color: var(--verdigris); stroke-width: 2.8; }
 .perks .unsure .icon { color: var(--brass); stroke-width: 2.2; }
@@ -1030,6 +1034,8 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
 .shop .sold-out strong, .shop .sold-out .price, .shop .sold-out .price .unit { color: var(--muted); }
 /* This phone's character can't afford it. */
 .shop .too-dear .price, .shop .too-dear .price .unit { color: var(--muted); }
+.shop .slot-full > span:first-child { opacity: 0.6; }
+.slot-note { margin-left: 8px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--muted); }
 /* Who is shopping: a row of character chips. */
 .shop-for { display: flex; flex-direction: column; gap: 8px; }
 .shop-for .filters button .gicon { margin: 0; color: inherit; }
@@ -1128,9 +1134,25 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .card { padding: 14px; }
 
   .hero { display: flex; flex-direction: column; align-items: stretch; gap: 28px; }
-  .tonight { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 0; }
-  .tonight-step { min-height: 56px; }
-  .tonight-record { grid-column: 1 / -1; min-height: 44px; }
+  /* The evening as a rail: four steps on a line, the one to see to now lit
+     and saying where it stands, the done ones ticked. */
+  .tonight { position: relative; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0; margin-top: 0; }
+  .tonight::before { content: ""; position: absolute; top: 22px; left: 12.5%; right: 12.5%; height: 2px; background: var(--line-strong); }
+  .tonight-step { position: relative; flex: 1 1 25%; flex-direction: column; align-items: center; gap: 6px; min-height: 0; padding: 0 2px 6px; border: 0; background: none; text-align: center; }
+  .tonight-step:hover { color: var(--fg); }
+  .tonight-step .hex { --w: 40px; --fill: var(--bg); }
+  .tonight-step.current .hex { --ring: var(--brass); --ink: var(--brass); }
+  .tonight-text { align-items: center; }
+  .tonight-text .label { font-size: 11px; }
+  .tonight-step.current .label { color: var(--brass); }
+  .tonight-value { display: none; }
+  .tonight-step.current .tonight-value { display: block; font-size: var(--t-xs); font-weight: 600; color: var(--fg-2); }
+  .tonight-done { position: absolute; top: -2px; left: calc(50% + 10px); display: grid; place-items: center; width: 18px; height: 18px; margin: 0; border-radius: 50%; background: var(--bg); }
+  .tonight-done .icon { font-size: 14px; }
+  .tonight-record { flex-basis: 100%; min-height: 44px; margin-top: 10px; }
+  .tonight-record.quiet-link { align-self: center; padding: 0; border: 0; background: none; color: var(--fg-3); font: inherit; font-size: var(--t-sm); font-weight: 600; text-decoration: underline; text-underline-offset: 0.2em; text-decoration-color: var(--line-strong); cursor: pointer; }
+  /* The party's name, smaller on Tonight, where the evening matters more. */
+  body[data-tab="tonight"] .party-name { font-size: var(--d-lg); }
   .hero-head { min-height: 0; padding-right: 0; }
   .hero-decor { display: none; }
   .hero-side { display: contents; }
@@ -1143,9 +1165,13 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .scen-ref-head > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   .scen-ref-head h2 { font: 700 var(--d-sm)/1.1 var(--display); overflow-wrap: break-word; }
   .scen-ref-change { flex: none; min-height: 44px; }
-  .ref-level { display: flex; flex-wrap: wrap; gap: 6px; }
-  .ref-level > span { padding: 4px 10px; border: 1px solid var(--line); border-radius: var(--r-pill); font-size: var(--t-sm); color: var(--muted); }
-  .ref-level b { font-weight: 700; color: var(--fg); }
+  .ref-stats .label { font-size: 11px; }
+  /* Five numbers on a grid of three: the last fills the row. */
+  .ref-stats > :last-child:nth-child(3n + 2) { grid-column: span 2; }
+  .ref-nums { display: flex; gap: 16px; }
+  .ref-nums > span { display: inline-flex; align-items: center; gap: 5px; }
+  .ref-nums .icon { width: 17px; height: 17px; color: var(--fg-3); }
+  .ref-nums b { font-size: var(--t-lg); color: var(--fg); }
   .ref-players { display: flex; flex-direction: column; gap: 6px; }
   .ref-players ul { display: flex; flex-direction: column; }
   .ref-players li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line-soft); }
@@ -1154,10 +1180,61 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .ref-actions .btn { min-height: 44px; }
   .ref-more { display: inline-flex; align-items: center; min-height: 44px; align-self: flex-start; font-weight: 600; color: var(--fg-2); }
   .ready-card.picked { border-color: var(--brass); }
+
+  /* Sheets: a screen slid up over the tab, full height, the page dimmed
+     behind it. */
+  .sheet:not(.open) { display: none; }
+  .sheet.open { display: block; position: fixed; inset: 12px 0 0; z-index: 60; overflow-y: auto; overscroll-behavior: contain;
+    padding: 0 20px calc(32px + env(safe-area-inset-bottom, 0px)); background: var(--bg);
+    border-top: 1px solid var(--line-strong); border-radius: var(--r-lg) var(--r-lg) 0 0; box-shadow: 0 -12px 40px rgb(0 0 0 / 0.6);
+    animation: sheet-up 0.22s ease-out; }
+  html.sheet-open { overflow: hidden; }
+  html.sheet-open body::after { content: ""; position: fixed; inset: 0; z-index: 55; background: rgb(0 0 0 / 0.6); }
+  .sheet.open .sheet-head { display: flex; position: sticky; top: 0; z-index: 7; align-items: center; justify-content: space-between; gap: 12px;
+    min-height: 60px; margin: 0 -20px 4px; padding: 8px 8px 8px 20px; background: var(--bg); border-bottom: 1px solid var(--line-soft); }
+  .sheet-head h2 { font: 700 var(--d-sm)/1.1 var(--display); outline: none; }
+  .sheet-close { min-height: 44px; gap: 6px; }
+  .sheet-close .icon { width: 18px; height: 18px; }
+  .sheet.open .sheet-body { display: flex; flex-direction: column; gap: 16px; padding-top: 12px; }
+  .sheet.open .sheet-body > * { align-self: stretch; }
+  /* Titles the sheet's head already says. */
+  .sheet.open .sheet-body > .section-head h2, .sheet.open .enhancer-wrap > .subtitle,
+  .sheet.open .level-tile > h2.label, .sheet.open .ready-head h2 { display: none; }
+  .sheet.open .rec-pin { top: 60px; }
+  .sheet.open .ready-list { flex-direction: column; overflow: visible; margin: 0; padding: 0; }
+  .sheet.open .ready-card { width: auto; min-height: 0; flex-direction: row; align-items: center; }
+  @keyframes sheet-up { from { transform: translateY(32px); opacity: 0.5; } to { transform: none; opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .sheet.open { animation: none; } }
+
+  /* Tonight's level as one line, opening who's playing and the difficulty. */
+  .level-line { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 10px 14px;
+    border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); color: var(--fg); font: inherit; text-align: left; cursor: pointer; }
+  .level-line .hex { --w: 40px; }
+  .level-line-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .level-line-text strong { font-size: var(--t-lg); }
+  .level-line-text span { font-size: var(--t-sm); color: var(--muted); }
+  .level-line > .icon { transform: rotate(-90deg); color: var(--fg-3); }
+
+  /* Town: each job a row, the Shop and enhancing opening as sheets. */
+  .todo-open { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 10px 0 16px;
+    border: 1px solid var(--line-strong); border-radius: var(--r-pill); background: var(--surface); color: var(--fg);
+    font: inherit; font-size: var(--t-sm); font-weight: 600; cursor: pointer; }
+  .todo-open .icon { width: 16px; height: 16px; transform: rotate(-90deg); }
+  .town-gold { color: var(--brass); }
+  /* Recording, on a phone that isn't: a link, not a brass button. */
+  .todo-do.quiet { padding: 0; border: 0; background: none; color: var(--fg-2); text-decoration: underline; text-underline-offset: 0.2em; text-decoration-color: var(--line-strong); }
   /* The battle goal kept: hidden behind Show, as the personal quest is. */
   .goal-card { order: 3; display: flex; flex-direction: column; gap: 10px; }
   .goal-change { min-height: 44px; margin: -12px -8px -12px 0; }
-  .goal-reveal { align-self: stretch; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 44px; }
+  .goal-reveal { align-self: center; display: block; width: 128px; min-width: 0; aspect-ratio: 5 / 7; padding: 0; overflow: hidden;
+    border: 1px solid var(--brass-edge); border-radius: var(--r-md); background: var(--surface); }
+  .goal-back { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; width: 100%; height: 100%;
+    background: repeating-linear-gradient(45deg, var(--brass-bg) 0 7px, var(--surface) 7px 14px); color: var(--brass); font-size: var(--t-sm); font-weight: 600; }
+  .goal-back .brand-mark { width: 30px; height: 34px; }
+  .goal-face { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; width: 100%; height: 100%; padding: 12px; text-align: center; }
+  .goal-name { font: 700 var(--d-sm)/1.1 var(--display); color: var(--fg); overflow-wrap: anywhere; }
+  .goal-checks { display: flex; gap: 4px; color: var(--brass); }
+  .goal-checks .gicon { width: 22px; height: 22px; margin: 0; background-color: var(--brass); }
   .goal-checks { font-size: var(--t-sm); color: var(--muted); }
   .goal-card select { min-height: 44px; }
   .sum-made { flex: none; }
@@ -1201,8 +1278,10 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .tile-foot span { font-size: var(--t-xs); }
   .level-tile .filters, .recorder .filters { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; -webkit-mask-image: none; mask-image: none; }
 
-  .jump { position: relative; display: flex; flex-wrap: wrap; align-items: center; column-gap: 16px; font-size: var(--t-sm); color: var(--muted); }
-  .jump a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; color: var(--fg-2); }
+  .jump { position: relative; display: flex; gap: 8px; margin: 0 -20px; padding: 0 20px; overflow-x: auto; scrollbar-width: none; font-size: var(--t-sm); }
+  .jump::-webkit-scrollbar { display: none; }
+  .jump > span:first-child { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .jump a { flex: none; display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface); font-weight: 600; color: var(--fg-2); text-decoration: none; }
   .me-line { display: flex; flex-wrap: wrap; align-items: center; column-gap: 8px; padding-top: 8px; border-top: 1px solid var(--line-soft); font-size: var(--t-sm); color: var(--muted); }
   .me-line button { min-height: 44px; padding: 0; border: 0; background: none; color: var(--fg-2); font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 0.2em; text-decoration-color: var(--line-strong); cursor: pointer; }
   .party { display: flex; flex-direction: column; gap: 4px; }
@@ -1268,10 +1347,10 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .char-card { --under: var(--bg); gap: 20px; padding: 6px 0 0; background: none; border: 0; border-radius: 0; }
   .char-card:not(.current) { display: none; }
   .char-head { flex-direction: row-reverse; justify-content: space-between; gap: 16px; }
-  .char-head h3 { font-size: var(--d-xxl); line-height: 1; }
-  .char-head h3.long { font-size: var(--d-md); }
+  .char-head h3 { font-size: var(--d-lg); line-height: 1; }
+  .char-head h3.long { font-size: var(--d-sm); }
   .char-head p { font-size: var(--t-base); margin-top: 4px; }
-  .char-level .hex { --w: 72px; }
+  .char-level .hex { --w: 52px; }
   .char-level .label { display: block; }
   .meter { height: 10px; }
   .xp-now { font-size: var(--t-base); }
@@ -1331,10 +1410,15 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .pile { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px; border: 1px solid var(--line); border-radius: var(--r-md); }
   .pile output { font-size: var(--d-sm); font-weight: 700; line-height: 1.1; }
   .pile.hand { border-color: var(--line-strong); }
+  .pile.stack { margin: 6px 6px 0 0; box-shadow: 3px -3px 0 -1px var(--surface), 3px -3px 0 0 var(--line), 6px -6px 0 -1px var(--surface), 6px -6px 0 0 var(--line); }
+  .pile.none { border-style: dashed; }
+  .pile.none output { color: var(--muted); }
+  .pile.lost:not(.none) { border-color: var(--ember-line); background: repeating-linear-gradient(135deg, var(--ember-bg) 0 6px, var(--surface) 6px 12px); }
   .pile.lost:not(.none) output { color: var(--ember); }
   .pile-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .pile-row > .label { width: 3.2em; flex: none; }
-  .pile-move { flex: 1 1 0; min-width: 0; justify-content: center; min-height: 44px; padding-inline: 10px; }
+  .pile-move { flex: 1 1 0; min-width: 0; flex-direction: column; justify-content: center; gap: 0; min-height: 44px; padding-inline: 10px; line-height: 1.2; }
+  .pile-move small { font-size: 11px; font-weight: 500; color: var(--muted); }
   .pile-move[aria-disabled="true"] { opacity: 0.4; cursor: default; }
   .pile-more .pile-move { flex: 1 1 140px; font-size: var(--t-sm); }
   .pile-undo { min-height: 44px; }
@@ -1357,7 +1441,7 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .cond[aria-pressed="true"] { color: var(--fg); }
   .cond.bad[aria-pressed="true"] { border-color: var(--ember-line); background: var(--ember-bg); }
   .cond.good[aria-pressed="true"] { border-color: var(--verdigris); background: rgb(124 192 173 / 0.12); }
-  .cond-cards { display: flex; flex-direction: column; gap: 6px; }
+  .deck-counters { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
   .cond-count { display: flex; align-items: center; gap: 8px; min-width: 0; }
   .cond-count .cond-icon { width: 26px; height: 26px; }
   .cond-count-name { flex: 1; min-width: 0; font-size: var(--t-base); font-weight: 600; color: var(--muted); }

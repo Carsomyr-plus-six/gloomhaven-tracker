@@ -168,6 +168,8 @@ const ICONS = {
   chevron: '<path d="M6 9l6 6 6-6"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   minus: '<path d="M5 12h14"/>',
+  cards: '<rect x="4" y="6.500" width="11" height="14" rx="2"/><path d="M8.500 3.500H18a2 2 0 0 1 2 2V17"/>',
+  heart: '<path d="M12 20s-7.500-4.600-7.500-10.200A4.200 4.200 0 0 1 12 7.300a4.200 4.200 0 0 1 7.500 2.500C19.500 15.400 12 20 12 20z"/>',
   question: '<circle cx="12" cy="12" r="9"/><path d="M9.500 9.500a2.500 2.500 0 1 1 3.600 2.200c-.700.400-1.100 1-1.100 1.800"/><path d="M12 17h.010"/>',
   replay: '<path d="M4 12a8 8 0 1 0 2.400-5.700"/><path d="M4 4v4h4"/>',
   eye: '<path d="M2.500 12S6 5.500 12 5.500 21.500 12 21.500 12 18 18.500 12 18.500 2.500 12 2.500 12z"/><circle cx="12" cy="12" r="2.800"/>',
@@ -466,7 +468,14 @@ function levelTile(data) {
   // Tonight's level, the tile's figure, beside what it means at the table;
   // under it, how it was reached. The other levels worth seeing are the
   // ones a difficulty gives, so each difficulty says its own.
-  return h("div", { class: "card tile level-tile", "data-tab": "tonight" },
+  // Phones: one line, opening the tile as a sheet.
+  const line = h("button", { type: "button", class: "level-line", "data-tab": "tonight", "data-key": "level-line", onclick: () => openSheet("level") },
+    playing.length ? hex(level, "now") : null,
+    h("span", { class: "level-line-text" },
+      h("strong", {}, playing.length ? `Level ${level}` : "Pick who is playing"),
+      playing.length ? h("span", {}, `${diffLabel} · ${plural(playing.length, "player")}`) : null),
+    icon("chevron"));
+  const tile = h("div", { class: "card tile level-tile", "data-tab": "tonight" },
     h("h2", { class: "label" }, "Scenario level"),
     playing.length
       ? [h("div", { class: "level-now" },
@@ -497,7 +506,95 @@ function levelTile(data) {
                         onclick: () => { difficulty = key; render(data); } },
             h("span", {}, label), h("span", { class: "seg-level" }, levelAt(d)))))
       : null);
+  return [line, sheet("level", "Scenario level", tile)];
 }
+
+// --- Sheets (phones) ---------------------------------------------------------
+// A screen opened, used and closed (the Shop, enhancing, the session form,
+// the scenarios to pick from, who's playing): on a phone it slides up over
+// the tab, full height, with its title and Close, and Back or Escape closes
+// it; the page behind is out of reach meanwhile. On a wide screen it's part
+// of the page as before. Which is open survives a redraw.
+let openSheetId = null;
+let sheetOpener = null;
+const sheetOnClose = {};
+let sheetInert = [];
+
+function sheet(id, title, content, onClose) {
+  if (onClose) sheetOnClose[id] = onClose; else delete sheetOnClose[id];
+  return h("div", { class: "sheet", "data-sheet": id },
+    h("div", { class: "sheet-head" },
+      h("h2", { id: `sheet-${id}-title`, tabindex: "-1" }, title),
+      h("button", { type: "button", class: "btn quiet sheet-close", "data-key": `sheet-close-${id}`, onclick: () => closeSheet() }, icon("cross"), "Close")),
+    h("div", { class: "sheet-body" }, content));
+}
+
+function openSheet(id) {
+  if (!phone.matches) return;
+  if (!openSheetId) {
+    sheetOpener = document.activeElement;
+    history.pushState({ sheet: id }, "", location.href);
+  }
+  openSheetId = id;
+  applySheets();
+  const el = document.querySelector(`[data-sheet="${id}"]`);
+  if (el) el.scrollTop = 0;
+  document.getElementById(`sheet-${id}-title`)?.focus({ preventScroll: true });
+}
+
+function closeSheet(fromHistory = false) {
+  const id = openSheetId;
+  if (!id) return;
+  openSheetId = null;
+  applySheets();
+  if (!fromHistory && history.state?.sheet) history.back();
+  sheetOnClose[id]?.();
+  // Back to what opened it, or, if a redraw replaced it, what took its place.
+  const key = sheetOpener?.dataset?.key;
+  const back = sheetOpener?.isConnected ? sheetOpener : key ? document.querySelector(`[data-key="${CSS.escape(key)}"]`) : null;
+  back?.focus({ preventScroll: true });
+  sheetOpener = null;
+}
+
+// The open sheet, marked as a dialog, and everything around it inert. While
+// open it's lifted out to the top of the page, above every layer the page
+// makes, with a marker left where it lives; closing puts it back (or drops
+// it, if a redraw has drawn it afresh there).
+function applySheets() {
+  for (const el of sheetInert) el.inert = false;
+  sheetInert = [];
+  for (const el of document.querySelectorAll("body > .sheet")) {
+    if (el._home?.isConnected) el._home.replaceWith(el); else el.remove();
+  }
+  let open = null;
+  for (const el of document.querySelectorAll("[data-sheet]")) {
+    const on = phone.matches && el.dataset.sheet === openSheetId;
+    el.classList.toggle("open", on);
+    if (on) {
+      open = el;
+      el.setAttribute("role", "dialog");
+      el.setAttribute("aria-modal", "true");
+      el.setAttribute("aria-labelledby", `sheet-${el.dataset.sheet}-title`);
+    } else {
+      for (const a of ["role", "aria-modal", "aria-labelledby"]) el.removeAttribute(a);
+    }
+  }
+  if (openSheetId && !open) openSheetId = null;   // gone in a redraw
+  document.documentElement.classList.toggle("sheet-open", Boolean(open));
+  if (open) {
+    open._home = document.createComment(`sheet ${open.dataset.sheet}`);
+    open.before(open._home);
+    document.body.append(open);
+  }
+  for (let node = open; node && node !== document.body; node = node.parentElement) {
+    for (const sib of node.parentElement.children) {
+      if (sib !== node && !sib.inert) { sib.inert = true; sheetInert.push(sib); }
+    }
+  }
+}
+
+window.addEventListener("popstate", () => { if (openSheetId) closeSheet(true); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && openSheetId) { e.preventDefault(); closeSheet(); } });
 
 // Phones: the sections that share a tab but sit far below, as links.
 function furtherDown(links) {
@@ -559,7 +656,8 @@ function renderOverview(data) {
       battleGoalCard(data),
       h("div", { class: "hero-side" },
         todoList(data),
-        h("div", { class: "ready", "data-tab": "tonight" },
+        // Once one is picked, the rest open as a sheet from its Change.
+        (tonightScenario(data) ? (el => sheet("ready", "Pick tonight's scenario", el)) : el => el)(h("div", { class: "ready", "data-tab": "tonight" },
           h("div", { class: "ready-head" },
             h("h2", {}, "Ready to play"),
             h("a", { href: "#scenarios" }, data.scenarios.length > 1 ? `All ${data.scenarios.length} scenarios` : "Scenarios")),
@@ -578,7 +676,7 @@ function renderOverview(data) {
                     from(s) ? h("span", { class: "ready-from" }, from(s)) : null,
                     tried ? h("span", { class: "ready-tried" }, capitalize(tried)) : null));
               }))
-            : empty("Nothing is unlocked to play right now.")))),
+            : empty("Nothing is unlocked to play right now."))))),
     partyList(data),
   ];
 }
@@ -594,6 +692,7 @@ let tonightPick = null;
 try { tonightPick = Number(localStorage.getItem(PICK_KEY)) || null; } catch {}
 
 function pickTonight(data, number) {
+  if (openSheetId === "ready") { openSheetId = null; if (history.state?.sheet) history.back(); }
   tonightPick = number;
   try { if (number) localStorage.setItem(PICK_KEY, String(number)); else localStorage.removeItem(PICK_KEY); } catch {}
   // The Play tab names it too, over the cards.
@@ -640,7 +739,6 @@ function scenarioCard(data) {
     ["Boss", ref.boss ? "Yes" : null],
     ["Rewards", s.rewards?.length ? capitalize(s.rewards.join(", ")) : null],
   ].filter(([, v]) => v);
-  const fact = (label, value) => h("span", {}, h("b", { class: "num" }, value), " ", label);
   return h("section", { class: "card scen-ref", "data-tab": "tonight", tabindex: "-1", "aria-labelledby": "scen-ref-title" },
     h("div", { class: "scen-ref-head" },
       hex(s.number),
@@ -648,11 +746,11 @@ function scenarioCard(data) {
         h("span", { class: "label" }, "Tonight's scenario"),
         h("h2", { id: "scen-ref-title" }, s.name || `Scenario ${s.number}`)),
       tonightPick === s.number ? h("button", { type: "button", class: "btn quiet scen-ref-change", "data-key": "scen-ref-change",
-        onclick: () => pickTonight(data, null) }, "Change") : null),
+        onclick: () => openSheet("ready") }, "Change") : null),
     // The level's numbers, as the monster stat cards and the map need them.
-    t ? h("p", { class: "ref-level" },
-          fact("monster level", t.level), fact("trap damage", t.trap), fact("hazardous terrain", t.hazard),
-          fact("gold a coin", t.gold), fact("bonus XP", `+${t.xp}`))
+    t ? h("div", { class: "level-stats ref-stats" },
+          [["Monster level", t.level], ["Trap damage", t.trap], ["Hazardous terrain", t.hazard], ["Gold per coin", t.gold], ["Bonus XP", `+${t.xp}`]]
+            .map(([label, value]) => h("div", {}, h("span", { class: "label" }, label), h("span", { class: "num" }, value))))
       : h("p", { class: "small muted" }, "Pick who is playing, under Scenario level, for the numbers."),
     h("dl", { class: "facts" }, facts.map(([k, v]) => h("div", {}, h("dt", {}, k), h("dd", {}, v)))),
     // Each player's setup.
@@ -660,7 +758,10 @@ function scenarioCard(data) {
       h("h3", { class: "label" }, "Each player"),
       h("ul", {}, playing.map(c => h("li", {},
         h("strong", {}, c.name),
-        h("span", {}, [handSize(c) ? plural(handSize(c), "card") : null, maxHealth(c) ? `${maxHealth(c)} HP` : null].filter(Boolean).join(" · "))))),
+        // Cards to pick and hit points, as marks rather than words.
+        h("span", { class: "ref-nums" },
+          handSize(c) ? h("span", {}, icon("cards"), h("b", { class: "num" }, handSize(c)), h("span", { class: "sr-only" }, " cards")) : null,
+          maxHealth(c) ? h("span", {}, icon("heart"), h("b", { class: "num" }, maxHealth(c)), h("span", { class: "sr-only" }, " hit points")) : null)))),
       h("p", { class: "small muted" }, "Deal each player two battle goals; each keeps one.")) : null,
     h("div", { class: "ref-actions" },
       // The recorder's phone (the one with a draft) records it from here.
@@ -734,7 +835,7 @@ function tonightStrip(data) {
   const recorder = !phone.matches || Boolean(draft);
   // Anyone to play: a new campaign has no one until characters are added.
   const anyone = data.characters.some(c => !c.retired) || Boolean(draft?.newCharacters?.some(x => x.name));
-  return h("nav", { class: "tonight", "data-tab": "tonight", "aria-label": "Tonight, step by step" },
+  const nav = h("nav", { class: "tonight", "data-tab": "tonight", "aria-label": "Tonight, step by step" },
     step(1, "City event", drawn("city") || (decks ? `${decks.city.size} in the deck` : "Draw one"), "#events",
       recorder ? () => recordEvent(data, "city") : null, Boolean(drawn("city"))),
     step(2, "In town", town || (shop ? (shop.modifier === 0 ? "Normal prices" : `Prices ${signed(shop.modifier)} gold`) : "Shop, perks, Sanctuary"),
@@ -745,9 +846,14 @@ function tonightStrip(data) {
       : t ? (tonightScenario(data) ? `${scenarioLabel(data, tonightScenario(data).number)} · level ${t.level}` : `Level ${t.level} · deal battle goals`)
       : anyone ? "Pick who is playing" : "Add characters first"), anyone ? "#scenarios" : "#sessions",
       played.length ? () => showInRecorder(data, `sc-${firstPlayed}-n`) : anyone ? null : () => addNewcomer(data), played.length > 0),
-    rawCampaign ? h("button", { type: "button", class: `btn${recording || !recorder ? "" : " primary"} tonight-record`, "data-key": "tonight-record",
+    // On a phone that isn't recording, a quiet link rather than a button.
+    rawCampaign ? h("button", { type: "button", class: recorder ? `btn${recording ? "" : " primary"} tonight-record` : "tonight-record quiet-link", "data-key": "tonight-record",
       onclick: () => { if (!draft) draft = newDraft(data); showInRecorder(data, "rec-date"); } },
       recording ? "Go on recording" : recorder ? "Record the evening" : "Record the evening on this phone") : null);
+  // The first step not yet in the draft is the one to see to now.
+  const now = nav.querySelector(".tonight-step:not(.done)");
+  if (now) { now.classList.add("current"); now.setAttribute("aria-current", "step"); }
+  return nav;
 }
 
 // Everything waiting on the party before the next scenario, gathered from
@@ -948,6 +1054,8 @@ function showInRecorder(data, key) {
     box?.scrollIntoView({ block: "center", behavior: "instant" });
     box?.focus({ preventScroll: true });
   }, 0);
+  // A phone opens it as a sheet over the tab it's on.
+  if (phone.matches) { openSheet("record"); go(); return; }
   if (location.hash === "#sessions") go();
   else { window.addEventListener("hashchange", go, { once: true }); location.hash = "sessions"; }
 }
@@ -1097,7 +1205,7 @@ function todoList(data) {
       ? h("ul", { class: "rows" }, items.map(item => h("li", { class: item.urgent ? "urgent" : null },
           h("span", {}, item.urgent ? icon("lock", "Stops play") : null, item.text),
           h("span", { class: "todo-acts" },
-            item.action ? h("button", { type: "button", class: "todo-do", onclick: item.action.run }, item.action.label) : null,
+            item.action ? h("button", { type: "button", class: `todo-do${phone.matches && !draft ? " quiet" : ""}`, onclick: item.action.run }, item.action.label) : null,
             h("a", { class: "todo-go", href: item.href, onclick: item.onclick || null }, item.place || TODO_PLACES[item.href] || "Open")))))
       : h("p", { class: "small muted" }, "Nothing to sort out before the next scenario."));
 }
@@ -2627,7 +2735,36 @@ function attackDeckBlock(c, rows) {
       curses ? h("li", { class: "bad", title: "In the deck now, as counted under Conditions" },
         h("i", { class: "swatch k-curse", "aria-hidden": "true" }),
         h("span", {}, "Curse"), h("span", { class: "sr-only" }, ", "), h("b", { role: "img", "aria-label": plural(curses, "card") }, String(curses))) : null),
-    unread.length ? h("p", { class: "small muted" }, `Not counted, as written: ${unread.join("; ")}`) : null);
+    unread.length ? h("p", { class: "small muted" }, `Not counted, as written: ${unread.join("; ")}`) : null,
+    // Phones: Bless and Curse cards shuffled in during a scenario, counted here.
+    c.retired ? null : deckCounters(c));
+}
+
+// Bless and Curse cards in the deck now, each with − and +: kept with the
+// tracker's conditions, as the dock shows them too. Each is removed once drawn
+// (rulebook pp. 22-23).
+function deckCounters(c) {
+  const conds = tableState(c.name).conds || {};
+  const change = (key, fn) => () => {
+    fn();
+    saveTable(c.name, { conds });
+    const sheetEl = document.querySelector(`.char-card[data-char="${CSS.escape(c.name)}"]`);
+    sheetEl?.querySelector(".dock-conds")?.replaceWith(condStrip(c));
+    const deck = attackDeckBlock(c, perkCheck(c).rows);
+    sheetEl?.querySelector(".deck-block")?.replaceWith(deck);
+    deck.querySelector(`[data-key="${CSS.escape(key)}"]`)?.focus({ preventScroll: true });
+  };
+  return h("div", { class: "deck-counters" }, DECK_CONDITIONS.map(([id, name, kind]) => {
+    const n = conds[id] || 0;
+    return h("div", { class: `cond-count ${kind}${n ? " on" : ""}`, title: `Each ${name} card is removed once drawn` },
+      condIcon(id),
+      h("span", { class: "cond-count-name" }, name),
+      h("button", { type: "button", class: "dock-step", "data-key": `cond-${id}-down-${c.name}`, "aria-label": `1 less ${name} card`,
+        "aria-disabled": String(!n), onclick: change(`cond-${id}-down-${c.name}`, () => { if (n > 1) conds[id] = n - 1; else delete conds[id]; }) }, icon("minus")),
+      h("output", { class: "num", "aria-live": "polite" }, String(n), h("span", { class: "sr-only" }, ` ${name} ${n === 1 ? "card" : "cards"}`)),
+      h("button", { type: "button", class: "dock-step", "data-key": `cond-${id}-up-${c.name}`, "aria-label": `1 more ${name} card`,
+        "aria-disabled": String(n >= 10), onclick: change(`cond-${id}-up-${c.name}`, () => { if (n < 10) conds[id] = n + 1; }) }, icon("plus")));
+  }));
 }
 
 // Personal quest progress written as "2/15" gets a thin bar under it, one
@@ -2690,8 +2827,10 @@ function battleGoalCard(data) {
           "aria-expanded": String(shown), "aria-label": shown ? null : `Show ${c.name}'s battle goal`, title: shown ? "Tap to hide" : null,
           onclick: () => { if (shown) goalShown.delete(c.name); else goalShown.add(c.name); redraw("goal-show"); } },
           shown
-            ? [h("span", { class: "quest" }, kept.name), h("span", { class: "goal-checks" }, plural(kept.checks, "checkmark"), " if made")]
-            : h("span", { class: "quest quest-hidden" }, icon("eye"), "Show"))
+            ? h("span", { class: "goal-face" }, h("span", { class: "goal-name" }, kept.name),
+                h("span", { class: "goal-checks", role: "img", "aria-label": `${plural(kept.checks, "checkmark")} if made` },
+                  Array.from({ length: kept.checks }, () => gameIcon("checkmark"))))
+            : h("span", { class: "goal-back" }, h("span", { class: "brand-mark", "aria-hidden": "true" }), h("span", {}, "Tap to look")))
       : h("label", { class: "field" },
           h("span", {}, "Which card did you keep?"),
           h("select", { "data-key": "goal-pick", onchange: e => choose(e.target.value) },
@@ -2699,7 +2838,7 @@ function battleGoalCard(data) {
             // By name, as it's read off the card.
             goals.sort(([, a], [, b]) => a.name.localeCompare(b.name)).map(([id, g]) =>
               h("option", { value: id }, `${g.name} (${plural(g.checks, "checkmark")})`)))),
-    h("p", { class: "small muted" }, kept ? "Kept on this phone only. After the scenario, Town asks whether you made it." : "Kept on this phone only, out of sight until you ask for it."));
+    null);
 }
 
 function toggleQuest(name) {
@@ -3103,7 +3242,7 @@ function itemTrack(c) {
         h("span", { class: "item-name" }, name),
         info.uses ? h("span", { class: "use-dots", "aria-hidden": "true" },
           Array.from({ length: info.uses }, (_, k) => h("i", { class: k < marked ? "on" : null }))) : null,
-        h("span", { class: "item-state", "aria-hidden": "true" }, m.down ? USED_WORDS[info.use] : "Ready")));
+        m.down ? h("span", { class: "item-state", "aria-hidden": "true" }, USED_WORDS[info.use]) : null));
     })),
     spent.length ? h("button", { type: "button", class: "btn item-rest", "data-key": `item-rest-${c.name}`,
       onclick: change(`item-rest-${c.name}`, () => { for (const n of spent) delete marks[n]; }) },
@@ -3167,7 +3306,7 @@ function cardBlock(c) {
   const canRest = piles.discard >= 2;
   const left = roundsLeft(piles);
   const exhausted = piles.hand < 2 && !canRest;
-  const pile = (name, n, kind) => h("div", { class: `pile ${kind}${n ? "" : " none"}` },
+  const pile = (name, n, kind) => h("div", { class: `pile ${kind}${n ? "" : " none"}${n > 1 ? " stack" : ""}` },
     h("output", { class: "num", "aria-live": "polite" }, String(n), h("span", { class: "sr-only" }, ` ${n === 1 ? "card" : "cards"} ${name === "Hand" ? "in hand" : name === "Discard" ? "in the discard pile" : "lost"}`)),
     h("span", { class: "label", "aria-hidden": "true" }, name));
 
@@ -3180,7 +3319,8 @@ function cardBlock(c) {
       move("pile-discard", piles.hand > 0, p => { p.hand--; p.discard++; })("To discard"),
       move("pile-lose", piles.hand > 0, p => { p.hand--; p.lost++; })("To lost")),
     h("div", { class: "pile-row" }, h("span", { class: "label" }, "Rest"),
-      move("pile-short", canRest, p => { p.hand += p.discard - 1; p.lost++; p.discard = 0; })("Short rest"),
+      move("pile-short", canRest, p => { p.hand += p.discard - 1; p.lost++; p.discard = 0; })(
+        h("span", {}, "Short rest"), h("small", {}, canRest ? "lose 1 at random" : "needs 2 discarded")),
       move("pile-long", canRest, p => { p.hand += p.discard - 1; p.lost++; p.discard = 0; }, () => {
         // Heal 2 and refresh spent items, on the tracker and the item list.
         const st = tableState(c.name);
@@ -3190,7 +3330,7 @@ function cardBlock(c) {
         saveTable(c.name, { hp: max ? Math.min(max, (st.hp ?? max) + 2) : st.hp, items: marks });
         card()?.querySelector(".item-track")?.replaceWith(itemTrack(c));
         card()?.querySelector(".table-dock")?.replaceWith(tableDock(c));
-      })("Long rest")),
+      })(h("span", {}, "Long rest"), h("small", {}, canRest ? "heal 2 · refresh" : "needs 2 discarded"))),
     h("div", { class: "pile-row pile-more" },
       move("pile-burn", piles.discard > 0, p => { p.discard--; p.lost++; })("Lose from discard"),
       move("pile-recover", piles.lost > 0, p => { p.lost--; p.hand++; })("Recover lost"),
@@ -3201,10 +3341,7 @@ function cardBlock(c) {
           card()?.querySelector(".item-track")?.replaceWith(itemTrack(c));
           card()?.querySelector(".table-dock")?.replaceWith(tableDock(c));
           redraw(`pile-undo-${c.name}`);
-        } }, icon("replay"), "Undo") : null),
-    h("p", { class: "small muted" }, canRest
-      ? "A short rest loses a random card; a long rest takes the round, loses the card you choose, heals 2 and refreshes spent items."
-      : "Resting needs two cards in the discard pile."));
+        } }, icon("replay"), "Undo") : null));
   return block;
 }
 
@@ -3239,11 +3376,10 @@ function condBlock(c) {
     block.replaceWith(next);
     next.querySelector(`[data-key="${CSS.escape(key)}"]`)?.focus({ preventScroll: true });
     // The dock shows what's on, too, and the deck its Bless and Curse cards.
-    const sheet = document.querySelector(`.char-card[data-char="${CSS.escape(c.name)}"]`);
-    sheet?.querySelector(".dock-conds")?.replaceWith(condStrip(c));
-    if (/^cond-(bless|curse)-/.test(key)) sheet?.querySelector(".deck-block")?.replaceWith(attackDeckBlock(c, perkCheck(c).rows));
+    document.querySelector(`.char-card[data-char="${CSS.escape(c.name)}"] .dock-conds`)?.replaceWith(condStrip(c));
   };
-  const on = [...CONDITIONS, ...DECK_CONDITIONS].filter(([id]) => conds[id]);
+  // Bless and Curse are counted in the deck block, where they act.
+  const on = CONDITIONS.filter(([id]) => conds[id]);
   const block = h("div", { class: "block cond-block", id: `conds-${c.name}` },
     h("div", { class: "block-head" }, h("h4", { class: "label" }, "Conditions"),
       on.length ? h("span", { class: "small muted" }, `${on.length} on`) : null),
@@ -3251,17 +3387,6 @@ function condBlock(c) {
       h("button", { type: "button", class: `cond ${kind}`, "data-key": `cond-${id}-${c.name}`, "aria-pressed": String(Boolean(conds[id])),
         onclick: change(`cond-${id}-${c.name}`, () => { if (conds[id]) delete conds[id]; else conds[id] = true; }) },
         condIcon(id), h("span", {}, name)))),
-    h("div", { class: "cond-cards" }, DECK_CONDITIONS.map(([id, name, kind]) => {
-      const n = conds[id] || 0;
-      return h("div", { class: `cond-count ${kind}${n ? " on" : ""}` },
-        condIcon(id),
-        h("span", { class: "cond-count-name" }, name),
-        h("button", { type: "button", class: "dock-step", "data-key": `cond-${id}-down-${c.name}`, "aria-label": `1 less ${name} card`,
-          "aria-disabled": String(!n), onclick: change(`cond-${id}-down-${c.name}`, () => { if (n > 1) conds[id] = n - 1; else delete conds[id]; }) }, icon("minus")),
-        h("output", { class: "num", "aria-live": "polite" }, String(n), h("span", { class: "sr-only" }, ` ${name} ${n === 1 ? "card" : "cards"}`)),
-        h("button", { type: "button", class: "dock-step", "data-key": `cond-${id}-up-${c.name}`, "aria-label": `1 more ${name} card`,
-          "aria-disabled": String(n >= 10), onclick: change(`cond-${id}-up-${c.name}`, () => { if (n < 10) conds[id] = n + 1; }) }, icon("plus")));
-    })),
     // What each one on does, to read at the table.
     on.length ? h("ul", { class: "cond-notes" }, on.map(([id, name, kind, does]) =>
       h("li", { class: kind }, h("strong", {}, name), " ", does))) : null);
@@ -3404,18 +3529,23 @@ function scenarioSummary(data) {
     try { localStorage.setItem(RESULT_KEY, r); } catch {}
     render(data, "shop");
   };
+  // A sum as it's worked: each part in a pill, then what it comes to.
+  const eq = (n, what) => h("span", { class: "eq" }, String(n), what ? h("small", {}, what) : null);
+  const op = text => h("span", { class: "op" }, text);
   const row = (label, sum, total) => h("div", { class: "sum-row" },
     h("span", { class: "label" }, label), h("span", { class: "sum-how" }, sum), h("b", { class: "num" }, total));
 
   return h("section", { class: "summary", "aria-labelledby": "summary-title" },
     h("div", { class: "section-head" }, h("h2", { id: "summary-title" }, "After the scenario"),
-      h("span", { class: "aside" }, [sc ? scenarioLabel(data, sc.number) : null, t ? `level ${t.level}` : null].filter(Boolean).join(" · "))),
+      // Whose level: phones that disagree show it here.
+      h("span", { class: "aside" }, [sc ? scenarioLabel(data, sc.number) : null,
+        t ? `level ${t.level}, ${t.difficulty.toLowerCase()}, ${plural(characterOrder(data).filter(x => !x.retired && levelParty?.has(x.name)).length, "player")}` : null].filter(Boolean).join(" · "))),
     h("div", { class: "segmented", role: "group", "aria-label": "Result" },
       [["success", "Success"], ["failure", "Failure"]].map(([key, label]) =>
         h("button", { type: "button", "data-key": `result-${key}`, "aria-pressed": String(tonightResult === key), onclick: setResult(key) }, label))),
     // Each phone works the level out from its own picks: said, so phones that
     // disagree are noticed.
-    t ? h("p", { class: "small muted" }, `Level ${t.level}: ${characterOrder(data).filter(x => !x.retired && levelParty?.has(x.name)).map(x => x.name).join(", ")}, ${t.difficulty.toLowerCase()}, as picked on Tonight. The same on every phone?`)
+    t ? null
       : h("p", { class: "small muted" }, "Pick who is playing under Scenario level, on Tonight, for the bonus XP and the gold a coin is worth."),
     shown.map(c => {
       const st = tableState(c.name);
@@ -3432,8 +3562,8 @@ function scenarioSummary(data) {
       const setGoal = n => () => { saveTable(c.name, { goal: n }); render(data, "shop"); };
       return h("div", { class: "card sum-card" },
         h("h3", {}, c.name),
-        row("XP", `${st.xp} on the dial${bonus ? ` + ${bonus} bonus` : ""}`, `+${xp}`),
-        row("Gold", t ? `${plural(st.coins, "coin")} × ${t.gold}` : plural(st.coins, "coin"), gold != null ? `+${gold}` : "?"),
+        row("XP", [eq(st.xp, "dial"), bonus ? [op("+"), eq(bonus, "bonus")] : null, op("=")], `+${xp}`),
+        row("Gold", [eq(st.coins, st.coins === 1 ? "coin" : "coins"), t ? [op("×"), eq(t.gold)] : null, op("=")], gold != null ? `+${gold}` : "?"),
         won && battleGoal(c.name) ? h("div", { class: "sum-row" },
           h("span", { class: "label sum-goal-label" }, `${battleGoal(c.name).name} (${plural(battleGoal(c.name).checks, "checkmark")})`),
           h("span", { class: "segmented sum-made", role: "group", "aria-label": `Battle goal ${battleGoal(c.name).name}` },
@@ -3455,7 +3585,7 @@ function scenarioSummary(data) {
           gold != null ? ` · ${c.gold + gold} gold` : "",
           gains ? h("strong", { class: "sum-gains" }, capitalize(gains)) : null));
     }),
-    h("p", { class: "small muted" }, "Read these to whoever records the evening; on the phone that records it, the form fills them in."));
+    null);
 }
 
 // --- In town (phones) ----------------------------------------------------------
@@ -3464,9 +3594,17 @@ function scenarioSummary(data) {
 // the recorder's phone (the one with a draft) each can be recorded here.
 function townJobs(data) {
   const c = data.characters.find(x => playable(x) && x.name === me);
-  if (!c) return null;
   const recording = rawCampaign && draft;
   const jobs = [];
+  // The Shop and enhancing open as sheets over the tab.
+  const opener = (key, label, run) => h("button", { type: "button", class: "todo-open", "data-key": key, onclick: run }, label, icon("chevron"));
+  jobs.push([c ? h("span", {}, `${c.name} has `, h("strong", { class: "town-gold" }, `${c.gold} gold`), " to spend.") : "The Shop.",
+    opener("town-shop", "Shop", () => { shopFor = undefined; shopFilter = c ? "can" : "all"; render(data, "shop"); openSheet("shop"); })]);
+  if (!c) {
+    jobs.push(["Enhance an ability card.", opener("town-enhance", "Enhancing", () => openSheet("enhance"))]);
+    return h("div", { class: "card todo town-jobs" }, h("div", { class: "block-head" }, h("h2", { class: "label" }, "In town")),
+      h("ul", { class: "rows" }, jobs.map(([text, act]) => h("li", {}, h("span", {}, text), h("span", { class: "todo-acts" }, act)))));
+  }
   for (const u of lastLevelUps(data).filter(u => u.character === c.name)) {
     jobs.push([`Reached level ${u.level}: add an ability card of level ${u.level} or lower.`, null]);
   }
@@ -3478,7 +3616,7 @@ function townJobs(data) {
   jobs.push([donated ? "Donated at the Sanctuary: 2 Bless in your next scenario."
       : "The Sanctuary: 10 gold for 2 Bless in your next scenario, once a visit.",
     recording && !donated ? h("button", { type: "button", class: "todo-do", "data-key": "town-donate", onclick: () => recordDonation(data, c.name) }, "Record it") : null]);
-  jobs.push(["Enhance an ability card.", h("a", { class: "todo-go", href: "#enhancing" }, "Enhancing")]);
+  jobs.push(["Enhance an ability card.", opener("town-enhance", "Enhancing", () => openSheet("enhance"))]);
   return h("div", { class: "card todo town-jobs" },
     h("div", { class: "block-head" }, h("h2", { class: "label" }, `${c.name} in town`)),
     h("ul", { class: "rows" }, jobs.map(([text, act]) => h("li", {}, h("span", {}, text), act ? h("span", { class: "todo-acts" }, act) : null))));
@@ -3610,12 +3748,13 @@ function renderShop(data) {
     : canBuy(item) ? h("button", { type: "button", class: "buy", "data-key": `buy-${item.id}`, "aria-label": `Buy ${item.name} for ${shopper.name}`,
         onclick: () => recordBuy(data, shopper.name, item.name) }, "Buy")
     : null;
-  const row = item => h("li", { class: has(item) ? "owned" : left(item) <= 0 && !bought(item) ? "sold-out" : dear(item) && !bought(item) ? "too-dear" : null },
+  const row = item => h("li", { class: has(item) ? "owned" : left(item) <= 0 && !bought(item) ? "sold-out" : dear(item) && !bought(item) ? "too-dear"
+      : shopper && !bought(item) && full(item) ? "slot-full" : null },
     h("span", {},
       h("strong", {}, item.name, item.design ? h("span", { class: "tag" }, "design") : null,
         item.back ? h("span", { class: "tag", title: "Not sold here otherwise: a copy sold, or left by a retired character" }, "returned") : null),
       h("span", { class: "sub" }, copyPips(item), [
-        shopper && !has(item) && !bought(item) && left(item) > 0 && full(item) ? fullText(shopper, item.slot) : null,
+
         // What it sells for: on the shopper's own items that's their Sell button.
         !shopper && item.held.length ? `sells for ${item.sells}` : null,
       ].filter(Boolean).join(" · "))),
@@ -3660,10 +3799,10 @@ function renderShop(data) {
     groups.length ? null : empty(`Nothing ${shopper?.name} can buy right now.`),
     h("div", { class: "shop" }, groups.map(([slot, label, list]) =>
       h("div", { class: "card" },
-        h("h3", { class: "label" }, gameIcon(`slot-${slot}`), label),
+        h("h3", { class: "label" }, gameIcon(`slot-${slot}`), label,
+          shopper && full({ slot }) ? h("span", { class: "slot-note" }, slotNote(owned, slot)) : null),
         h("ul", { class: "rows" }, list.map(row))))),
     shop.coming ? h("p", { class: "aside" }, `${plural(shop.coming, "more item")} arrive${shop.coming === 1 ? "s" : ""} at prosperity ${shop.level + 1}.`) : null,
-    enhancer(data),
   ];
 }
 
@@ -3705,12 +3844,14 @@ function slotStrip(c, level) {
     slots.map(([icon, on, over]) => h("span", { class: `slot${on ? " on" : ""}${over ? " over" : ""}` }, gameIcon(`slot-${icon}`))));
 }
 
-// An item that wouldn't fit in the slots: it can still be bought (owning
-// isn't limited), but not equipped alongside what the slot already holds.
-function fullText(c, slot) {
-  if (slot === "onehand" || slot === "twohand") return `${c.name}'s hands are full: owned, not equipped with the rest`;
-  if (slot === "small") return `more small items than ${c.name} can equip`;
-  return `${c.name} already has a ${slot} item to equip`;
+// Beside a slot's heading in the Shop, when the shopper's is full: what fills
+// it. Its items can still be bought (owning isn't limited), not equipped too.
+function slotNote(owned, slot) {
+  const hands = s => s === "onehand" || s === "twohand";
+  const wearing = owned.filter(i => hands(slot) ? hands(itemSlot(i)) : itemSlot(i) === slot);
+  if (hands(slot)) return "hands full";
+  if (slot === "small") return "small items full";
+  return wearing.length ? `wearing ${wearing.join(", ")}` : "full";
 }
 
 // The room left in a character's slots, in words.
@@ -3773,7 +3914,8 @@ function enhancer(data) {
           return h("li", { class: ok ? "ok" : "short", "aria-label": `${c.name}, ${c.gold} gold${ok ? "" : ", not enough"}` },
             classIcon(c.class), h("span", {}, c.name), h("span", { class: "afford-gold" }, c.gold));
         })) : null,
-        rawCampaign ? h("button", { type: "button", class: "todo-do enhancer-record", "data-key": "enh-record",
+        // Recorded by the phone that records the evening (any wide screen).
+        rawCampaign && (!phone.matches || draft) ? h("button", { type: "button", class: "todo-do enhancer-record", "data-key": "enh-record",
           onclick: () => recordEnhancement(data, enhancementText(key), cost.total) }, "Record it") : null)));
   function enhancementText(k) {
     const label = ENHANCEMENTS.flatMap(([, list]) => list).find(([key]) => key === k)?.[1] || k;
@@ -5038,6 +5180,7 @@ function renderSessions(data) {
     // Closing a form with nothing in it leaves no draft behind.
     if (!recorderOpen && !draftChanges(draft, data)) dropDraft(); else saveDraft();
     render(data);
+    if (recorderOpen) openSheet("record");
   };
   const head = h("div", { class: "section-head" },
     h("h2", {}, "Sessions"),
@@ -5051,7 +5194,13 @@ function renderSessions(data) {
   return [
     head,
     saved ? nudge("check", "Saved", `What you recorded on ${saved} is in campaign.json now, so its draft has been cleared.`, "saved") : null,
-    recorderOpen && draft ? renderRecorder(data) : null,
+    // Phones: a sheet over whichever tab it was opened from; closing it
+    // closes the form, keeping the draft.
+    recorderOpen && draft ? sheet("record", "Record the evening", renderRecorder(data), () => {
+      recorderOpen = false;
+      if (!draftChanges(draft, data)) dropDraft(); else saveDraft();
+      render(data);
+    }) : null,
     sorted.length ? null : empty("No sessions recorded yet."),
     sorted.length ? h("p", { class: "aside" }, "Newest first") : null,
     h("div", {}, sorted.map(s => {
@@ -5121,7 +5270,8 @@ function renderSessions(data) {
 const RENDERERS = {
   overview: renderOverview,
   characters: renderCharacters,
-  shop: data => [scenarioSummary(data), townJobs(data), renderShop(data)],
+  shop: data => [scenarioSummary(data), townJobs(data),
+    sheet("shop", "Shop", renderShop(data)), sheet("enhance", "Enhancing a card", enhancer(data))],
   scenarios: renderScenarios,
   sessions: renderSessions,
   events: renderEvents,
@@ -5142,7 +5292,9 @@ function currentTab() {
 }
 
 function render(data, only) {
-  // Redrawing replaces the buttons, so put focus and the map's scroll back.
+  // Redrawing replaces the buttons, so put focus and the map's scroll back,
+  // and an open sheet's place.
+  const sheetScroll = document.querySelector(".sheet.open")?.scrollTop;
   const key = document.activeElement?.dataset?.key;
   const mapScroll = document.querySelector(".map-scroll")?.scrollLeft;
   const switchScroll = document.querySelector(".char-switch")?.scrollLeft;
@@ -5181,6 +5333,10 @@ function render(data, only) {
   // What was drawn afresh is sorted onto its tab again: the Overview's parts
   // belong to two (Tonight and Campaign).
   showTab();
+  applySheets();
+  const open = document.querySelector(".sheet.open");
+  if (open && sheetScroll) open.scrollTop = sheetScroll;
+  if (open && key) open.querySelector(`[data-key="${key}"]`)?.focus({ preventScroll: true });
 }
 
 // Wide screens: pack the character sheets like bricks (see .char-grid.packed
@@ -5211,6 +5367,7 @@ let viaTabBar = false;
 function showTab() {
   const tab = currentTab();
   shownTab = tab;
+  document.body.dataset.tab = tab;
   // A section can belong to more than one tab ("tonight campaign").
   for (const el of document.querySelectorAll("main [data-tab]")) el.classList.toggle("off", !el.dataset.tab.split(" ").includes(tab));
   for (const a of document.querySelectorAll(".tabs a[data-tab]")) {
@@ -5420,6 +5577,7 @@ async function start() {
     // there, before the tab's place is put back.
     window.addEventListener("hashchange", () => {
       if (!phone.matches) return;
+      if (openSheetId) { openSheetId = null; applySheets(); }
       if (currentTab() === "town") render(data, "shop");
       if (currentTab() === "tonight") render(data, "overview");
     });
