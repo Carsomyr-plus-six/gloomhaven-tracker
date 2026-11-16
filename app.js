@@ -365,7 +365,10 @@ function openSheet(id) {
     history.pushState({ sheet: id }, "", location.href);
   }
   openSheetId = id;
-  applySheets();
+  // Its section, if held back while another tab was shown, is drawn first
+  // (render opens the sheet as it finishes).
+  if (outOfDate.has(SHEET_HOME[id]) && latestData) render(latestData, SHEET_HOME[id]);
+  else applySheets();
   const el = document.querySelector(`[data-sheet="${id}"]`);
   if (el) el.scrollTop = 0;
   document.getElementById(`sheet-${id}-title`)?.focus({ preventScroll: true });
@@ -2127,6 +2130,9 @@ function renderCharacters(data) {
   };
 
   const active = order.filter(playable);
+  // A phone shows one sheet, so it builds only that one; picking another
+  // draws it then.
+  const onScreen = c => !phone.matches || order.indexOf(c) === characterIndex;
   const inactive = order.filter(c => !c.retired && c.inactive);
   const retired = order.filter(c => c.retired);
 
@@ -2173,9 +2179,9 @@ function renderCharacters(data) {
     switcher,
     // Inactive sheets, once shown, follow the active ones in the same grid
     // (dashed, and "inactive" under the name), filling the gaps.
-    active.length ? h("div", { class: "char-grid" }, [...active, ...shownInactive].map(card))
-      : [empty("No active characters."), shownInactive.length ? h("div", { class: "char-grid" }, shownInactive.map(card)) : null],
-    retired.length ? [h("h3", { class: "subhead" }, "Retired"), h("div", { class: "char-grid" }, retired.map(card))] : null,
+    active.length ? h("div", { class: "char-grid" }, [...active, ...shownInactive].filter(onScreen).map(card))
+      : [empty("No active characters."), shownInactive.length ? h("div", { class: "char-grid" }, shownInactive.filter(onScreen).map(card)) : null],
+    retired.length ? [h("h3", { class: "subhead" }, "Retired"), h("div", { class: "char-grid" }, retired.filter(onScreen).map(card))] : null,
   ];
 }
 
@@ -3714,7 +3720,19 @@ function currentTab() {
   return id.startsWith("scenario-") ? "campaign" : TAB_OF[id] || "tonight";
 }
 
+// A phone shows one tab at a time, so a section on another tab isn't drawn
+// when something changes: it's marked out of date, and drawn when its tab
+// is shown (showTab), from the latest data. Wide screens draw everything.
+const outOfDate = new Set();
+let latestData = null;
+const onShownTab = id => document.getElementById(id)?.dataset.tab.split(" ").includes(currentTab());
+// The section each phone sheet is drawn in: it opens over any tab, so its
+// section is drawn while it's open, whatever tab is shown.
+const SHEET_HOME = { level: "overview", ready: "overview", record: "sessions", shop: "shop", enhance: "shop" };
+const onScreenNow = id => onShownTab(id) || SHEET_HOME[openSheetId] === id;
+
 function render(data, only) {
+  latestData = data;
   // Redrawing replaces the buttons, so put focus and the map's scroll back,
   // and an open sheet's place.
   const sheetScroll = document.querySelector(".sheet.open")?.scrollTop;
@@ -3723,6 +3741,8 @@ function render(data, only) {
 
   for (const [id, fn] of Object.entries(RENDERERS)) {
     if (only && id !== only) continue;
+    if (phone.matches && !onScreenNow(id)) { outOfDate.add(id); continue; }
+    outOfDate.delete(id);
     const nodes = [fn(data)].flat(Infinity).filter(Boolean);
     const panel = document.getElementById(id);
     panel.replaceChildren(...nodes);
@@ -3763,6 +3783,8 @@ const packer = typeof ResizeObserver === "function" ? new ResizeObserver(entries
 function packGrids() {
   if (!packer) return;
   packer.disconnect();
+  // Phones stack the sheets: nothing to pack, so nothing to measure.
+  if (phone.matches) return;
   for (const grid of document.querySelectorAll(".char-grid")) {
     for (const card of grid.children) { spanCard(card); packer.observe(card); }
     grid.classList.add("packed");
@@ -3779,6 +3801,9 @@ let viaTabBar = false;
 
 function showTab() {
   const tab = currentTab();
+  // Its sections changed while another tab was shown: drawn now. (render
+  // calls back here; by then nothing on this tab is out of date.)
+  for (const id of [...outOfDate]) if (latestData && onShownTab(id)) render(latestData, id);
   shownTab = tab;
   document.body.dataset.tab = tab;
   // A section can belong to more than one tab ("tonight campaign").

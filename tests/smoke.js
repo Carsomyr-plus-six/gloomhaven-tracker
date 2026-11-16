@@ -103,5 +103,35 @@ async function runSmoke() {
     for (const k of Object.keys(store)) if (k.endsWith(kept)) store.removeItem(k);
     frame.remove();
   }
+
+  // A phone draws only the tab on screen (the others when shown), so: every
+  // tab has something drawn once opened, and a sheet drawn in another tab's
+  // section still opens over this one (the form, from Tonight). On a copy of
+  // the campaign, cleared after.
+  {
+    const path = "tests/fixtures/campaign-v1.json";
+    const frame = await open(`../index.html?data=${path}#overview`, 360);
+    const errors = [];
+    frame.contentWindow.addEventListener("error", e => errors.push(e.message));
+    await ready(frame);
+    const doc = frame.contentDocument;
+    const empty = [];
+    for (const tab of ["play", "town", "campaign", "tonight"]) {
+      doc.querySelector(`.tabs a[data-tab="${tab}"]`)?.click();
+      await wait(150);
+      const shown = [...doc.querySelectorAll("main > section, main .pair section")].filter(s => s.dataset.tab?.split(" ").includes(tab));
+      if (!shown.some(s => s.innerText.trim())) empty.push(tab);
+    }
+    check("phone: every tab is drawn once shown", !empty.length, empty.length ? `nothing drawn on ${empty.join(", ")}` : "all drawn");
+    [...doc.querySelectorAll("button")].find(b => b.innerText.trim().startsWith("Record the evening"))?.click();
+    await wait(200);
+    check("phone: the form opens over Tonight, drawn from the Campaign tab's section",
+      doc.querySelector(".sheet.open .recorder") && doc.body.dataset.tab === "tonight" && !errors.length,
+      errors.join("; ") || `${doc.querySelector(".sheet.open")?.dataset.sheet || "no sheet"} on ${doc.body.dataset.tab}`);
+    const store = frame.contentWindow.localStorage;
+    const kept = `:${new URL(path, frame.contentWindow.location.href).pathname}`;
+    for (const k of Object.keys(store)) if (k.endsWith(kept)) store.removeItem(k);
+    frame.remove();
+  }
   return results;
 }
