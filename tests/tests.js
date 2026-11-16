@@ -88,9 +88,63 @@ async function runTests(load, loadText) {
   same("claims: a past treasure settled goes to its looter, or back to the shop if sold",
     [buildData(copy(open38)).claims.map(c => `${c.item}: treasure ${c.treasure} in ${c.where}`),
      kept.characters.find(c => c.name === "Kaktus").log, kept.scenarios.find(s => s.number === 4).treasures[0],
-     sold.characters.find(c => c.name === "Kaktus").log, sold.city.returnedItems || [], buildData(copy(kept)).claims.length],
+     sold.characters.find(c => c.name === "Kaktus").log, buildData(copy(sold)).city.returnedItems, buildData(copy(kept)).claims.length],
     [["Ring of Skulls: treasure 38 in #4"], [{ date: "2026-11-20", for: "treasure", treasure: "38", gained: ["Ring of Skulls"] }], { number: "38", character: "Kaktus" },
-     [], ["Ring of Skulls"], 0]);
+     [{ date: "2026-11-20", for: "treasure", treasure: "38", gained: ["Ring of Skulls"], lost: ["Ring of Skulls"] }],
+     ["Minor Power Potion", "Ring of Skulls"], 0]);   // (and the evening's potion sold; the shop counts only what it doesn't otherwise sell)
+
+  // The shop's supply of items it doesn't otherwise sell is worked out from
+  // the logs: a sale puts a copy back, buying it takes it out, retiring
+  // returns everything carried; the file keeps no list of its own.
+  const evening = (file, extra) => toFile(applyDraft(fromFile(copy(file)), { ...copy(draft), scenarios: [], events: [], buys: [], sells: [], perks: [],
+    donations: [], enhancements: [], claims: {}, quests: {}, newCharacters: [], retirements: [], ...extra }, buildData(copy(file))).out);
+  const ringLeft = file => buildData(copy(file)).shop.stock.find(i => i.name === "Ring of Skulls")?.left ?? 0;
+  const ringSold = evening(raw, { sells: [{ character: "Azorica", item: "Ring of Skulls" }] });
+  const ringBought = evening(ringSold, { date: "2026-11-27", buys: [{ character: "Craig", item: "Ring of Skulls" }] });
+  const azoricaRetires = evening(raw, { retirements: [{ character: "Azorica", unlocks: "envelope-x" }] });
+  same("shop: a copy sold comes back, bought back goes, and a retiree's items return",
+    [ringLeft(raw), ringLeft(ringSold), ringLeft(ringBought), ringLeft(azoricaRetires),
+     buildData(copy(ringBought)).characters.find(c => c.name === "Craig").items.includes("Ring of Skulls"),
+     ["returnedItems" in ringSold.city, "returnedItems" in ringBought.city]],
+    [0, 1, 0, 1, true, [false, false]]);
+  // A list in an older file (schemaVersion 3 and before, kept by hand or
+  // written by the form): what the logs account for is left to them, the
+  // rest joins the city's start. In a current file the list is worked out,
+  // so one written in is asked about, and changes nothing.
+  const listed = { ...copy(ringSold), schemaVersion: 3 };
+  listed.city.start = { returnedItems: ["Winged Shoes"] };
+  listed.city.returnedItems = ["Ring of Skulls", "Boots of Speed"];
+  const current = { ...copy(ringSold), city: { ...ringSold.city, returnedItems: ["Boots of Speed"] } };
+  same("shop: an older file's list of returned items joins the city's start, less what the logs say; a current file's is asked about",
+    [toFile(fromFile(copy(listed))).city.start, buildData(copy(listed)).city.returnedItems,
+     fileQuestions(current).filter(q => q.includes("returnedItems")).length, buildData(copy(current)).city.returnedItems],
+    [{ returnedItems: ["Winged Shoes", "Boots of Speed"] }, ["Winged Shoes", "Boots of Speed", "Ring of Skulls"], 1, ["Ring of Skulls"]]);
+  // A treasure item the looter already has is sold at once: a treasure line
+  // with the item gained and lost, its gold, and the copy back in the shop.
+  // Treasure 62 gives Helm of the Mountain and Mountain Hammer; Azorica is
+  // given a Mountain Hammer first, so the tile's copy is sold at once.
+  const hasHammer = copy(raw);
+  hasHammer.scenarios.push({ number: 82 });
+  hasHammer.characters.find(c => c.name === "Azorica").start.items.push(itemName(115));
+  const soldAtOnce = toFile(applyDraft(fromFile(copy(hasHammer)), { ...copy(draft), scenarios: [{ number: "82", level: "2", result: "failure",
+      treasures: [{ number: "62", character: "Azorica" }], results: { Azorica: { xp: "1" }, Craig: { xp: "1" }, "Flik Flak": { xp: "1" } } }],
+    events: [], buys: [], sells: [], perks: [], donations: [], enhancements: [], quests: {}, newCharacters: [], claims: {} }, buildData(copy(hasHammer))).out);
+  const hammerLine = soldAtOnce.characters.find(c => c.name === "Azorica").log.at(-1);
+  same("shop: a treasure item the looter already has is sold at once, and goes back to the shop",
+    [hammerLine, buildData(copy(soldAtOnce)).characters.find(c => c.name === "Azorica").items.filter(i => i === itemName(115)).length,
+     buildData(copy(soldAtOnce)).city.returnedItems, written(toFile(fromFile(copy(soldAtOnce)))) === written(soldAtOnce)],
+    [{ date: "2026-11-20", for: "treasure", treasure: "62", gold: Math.floor(itemsRef.items["115"].cost / 2), gained: [itemName(110), itemName(115)], lost: [itemName(115)] },
+     1, [itemName(115)], true]);
+  // A copy bought back from the supply is carried legitimately, whatever it
+  // came from: an item from an event, written in by hand, sold and bought back.
+  const fromEvent = copy(raw);
+  fromEvent.characters.find(c => c.name === "Azorica").start.items.push("Necklace of Teeth");
+  const necklaceSold = evening(fromEvent, { sells: [{ character: "Azorica", item: "Necklace of Teeth" }] });
+  const necklaceBought = evening(necklaceSold, { date: "2026-11-27", buys: [{ character: "Craig", item: "Necklace of Teeth" }] });
+  same("shop: a copy bought back from the supply is carried without a question",
+    [buildData(copy(necklaceBought)).characters.find(c => c.name === "Craig").items.includes("Necklace of Teeth"),
+     buildData(copy(necklaceBought)).shop.questions.filter(q => q.includes("Necklace"))],
+    [true, []]);
   same("evening: a purchase is one line, its gold and its item",
     file.characters.find(c => c.name === "Craig").log.find(e => e.for === "buy"),
     { date: "2026-11-20", for: "buy", gold: -10, gained: ["Iron Helmet"] });
@@ -122,7 +176,8 @@ async function runTests(load, loadText) {
      written(toFile(fromFile(copy(moreFile))))],
     [[{ for: "event", deck: "road", card: 8, option: "A", gold: -5 }, { for: "reward", scenario: 68, gained: ["Major Healing Potion"] }],
      [{ for: "event", deck: "road", card: 8, option: "A", gold: -5 }, { for: "reward", scenario: 68, gained: ["Major Healing Potion"] },
-      { for: "retirement", gold: -(craigBefore - 5 + 2 * scenarioStats(2).gold) }],
+      { for: "retirement", gold: -(craigBefore - 5 + 2 * scenarioStats(2).gold),
+        lost: [...buildData(copy(more)).characters.find(c => c.name === "Craig").items, "Major Healing Potion"] }],
      ["advance"], 0, written(moreFile)]);
 
   // A schemaVersion 2 file (each evening one sum on the sheet, a play's XP
