@@ -52,7 +52,7 @@
       "number": 4,
       "name": "Crypt of the Damned",
       "status": "completed",
-      "completed": null,
+      "completed": "2026-10-07",
       "treasures": [
         "38",
         "46"
@@ -186,6 +186,12 @@
       "date": null,
       "scenarios": [],
       "notes": "Some failed attempts before #4; details unknown.\nBoth Flik Flak's and Craig's sheets show more XP gains than completed scenarios before #4."
+    },
+    {
+      "date": "2026-10-07",
+      "scenarios": [{ "number": 4, "result": "success" }],
+      "characters": ["Azorica", "Craig", "Flik Flak"],
+      "notes": ""
     },
     {
       "title": "Warehouse session",
