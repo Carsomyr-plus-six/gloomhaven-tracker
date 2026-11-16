@@ -133,7 +133,7 @@
      "count": 1
     },
     {
-     "text": "Add one +1 card",
+     "text": "Ignore negative item effects and add one +1 card",
      "count": 1
     }
    ]
@@ -477,7 +477,7 @@
      "count": 1
     },
     {
-     "text": "Add two +1 cards",
+     "text": "Ignore negative scenario effects and add two +1 cards",
      "count": 1
     }
    ]
@@ -524,7 +524,7 @@
      "count": 1
     },
     {
-     "text": "Add two +1 cards",
+     "text": "Ignore negative scenario effects and add two +1 cards",
      "count": 1
     }
    ]
@@ -716,7 +716,7 @@
      "count": 2
     },
     {
-     "text": "Add one +1 card",
+     "text": "Ignore negative scenario effects and add one +1 card",
      "count": 1
     }
    ]
@@ -763,7 +763,7 @@
      "count": 1
     },
     {
-     "text": "Add two +1 cards",
+     "text": "Ignore negative item effects and add two +1 cards",
      "count": 1
     },
     {
@@ -814,7 +814,7 @@
      "count": 3
     },
     {
-     "text": "Add two +1 cards",
+     "text": "Ignore negative item effects and add two +1 cards",
      "count": 1
     }
    ]
@@ -1028,8 +1028,8 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "loseBattleGoal"
+        "type": "checkmarks",
+        "amount": -1
        },
        {
         "type": "reputation",
@@ -1045,8 +1045,8 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "loseBattleGoal"
+        "type": "checkmarks",
+        "amount": -1
        },
        {
         "type": "reputation",
@@ -1378,8 +1378,8 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "loseBattleGoal"
+        "type": "checkmarks",
+        "amount": -1
        },
        {
         "type": "gold",
@@ -1399,8 +1399,11 @@
       "card": "returned",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "bless"
+        ]
        },
        {
         "type": "gold",
@@ -1483,8 +1486,8 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "loseBattleGoal"
+        "type": "checkmarks",
+        "amount": -1
        }
       ]
      }
@@ -1739,8 +1742,8 @@
       "card": "returned",
       "effects": [
        {
-        "type": "other",
-        "what": "battleGoal"
+        "type": "checkmarks",
+        "amount": 1
        }
       ]
      }
@@ -1763,8 +1766,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "bless"
+        ]
        }
       ]
      }
@@ -3570,8 +3576,8 @@
       "card": "returned",
       "effects": [
        {
-        "type": "other",
-        "what": "loseBattleGoal"
+        "type": "checkmarks",
+        "amount": -1
        }
       ]
      }
@@ -3648,8 +3654,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "curse"
+        ]
        },
        {
         "type": "experience",
@@ -3875,8 +3884,11 @@
       "card": "returned",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "poison"
+        ]
        }
       ]
      }
@@ -3886,8 +3898,11 @@
       "card": "returned",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         3
+        ]
        }
       ]
      }
@@ -3899,8 +3914,11 @@
       "card": "returned",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "bless"
+        ]
        }
       ]
      }
@@ -3917,8 +3935,11 @@
       "card": "returned",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "poison"
+        ]
        }
       ]
      }
@@ -3984,8 +4005,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "curse"
+        ]
        },
        {
         "type": "reputation",
@@ -4001,8 +4025,8 @@
       "card": "returned",
       "effects": [
        {
-        "type": "other",
-        "what": "loseBattleGoal"
+        "type": "checkmarks",
+        "amount": -1
        }
       ]
      }
@@ -4012,8 +4036,11 @@
       "card": "returned",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "wound"
+        ]
        }
       ]
      }
@@ -4029,8 +4056,8 @@
         "amount": 5
        },
        {
-        "type": "other",
-        "what": "loseBattleGoal"
+        "type": "checkmarks",
+        "amount": -1
        }
       ]
      }
@@ -4058,8 +4085,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         3
+        ]
        }
       ]
      }
@@ -4071,8 +4101,12 @@
       "card": "returned",
       "effects": [
        {
-        "type": "other",
-        "what": "consumeCollectiveItem"
+        "type": "nextScenario",
+        "what": "consumeCollectiveItem",
+        "values": [
+         1,
+         "small"
+        ]
        }
       ]
      }
@@ -4095,8 +4129,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         1
+        ]
        }
       ]
      }
@@ -4111,8 +4148,11 @@
         "number": 71
        },
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         1
+        ]
        }
       ]
      }
@@ -4124,8 +4164,11 @@
       "card": "returned",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         2
+        ]
        }
       ]
      }
@@ -4158,8 +4201,11 @@
       "card": "returned",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         4
+        ]
        }
       ]
      }
@@ -4176,8 +4222,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioSingleMinus1"
+        "type": "nextScenario",
+        "what": "scenarioSingleMinus1",
+        "values": [
+         3
+        ]
        },
        {
         "type": "reputation",
@@ -4204,8 +4253,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "curse"
+        ]
        }
       ]
      }
@@ -4217,8 +4269,11 @@
       "card": "returned",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "bless"
+        ]
        }
       ]
      }
@@ -4235,12 +4290,18 @@
       "card": "returned",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "muddle"
+        ]
        },
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         2
+        ]
        }
       ]
      }
@@ -4257,12 +4318,18 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "curse"
+        ]
        },
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         2
+        ]
        }
       ]
      }
@@ -4272,8 +4339,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "bless"
+        ]
        }
       ]
      }
@@ -4322,8 +4392,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "curse"
+        ]
        }
       ]
      }
@@ -4333,8 +4406,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         3
+        ]
        }
       ]
      }
@@ -4393,12 +4469,18 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "poison"
+        ]
        },
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         2
+        ]
        }
       ]
      }
@@ -4421,16 +4503,22 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "wound"
+        ]
        },
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         3
+        ]
        },
        {
-        "type": "other",
-        "what": "loseBattleGoal"
+        "type": "checkmarks",
+        "amount": -1
        }
       ]
      }
@@ -4440,8 +4528,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "discard"
+        "type": "nextScenario",
+        "what": "discard",
+        "values": [
+         2
+        ]
        }
       ]
      }
@@ -4469,8 +4560,11 @@
         "amount": 2
        },
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "curse"
+        ]
        }
       ]
      }
@@ -4508,8 +4602,11 @@
         "amount": 10
        },
        {
-        "type": "other",
-        "what": "discard"
+        "type": "nextScenario",
+        "what": "discard",
+        "values": [
+         2
+        ]
        },
        {
         "type": "unlockScenario",
@@ -4561,8 +4658,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         3
+        ]
        }
       ]
      }
@@ -4581,8 +4681,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "bless"
+        ]
        },
        {
         "type": "reputation",
@@ -4635,8 +4738,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "discard"
+        "type": "nextScenario",
+        "what": "discard",
+        "values": [
+         3
+        ]
        }
       ]
      }
@@ -4646,8 +4752,11 @@
       "card": "returned",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         2
+        ]
        }
       ]
      }
@@ -4708,8 +4817,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "discard"
+        "type": "nextScenario",
+        "what": "discard",
+        "values": [
+         2
+        ]
        }
       ]
      }
@@ -4719,8 +4831,11 @@
       "card": "returned",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "wound"
+        ]
        }
       ]
      }
@@ -4746,8 +4861,12 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "consumeItem"
+        "type": "nextScenario",
+        "what": "consumeItem",
+        "values": [
+         1,
+         "small"
+        ]
        },
        {
         "type": "reputation",
@@ -4786,8 +4905,11 @@
         "amount": 2
        },
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         3
+        ]
        },
        {
         "type": "gold",
@@ -4803,8 +4925,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         3
+        ]
        },
        {
         "type": "gold",
@@ -4818,8 +4943,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         1
+        ]
        },
        {
         "type": "gold",
@@ -4896,12 +5024,16 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         1
+        ]
        },
        {
-        "type": "other",
-        "what": "discardOne"
+        "type": "nextScenario",
+        "what": "discardOne",
+        "values": []
        }
       ]
      }
@@ -4911,8 +5043,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         3
+        ]
        }
       ]
      }
@@ -4939,8 +5074,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         4
+        ]
        }
       ]
      }
@@ -4964,8 +5102,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "discard"
+        "type": "nextScenario",
+        "what": "discard",
+        "values": [
+         2
+        ]
        }
       ]
      }
@@ -4983,8 +5124,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         1
+        ]
        }
       ]
      },
@@ -4996,12 +5140,18 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "poison"
+        ]
        },
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         3
+        ]
        }
       ]
      }
@@ -5051,12 +5201,18 @@
       "card": "returned",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "poison"
+        ]
        },
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         2
+        ]
        }
       ]
      }
@@ -5066,8 +5222,9 @@
       "card": "returned",
       "effects": [
        {
-        "type": "other",
-        "what": "discardOne"
+        "type": "nextScenario",
+        "what": "discardOne",
+        "values": []
        }
       ]
      }
@@ -5092,8 +5249,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "discard"
+        "type": "nextScenario",
+        "what": "discard",
+        "values": [
+         2
+        ]
        }
       ]
      }
@@ -5103,8 +5263,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "disarm"
+        ]
        }
       ]
      }
@@ -5137,12 +5300,13 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "loseBattleGoal"
+        "type": "checkmarks",
+        "amount": -1
        },
        {
-        "type": "other",
-        "what": "discardOne"
+        "type": "nextScenario",
+        "what": "discardOne",
+        "values": []
        }
       ]
      }
@@ -5178,8 +5342,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "poison"
+        ]
        },
        {
         "type": "collectiveGold",
@@ -5219,12 +5386,18 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "muddle"
+        ]
        },
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "immobilize"
+        ]
        }
       ]
      }
@@ -5234,8 +5407,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "discard"
+        "type": "nextScenario",
+        "what": "discard",
+        "values": [
+         2
+        ]
        }
       ]
      }
@@ -5260,12 +5436,18 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "wound"
+        ]
        },
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         3
+        ]
        }
       ]
      }
@@ -5275,8 +5457,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         2
+        ]
        }
       ]
      }
@@ -5288,8 +5473,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "discard"
+        "type": "nextScenario",
+        "what": "discard",
+        "values": [
+         3
+        ]
        }
       ]
      }
@@ -5313,8 +5501,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioSingleMinus1"
+        "type": "nextScenario",
+        "what": "scenarioSingleMinus1",
+        "values": [
+         3
+        ]
        },
        {
         "type": "collectiveGold",
@@ -5353,12 +5544,18 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "poison"
+        ]
        },
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         2
+        ]
        }
       ]
      }
@@ -5392,12 +5589,18 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "poison"
+        ]
        },
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         2
+        ]
        }
       ]
      }
@@ -5421,16 +5624,25 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "muddle"
+        ]
        },
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "wound"
+        ]
        },
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         3
+        ]
        }
       ]
      }
@@ -5457,8 +5669,11 @@
         "number": 80
        },
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         4
+        ]
        },
        {
         "type": "gold",
@@ -5485,8 +5700,11 @@
      {
       "effects": [
        {
-        "type": "other",
-        "what": "discard"
+        "type": "nextScenario",
+        "what": "discard",
+        "values": [
+         2
+        ]
        },
        {
         "type": "asOption",
@@ -5525,12 +5743,18 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "poison"
+        ]
        },
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "curse"
+        ]
        },
        {
         "type": "collectiveGold",
@@ -5546,8 +5770,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         3
+        ]
        }
       ]
      }
@@ -5557,8 +5784,12 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "consumeItem"
+        "type": "nextScenario",
+        "what": "consumeItem",
+        "values": [
+         1,
+         "small"
+        ]
        },
        {
         "type": "item",
@@ -5578,8 +5809,11 @@
         "amount": 1
        },
        {
-        "type": "other",
-        "what": "discard"
+        "type": "nextScenario",
+        "what": "discard",
+        "values": [
+         2
+        ]
        }
       ]
      }
@@ -5629,8 +5863,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "poison"
+        ]
        }
       ]
      }
@@ -5671,8 +5908,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "discard"
+        "type": "nextScenario",
+        "what": "discard",
+        "values": [
+         2
+        ]
        },
        {
         "type": "addEvent",
@@ -5694,8 +5934,11 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "discard"
+        "type": "nextScenario",
+        "what": "discard",
+        "values": [
+         3
+        ]
        }
       ]
      }
@@ -5707,12 +5950,20 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         2
+        ]
        },
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "poison",
+         "muddle",
+         "bless"
+        ]
        }
       ]
      }
@@ -5722,12 +5973,18 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "discard"
+        "type": "nextScenario",
+        "what": "discard",
+        "values": [
+         2
+        ]
        },
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "curse"
+        ]
        }
       ]
      }
@@ -5799,16 +6056,25 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "muddle"
+        ]
        },
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "wound"
+        ]
        },
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         3
+        ]
        }
       ]
      }
@@ -5838,16 +6104,22 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "loseBattleGoal"
+        "type": "checkmarks",
+        "amount": -1
        },
        {
-        "type": "other",
-        "what": "discard"
+        "type": "nextScenario",
+        "what": "discard",
+        "values": [
+         4
+        ]
        },
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         4
+        ]
        }
       ]
      }
@@ -5857,16 +6129,22 @@
       "card": "removed",
       "effects": [
        {
-        "type": "other",
-        "what": "loseBattleGoal"
+        "type": "checkmarks",
+        "amount": -1
        },
        {
-        "type": "other",
-        "what": "discard"
+        "type": "nextScenario",
+        "what": "discard",
+        "values": [
+         2
+        ]
        },
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         2
+        ]
        }
       ]
      }
@@ -5917,12 +6195,18 @@
         "amount": 25
        },
        {
-        "type": "other",
-        "what": "scenarioCondition"
+        "type": "nextScenario",
+        "what": "scenarioCondition",
+        "values": [
+         "wound"
+        ]
        },
        {
-        "type": "other",
-        "what": "scenarioDamage"
+        "type": "nextScenario",
+        "what": "scenarioDamage",
+        "values": [
+         2
+        ]
        }
       ]
      }
@@ -5993,8 +6277,8 @@
       "card": "returned",
       "effects": [
        {
-        "type": "other",
-        "what": "loseBattleGoal"
+        "type": "checkmarks",
+        "amount": -1
        },
        {
         "type": "prosperity",

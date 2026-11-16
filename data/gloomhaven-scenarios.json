@@ -71,6 +71,7 @@
    "links": [
     "2"
    ],
+   "eventType": "road",
    "treasures": [
     "7"
    ]
@@ -97,6 +98,7 @@
     "gold": 10,
     "prosperity": 1
    },
+   "eventType": "road",
    "boss": true,
    "treasures": [
     "67"
@@ -122,6 +124,7 @@
     "gold": 15,
     "prosperity": 1
    },
+   "eventType": "road",
    "treasures": [
     "65"
    ]
@@ -132,6 +135,7 @@
     "5",
     "6"
    ],
+   "eventType": "road",
    "treasures": [
     "38",
     "46"
@@ -147,6 +151,7 @@
    "links": [
     "10"
    ],
+   "eventType": "road",
    "treasures": [
     "4",
     "28"
@@ -164,6 +169,7 @@
     ],
     "gold": 5
    },
+   "eventType": "road",
    "treasures": [
     "50"
    ]
@@ -186,7 +192,8 @@
       "the-merchant-flees"
      ]
     }
-   ]
+   ],
+   "eventType": "road"
   },
   "8": {
    "name": "Gloomhaven Warehouse",
@@ -251,6 +258,7 @@
     "gold": 20,
     "prosperity": 1
    },
+   "eventType": "road",
    "boss": true
   },
   "10": {
@@ -274,6 +282,7 @@
    "links": [
     "21"
    ],
+   "eventType": "road",
    "treasures": [
     "11"
    ]
@@ -351,6 +360,7 @@
      "20"
     ]
    },
+   "eventType": "road",
    "treasures": [
     "10"
    ]
@@ -362,6 +372,7 @@
      "the-power-of-enhancement"
     ]
    },
+   "eventType": "road",
    "treasures": [
     "26"
    ]
@@ -370,7 +381,8 @@
    "name": "Shrine of Strength",
    "rewards": {
     "experience": 20
-   }
+   },
+   "eventType": "road"
   },
   "16": {
    "name": "Mountain Pass",
@@ -381,6 +393,7 @@
    "links": [
     "24"
    ],
+   "eventType": "road",
    "treasures": [
     "1"
    ]
@@ -429,6 +442,7 @@
     ],
     "prosperity": 1
    },
+   "eventType": "road",
    "treasures": [
     "17"
    ]
@@ -457,6 +471,7 @@
     "reputation": 2,
     "prosperity": 1
    },
+   "eventType": "road",
    "boss": true,
    "treasures": [
     "60"
@@ -486,6 +501,7 @@
      "city:78"
     ]
    },
+   "eventType": "road",
    "boss": true,
    "treasures": [
     "15"
@@ -523,6 +539,7 @@
      "artifact-recovered"
     ]
    },
+   "eventType": "road",
    "treasures": [
     "21"
    ]
@@ -556,6 +573,7 @@
      "the-voices-command"
     ]
    },
+   "eventType": "road",
    "treasures": [
     "70"
    ]
@@ -574,6 +592,7 @@
    "links": [
     "34"
    ],
+   "eventType": "road",
    "treasures": [
     "58"
    ]
@@ -647,7 +666,8 @@
     "hints": {
      "gold": "This money must immediately be spent on enhancements"
     }
-   }
+   },
+   "eventType": "road"
   },
   "28": {
    "name": "Outer Ritual Chamber",
@@ -674,6 +694,7 @@
    "links": [
     "29"
    ],
+   "eventType": "road",
    "treasures": [
     "32"
    ]
@@ -698,6 +719,7 @@
     ],
     "experience": 15
    },
+   "eventType": "road",
    "treasures": [
     "41"
    ]
@@ -724,7 +746,8 @@
      "the-scepter-and-the-voice"
     ],
     "gold": 10
-   }
+   },
+   "eventType": "road"
   },
   "31": {
    "name": "Plane of the Night",
@@ -778,7 +801,8 @@
       "the-voices-command"
      ]
     }
-   ]
+   ],
+   "eventType": "road"
   },
   "33": {
    "name": "Savvas Armory",
@@ -807,7 +831,8 @@
      "the-voices-treasure",
      "the-drakes-treasure"
     ]
-   }
+   },
+   "eventType": "road"
   },
   "34": {
    "name": "Scorched Summit",
@@ -837,6 +862,7 @@
     "reputation": 2,
     "prosperity": 1
    },
+   "eventType": "road",
    "boss": true,
    "treasures": [
     "23"
@@ -912,7 +938,7 @@
      "the-rift-neutralized"
     ],
     "lostPartyAchievements": [
-     "The Demmon's Errand"
+     "a-demons-errand"
     ],
     "gold": 10,
     "reputation": 4,
@@ -966,6 +992,7 @@
    "links": [
     "44"
    ],
+   "eventType": "road",
    "treasures": [
     "29"
    ]
@@ -985,6 +1012,7 @@
    "links": [
     "46"
    ],
+   "eventType": "road",
    "treasures": [
     "73"
    ]
@@ -1010,6 +1038,7 @@
    "links": [
     "41"
    ],
+   "eventType": "road",
    "treasures": [
     "47"
    ]
@@ -1040,6 +1069,7 @@
     "prosperity": 2,
     "battleGoals": 2
    },
+   "eventType": "road",
    "treasures": [
     "24"
    ]
@@ -1075,6 +1105,7 @@
      "the-voices-command"
     ]
    },
+   "eventType": "road",
    "treasures": [
     "30",
     "55"
@@ -1099,6 +1130,7 @@
      "water-breathing"
     ]
    },
+   "eventType": "road",
    "treasures": [
     "35"
    ]
@@ -1120,7 +1152,8 @@
    "rewards": {
     "reputation": 2,
     "unlockCharacter": "angry-face"
-   }
+   },
+   "eventType": "road"
   },
   "45": {
    "name": "Rebel Swamp",
@@ -1144,6 +1177,7 @@
     "gold": 20,
     "reputation": -2
    },
+   "eventType": "road",
    "treasures": [
     "74"
    ]
@@ -1170,6 +1204,7 @@
      "end-of-corruption"
     ]
    },
+   "eventType": "road",
    "boss": true,
    "treasures": [
     "48"
@@ -1225,6 +1260,7 @@
      "end-of-corruption"
     ]
    },
+   "eventType": "road",
    "boss": true,
    "treasures": [
     "64"
@@ -1254,6 +1290,7 @@
     "gold": 50,
     "reputation": -3
    },
+   "eventType": "road",
    "boss": true,
    "treasures": [
     "44"
@@ -1328,6 +1365,7 @@
      ]
     }
    },
+   "eventType": "road",
    "treasures": [
     "31"
    ]
@@ -1343,6 +1381,7 @@
     "characterRetirement": "510",
     "unlockCharacter": "squidface"
    },
+   "eventType": "road",
    "treasures": [
     "25"
    ]
@@ -1357,7 +1396,8 @@
    },
    "links": [
     "56"
-   ]
+   ],
+   "eventType": "road"
   },
   "56": {
    "name": "Bandit's Wood",
@@ -1367,6 +1407,7 @@
     "characterRetirement": "521",
     "unlockCharacter": "angry-face"
    },
+   "eventType": "road",
    "treasures": [
     "45"
    ]
@@ -1400,7 +1441,8 @@
    "name": "Forgotten Grove",
    "unlocks": [
     "60"
-   ]
+   ],
+   "eventType": "road"
   },
   "60": {
    "name": "Alchemy Lab",
@@ -1419,7 +1461,8 @@
    ],
    "links": [
     "62"
-   ]
+   ],
+   "eventType": "road"
   },
   "62": {
    "name": "Pit of Souls",
@@ -1428,6 +1471,7 @@
     "characterRetirement": "529",
     "unlockCharacter": "eclipse"
    },
+   "eventType": "road",
    "boss": true,
    "treasures": [
     "59"
@@ -1438,6 +1482,7 @@
    "rewards": {
     "gold": 15
    },
+   "eventType": "road",
    "treasures": [
     "12"
    ]
@@ -1472,7 +1517,8 @@
     "itemDesigns": [
      "112"
     ]
-   }
+   },
+   "eventType": "road"
   },
   "66": {
    "name": "Clockwork Cove",
@@ -1496,6 +1542,7 @@
      "132"
     ]
    },
+   "eventType": "road",
    "treasures": [
     "14"
    ]
@@ -1507,6 +1554,7 @@
      "27:2"
     ]
    },
+   "eventType": "road",
    "treasures": [
     "33"
    ]
@@ -1515,7 +1563,8 @@
    "name": "Well of the Unfortunate",
    "rewards": {
     "gold": 15
-   }
+   },
+   "eventType": "road"
   },
   "70": {
    "name": "Chained Isle",
@@ -1532,20 +1581,23 @@
     "items": [
      "41:2"
     ]
-   }
+   },
+   "eventType": "road"
   },
   "72": {
    "name": "Oozing Grove",
    "rewards": {
     "reputation": 1,
     "prosperity": 1
-   }
+   },
+   "eventType": "road"
   },
   "73": {
    "name": "Rockslide Ridge",
    "rewards": {
     "reputation": 1
-   }
+   },
+   "eventType": "road"
   },
   "74": {
    "name": "Merchant Ship",
@@ -1576,6 +1628,7 @@
    "rewards": {
     "gold": 60
    },
+   "eventType": "road",
    "boss": true,
    "treasures": [
     "53"
@@ -1583,6 +1636,7 @@
   },
   "76": {
    "name": "Harrower Hive",
+   "eventType": "road",
    "treasures": [
     "75"
    ]
@@ -1611,6 +1665,7 @@
    "rewards": {
     "gold": 15
    },
+   "eventType": "road",
    "boss": true,
    "treasures": [
     "52"
@@ -1620,13 +1675,15 @@
    "name": "Vigil Keep",
    "rewards": {
     "experience": 10
-   }
+   },
+   "eventType": "road"
   },
   "81": {
    "name": "Temple of the Eclipse",
    "rewards": {
     "experience": 10
    },
+   "eventType": "road",
    "boss": true,
    "treasures": [
     "68"
@@ -1634,6 +1691,7 @@
   },
   "82": {
    "name": "Burning Mountain",
+   "eventType": "road",
    "treasures": [
     "62"
    ]
@@ -1666,6 +1724,7 @@
      "133"
     ]
    },
+   "eventType": "road",
    "treasures": [
     "42"
    ]
@@ -1676,7 +1735,8 @@
     "items": [
      "121"
     ]
-   }
+   },
+   "eventType": "road"
   },
   "86": {
    "name": "Harried Village",
@@ -1766,6 +1826,7 @@
      "128"
     ]
    },
+   "eventType": "road",
    "treasures": [
     "19"
    ]
@@ -1774,7 +1835,8 @@
    "name": "Wild Melee",
    "rewards": {
     "battleGoals": 2
-   }
+   },
+   "eventType": "road"
   },
   "92": {
    "name": "Back Alley Brawl",
@@ -1818,7 +1880,8 @@
    },
    "links": [
     "95"
-   ]
+   ],
+   "eventType": "road"
   },
   "95": {
    "name": "Payment Due",
@@ -1839,6 +1902,7 @@
      "119"
     ]
    },
+   "eventType": "road",
    "boss": true
   }
  },

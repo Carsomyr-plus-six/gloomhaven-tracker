@@ -107,7 +107,8 @@ const canDouble = key => key !== "hex" && !key.startsWith("summon-");
 function enhancementCost(x) {
   const e = ENHANCEMENT_BY_KEY.get(x.sticker);
   const hexes = Math.max(1, num(x.hexes));
-  const base = e.key === "hex" ? Math.ceil(200 / hexes) : e.base;
+  // Rounded down: the rulebook's example makes 200 over 3 hexes 66 gold.
+  const base = e.key === "hex" ? Math.floor(200 / hexes) : e.base;
   const doubles = canDouble(e.key) && Boolean(x.multi);
   const level = Math.max(1, Math.min(9, num(x.level) || 1));
   const previous = Math.max(0, num(x.previous));
@@ -562,12 +563,27 @@ function renderOverview(data) {
 
 // Going straight on from the last scenario played to one linked to it needs
 // no road event (rulebook p. 41): say which, if any can be played.
+// No road event (rulebook p. 41) for: the same scenario again, one linked
+// to the last (going straight on, not back to town), one linked to
+// Gloomhaven itself, or anything played in casual mode.
 function straightOn(data) {
   const last = [...data.sessions].filter(s => s.date && s.scenarios?.length)
     .sort((a, b) => b.date.localeCompare(a.date))[0]?.scenarios.at(-1);
-  const links = (scenarioRef?.scenarios?.[String(last?.number)]?.links || []).map(Number)
-    .filter(n => data.scenarios.some(s => s.number === n && s.status === "available"));
-  return links.length ? ` · none straight on to ${links.map(n => `#${n}`).join(" or ")}` : "";
+  const open = n => data.scenarios.some(s => s.number === n && s.status === "available");
+  const links = (scenarioRef?.scenarios?.[String(last?.number)]?.links || []).map(Number).filter(open);
+  const home = data.scenarios.filter(s => s.status === "available" && scenarioRef?.scenarios?.[String(s.number)] && !needsRoadEvent(s.number)).map(s => s.number);
+  return [
+    links.length ? ` · none straight on to ${links.map(n => `#${n}`).join(" or ")}` : "",
+    last && last.result !== "success" && open(last.number) ? ` · none to retry #${last.number}` : "",
+    home.length ? ` · none for ${home.map(n => `#${n}`).join(", ")} (from town)` : "",
+  ].join("");
+}
+
+// Whether travelling from town to a scenario takes a road event: not when
+// it's linked to Gloomhaven (the scenario data says which do).
+function needsRoadEvent(number) {
+  const info = scenarioRef?.scenarios?.[String(number)];
+  return !info || info.eventType === "road";
 }
 
 // An evening of Gloomhaven, in the order it runs: a city event, the town
@@ -679,10 +695,22 @@ function todoItems(data) {
     if (left) add(`${c.name} has ${plural(left, "perk")} to choose.`, "#characters", go,
       { label: "Record it", run: () => recordPerk(data, c.name) }, sheet);
     for (const r of perkCheck(c).rows.filter(r => r.note && !r.quiet)) add(`${c.name}: "${r.written}". ${r.note}`, "#characters", go, null, sheet);
-    for (const problem of itemCheck(c, st.level)) add(`${c.name}: ${problem}`, "#characters", go, null, sheet);
   }
 
   for (const d of data.draws || []) add(`Draw ${d.what} (${d.from}).`, "#record");
+  // Events that bite at the next scenario's start: those in the session being
+  // recorded, and saved ones after the last scenario played, still waiting.
+  const lastDone = [...data.scenarios].reverse().find(s => s.status === "completed")?.number;
+  const waiting = [
+    ...data.events.filter(e => e.after != null && e.after === lastDone && e.option)
+      .map(e => ({ deck: e.deck, number: e.number, option: e.option, names: e.characters || [], paid: e.paid })),
+    ...(draft?.events || []).filter(e => num(e.number) && e.option)
+      .map(e => ({ deck: e.deck, number: num(e.number), option: e.option, names: [...(draft.party || [])], paid: e.paid === "yes" ? true : e.paid === "no" ? false : undefined })),
+  ];
+  for (const e of waiting) {
+    const oc = chosenOutcome(data, classRef, e.deck, e.number, e.option, e.names, e.paid);
+    for (const fx of (oc?.effects || []).filter(fx => fx.type === "nextScenario")) add(`${eventLabel(e.deck, e.number)}, option ${e.option}: ${nextScenarioText(fx)}.`, "#sessions");
+  }
   (data.claims || []).forEach((c, i) => add(`Treasure ${c.treasure} in ${c.where} gave ${c.item}: who looted it?`, "#record", null,
     rawCampaign ? { label: "Record it", run: () => recordClaim(data, i) } : null));
 
@@ -692,10 +720,12 @@ function todoItems(data) {
   const inDecks = (deck, n) => data.eventState?.decks?.[deck]?.has(n) || data.eventState?.removed?.[deck]?.has(n);
   const partyHas = new Set(data.party.achievements.map(a => a.id));
   const cityHas = new Map(data.city.globalAchievements.map(a => [a.id, a.count || 1]));
-  if (rep >= 10 && !unlocked.has("sun")) add(`Reputation is ${signed(rep)}: open the box with the ${classIconName("sun")} icon.`, "#record");
-  if (rep <= -10 && !unlocked.has("eclipse")) add(`Reputation is ${signed(rep)}: open the box with the ${classIconName("eclipse")} icon.`, "#record");
-  if (rep >= 20 && !(inDecks("city", 76) && inDecks("road", 67))) add("Reputation is 20: add City 76 and Road 67 to the event decks.", "#events");
-  if (rep <= -20 && !(inDecks("city", 77) && inDecks("road", 68))) add("Reputation is −20: add City 77 and Road 68 to the event decks.", "#events");
+  // Once reached, even if reputation has since moved back (p. 49).
+  const peak = Math.max(rep, data.ledger?.reputation?.peak ?? rep), low = Math.min(rep, data.ledger?.reputation?.low ?? rep);
+  if (peak >= 10 && !unlocked.has("sun")) add(`Reputation has reached ${signed(peak)}: open the box with the ${classIconName("sun")} icon.`, "#record");
+  if (low <= -10 && !unlocked.has("eclipse")) add(`Reputation has reached ${signed(low)}: open the box with the ${classIconName("eclipse")} icon.`, "#record");
+  if (peak >= 20 && !(inDecks("city", 76) && inDecks("road", 67))) add("Reputation has reached 20: add City 76 and Road 67 to the event decks.", "#events");
+  if (low <= -20 && !(inDecks("city", 77) && inDecks("road", 68))) add("Reputation has reached −20: add City 77 and Road 68 to the event decks.", "#events");
   if ((cityHas.get("ancient-technology") || 0) >= 5 && !data.city.envelopeA) {
     add("Five Ancient Technology achievements: open envelope A, then set envelopeA to true in campaign.json.", "#record");
   }
@@ -738,26 +768,31 @@ function attackDeck(perkTexts) {
   const words = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6 };
   const count = w => words[w.toLowerCase()] ?? (Number(w) || 0);
   const card = t => t.replace(/(^|\s)-(\d)/g, "$1−$2").replace(/\s+/g, " ").trim();
-  const find = t => [...deck.keys()].find(k => k.toLowerCase() === card(t).toLowerCase()) || card(t);
-  const take = (n, t) => { const k = find(t); if (!deck.has(k)) return false; deck.set(k, Math.max(0, deck.get(k) - count(n))); return true; };
-  const put = (n, t) => { const k = find(t); deck.set(k, (deck.get(k) || 0) + count(n)); };
+  // "two +0 cards and one +0 FIRE card" -> [[2, "+0"], [1, "+0 FIRE"]], or null.
+  const cardsIn = list => {
+    const parts = list.split(/\s+and\s+/i).map(part => part.match(/^(\w+) (.+?) cards?$/i));
+    return parts.every(m => m && count(m[1])) ? parts.map(m => [count(m[1]), card(m[2])]) : null;
+  };
   for (const text of perkTexts) {
-    let verb = null, ok = true;
-    for (const clause of String(text).replace(/\.$/, "").split(/\s+and\s+/i)) {
-      const v = clause.match(/^(remove|replace|add|ignore)\s+(.*)$/i);
-      const rest = v ? v[2] : clause;
-      if (v) verb = v[1].toLowerCase();
-      if (verb === "ignore") continue;
-      if (verb === "replace") {
-        const m = rest.match(/^(\w+) (.+?) cards? with (\w+) (.+?) cards?$/i);
-        if (m && take(m[1], m[2])) put(m[3], m[4]); else ok = false;
-        continue;
-      }
-      const m = rest.match(/^(\w+) (.+?) cards?$/i);
-      if (!m || !verb || !count(m[1])) { ok = false; continue; }
-      if (verb === "remove") { if (!take(m[1], m[2])) ok = false; } else put(m[1], m[2]);
+    // "Ignore negative item effects" changes no card; it may lead an "add".
+    const rest = String(text).replace(/\.$/, "").replace(/^ignore negative \w+ effects(\s+and\s+)?/i, "").trim();
+    if (!rest) continue;
+    const m = rest.match(/^(remove|replace|add)\s+(.+?)(?:\s+with\s+(.+))?$/i);
+    const verb = m?.[1].toLowerCase();
+    const out = verb === "replace" ? cardsIn(m[2] || "") : verb === "remove" ? cardsIn(m[2]) : [];
+    const into = verb === "replace" ? cardsIn(m[3] || "") : verb === "add" ? cardsIn(m[2]) : [];
+    // Worked out on a copy, kept only if every card it names can be taken
+    // and put: a perk is never half applied.
+    const next = new Map(deck);
+    const find = t => [...next.keys()].find(k => k.toLowerCase() === t.toLowerCase()) || t;
+    let ok = Boolean(m && out && into && (verb !== "replace" || m[3]));
+    for (const [n, t] of ok ? out : []) {
+      const k = find(t);
+      if (!next.has(k) || next.get(k) < n) { ok = false; break; }
+      next.set(k, next.get(k) - n);
     }
-    if (!ok) unread.push(text);
+    if (ok) for (const [n, t] of into) { const k = find(t); next.set(k, (next.get(k) || 0) + n); }
+    if (ok) { deck.clear(); for (const [k, v] of next) deck.set(k, v); } else unread.push(text);
   }
   const order = ["Null", "−2", "−1", "+0", "+1", "+2", "+3", "+4", "2×"];
   const rank = k => order.includes(k) ? order.indexOf(k) : order.length;
@@ -840,10 +875,16 @@ function questDone(text) {
   return Boolean(steps) && steps.every(([n, m]) => n >= m);
 }
 
-// A scenario in the form is a casual replay when it's already completed,
-// unless unticked (rulebook p. 34): no rewards or unlocks, record unchanged.
+// A scenario in the form is played in casual mode (rulebook p. 34): any
+// revealed scenario can be, completed or not. XP, gold, loot, battle goals
+// and personal quest progress count; its rewards and unlocks don't, and its
+// record stays as it was.
 function isCasual(s, data) {
-  return data.scenarios.find(x => x.number === num(s.number))?.status === "completed" && s.casual !== false;
+  const status = data.scenarios.find(x => x.number === num(s.number))?.status;
+  if (!status) return false;
+  // Ticked or not as the form says; on to start with for one that can't be
+  // played in campaign mode (completed, or blocked by an achievement).
+  return s.casual ?? (status === "completed" || status === "blocked");
 }
 
 // The recorder's quick picks: completed scenarios too, once asked for, until
@@ -1186,6 +1227,7 @@ function describeRewards(ref, rewards, evRef) {
   if (r.gold) parts.push(`${r.gold} gold each`);
   if (r.collectiveGold) parts.push(`${r.collectiveGold} gold to share`);
   if (r.experience) parts.push(`${r.experience} XP each`);
+  if (r.battleGoals) parts.push(`${plural(r.battleGoals, "battle goal checkmark")} each`);
   if (r.prosperity) parts.push(`${signed(r.prosperity)} prosperity`);
   if (r.reputation) parts.push(`${signed(r.reputation)} reputation`);
   for (const id of r.globalAchievements || []) parts.push(achievementName(ref, "global", String(id).split(":")[0]));
@@ -1270,33 +1312,46 @@ function testCondition(c, ctx) {
   return null;
 }
 
-// The outcomes an option could have had: the first whose condition is met,
-// plus any before it that can't be ruled out. "Do what option X says" is
-// followed through. Each comes with the conditions that couldn't be told.
+// What an option could have done. A choice is read top to bottom,
+// resolving every outcome that applies; "otherwise" applies only if none
+// before it did (rulebook p. 41). Where a condition can't be told, each way
+// it could have gone is a possibility of its own, with that condition as a
+// doubt. "Do what option X says" is followed through.
 function possibleOutcomes(options, letter, ctx, pinned, depth = 0) {
   const outcomes = options[letter] || [];
+  // A blank outcome ahead of the real ones is only the card's lead-in.
+  const real = outcomes.map((outcome, i) => ({ outcome, number: i + 1 }))
+    .filter(({ outcome }) => outcomes.length === 1 || outcome.condition || outcome.card || outcome.effects);
   const found = [];
   if (pinned) {
-    if (outcomes[pinned - 1]) found.push({ number: pinned, outcome: outcomes[pinned - 1], doubts: [] });
+    if (outcomes[pinned - 1]) found.push({ applied: [{ outcome: outcomes[pinned - 1], number: pinned }], doubts: [] });
   } else {
-    let settled = false;
-    for (const [i, outcome] of outcomes.entries()) {
-      // A blank outcome ahead of the real ones is only the card's lead-in.
-      if (outcomes.length > 1 && !outcome.condition && !outcome.card && !outcome.effects) continue;
-      const met = testCondition(outcome.condition, ctx);
-      if (met === false) continue;
-      found.push({ number: i + 1, outcome, doubts: met === null ? [outcome.condition] : [] });
-      if (met === true) { settled = true; break; }
-    }
-    // If no condition is surely met, it may be that none was: nothing
-    // happens, and the card goes where all of the option's outcomes send it.
-    if (!settled && outcomes.length) {
-      const cards = new Set(outcomes.map(o => o.card));
-      found.push({ number: null, outcome: cards.size === 1 ? { card: [...cards][0] } : {},
-                   doubts: found.length ? [found[0].doubts[0]] : [] });
+    const conditional = o => o.condition && o.condition.type !== "otherwise";
+    const tests = real.map(({ outcome }) => conditional(outcome) ? testCondition(outcome.condition, ctx) : true);
+    const unsure = tests.map((t, i) => t === null ? i : -1).filter(i => i >= 0);
+    for (let mask = 0; mask < 2 ** unsure.length; mask++) {
+      const met = tests.map((t, i) => t === null ? Boolean(mask & (1 << unsure.indexOf(i))) : t);
+      const applied = [];
+      let any = false;
+      real.forEach(({ outcome, number }, i) => {
+        if (outcome.condition?.type === "otherwise") { if (!any) applied.push({ outcome, number }); return; }
+        if (!met[i]) return;
+        any = true;
+        applied.push({ outcome, number });
+      });
+      found.push({ applied, doubts: unsure.map(i => real[i].outcome.condition) });
     }
   }
-  return found.flatMap(({ number, outcome, doubts }) => {
+  // The card goes where an applied outcome sends it; if none says, where all
+  // of the option's outcomes agree.
+  const agreed = new Set(outcomes.map(o => o.card));
+  return found.flatMap(({ applied, doubts }) => {
+    const outcome = {
+      card: applied.find(a => a.outcome.card)?.outcome.card ?? (agreed.size === 1 ? [...agreed][0] : undefined),
+      condition: applied.find(a => a.outcome.condition?.type?.startsWith("pay"))?.outcome.condition,
+      effects: applied.flatMap(a => a.outcome.effects || []),
+    };
+    const number = applied.length ? applied[0].number : null;
     const own = outcome.effects || [];
     const then = own.find(e => e.type === "asOption");
     const base = { option: letter, number, card: outcome.card, condition: outcome.condition, effects: own.filter(e => e.type !== "asOption"), doubts };
@@ -1330,6 +1385,41 @@ function chosenOutcome(data, evRef, deck, number, option, names, paid) {
     if (cost) effects.push(cost); else unsure = true;
   }
   return { effects, unsure };
+}
+
+// The payment an event option asks for, and whether these characters could
+// make it: { condition, could } (could is null when the price can't be told).
+function eventPayment(data, deck, number, option, characters) {
+  const condition = (classRef?.events?.[deck]?.[String(number)]?.[option] || []).find(o => o.condition?.type?.startsWith("pay"))?.condition;
+  const could = condition ? couldPay(condition, characters, data.ledger?.reputation?.range || exact(data.party.reputation || 0)) : null;
+  return { condition, could };
+}
+
+// Whether the party could pay: if it has the gold between them (or each
+// has it, for gold each), it's lost and the outcome applies (rulebook p. 41).
+// null when the price can't be told.
+function couldPay(condition, characters, reputation) {
+  const cost = paymentFor(condition, reputation);
+  if (!cost) return null;
+  const need = Math.abs(cost.amount || 0);
+  if (cost.type === "gold") return characters.every(c => (c.gold || 0) >= need);
+  if (cost.type === "collectiveGold") return characters.reduce((sum, c) => sum + (c.gold || 0), 0) >= need;
+  return null;
+}
+
+// An event effect that comes at the start of the next scenario, in words.
+function nextScenarioText(e) {
+  const [a, b] = e.values || [];
+  switch (e.what) {
+    case "scenarioCondition": return `start the next scenario with ${(e.values || []).map(v => String(v).toUpperCase()).join(" and ")}`;
+    case "scenarioDamage": return `start the next scenario with ${a} damage`;
+    case "discard": return `discard ${a} cards at the start of the next scenario`;
+    case "discardOne": return "one character discards a card at the start of the next scenario";
+    case "consumeItem": return `consume ${a} ${b || ""} item${a === 1 ? "" : "s"} at the start of the next scenario`.replace(/\s+/g, " ");
+    case "consumeCollectiveItem": return `one character consumes ${a} ${b || ""} item at the start of the next scenario`.replace(/\s+/g, " ");
+    case "scenarioSingleMinus1": return `one character adds ${a} −1 cards to their deck for the next scenario`;
+    default: return "an effect at the start of the next scenario (see the card)";
+  }
 }
 
 // What paying for an event cost, as an effect: gold from the party (split as
@@ -1372,6 +1462,7 @@ function tally(effects, ctx, ref, evRef) {
       case "gold": say(`${signed(e.amount)} gold each`); break;
       case "collectiveGold": say(`${signed(e.amount)} gold to share`); break;
       case "experience": say(`${signed(e.amount)} XP each`); break;
+      case "checkmarks": say(`${signed(e.amount)} battle goal ${Math.abs(e.amount) === 1 ? "checkmark" : "checkmarks"} each`); break;
       case "partyAchievement":
       case "globalAchievement": {
         const kind = e.type === "partyAchievement" ? "party" : "global";
@@ -1400,6 +1491,7 @@ function tally(effects, ctx, ref, evRef) {
         say(`choose: ${e.of.map(sub => sub.amount != null ? `${signed(sub.amount)} ${sub.type === "gold" ? "gold" : sub.type}` : sub.type).join(" or ")}`);
         break;
       }
+      case "nextScenario": say(nextScenarioText(e)); break;
       default: more = true;
     }
   }
@@ -1461,7 +1553,9 @@ function deriveCampaign(data, ref, evRef) {
     record.classes.set(id, { id, name: className(evRef, id), count: 1, where: where ? [where] : [] });
     // A new class brings its city and road events.
     const n = classInfo(id)?.unlockEvent;
-    if (n && !classInfo(id)?.starting) for (const deck of ["city", "road"]) addCard(deck, n, `${className(evRef, id)} unlocked`);
+    if (n && !classInfo(id)?.starting) for (const deck of ["city", "road"]) {
+      if (!removed[deck].has(n)) addCard(deck, n, `${className(evRef, id)} unlocked`);
+    }
   };
   for (const [id, info] of Object.entries(evRef?.classEvents || {})) if (info.starting) unlockClass(id, "starting class");
 
@@ -1487,14 +1581,17 @@ function deriveCampaign(data, ref, evRef) {
       t.range = { lo: Math.max(lo, Math.min(hi, t.range.lo)), hi: Math.max(lo, Math.min(hi, t.range.hi)) };
     };
     if (key === "reputation") hold(-20, 20);
+    // The highest and lowest reputation reached: milestones count once reached.
+    if (key === "reputation") { t.peak = Math.max(t.peak ?? 0, t.value); t.low = Math.min(t.low ?? 0, t.value); }
     if (key === "prosperity" && range.lo < 0) hold(CHECKMARKS_FOR_PROSPERITY[stepFor(before, CHECKMARKS_FOR_PROSPERITY) - 1], Infinity);
     t.entries.push({ label, range });
     if (!isExact(range)) (forGood ? t.unknown : t.unsure).push(label);
   };
 
   // The order things happened: completed scenarios as campaign.json lists
-  // them. An event with "scenario" comes just before that scenario; one
-  // without comes after the event listed before it. Adjustments with a
+  // them. An event with "scenario" comes just before that scenario, one
+  // with "after" just after that one; one with neither comes after the
+  // event listed before it. Adjustments with a
   // scenario come before it, the rest at the end.
   const played = data.scenarios.filter(s => s.status === "completed");
   const before = played.map(() => []);
@@ -1504,6 +1601,9 @@ function deriveCampaign(data, ref, evRef) {
     if (e.scenario != null) {
       const i = played.findIndex(s => s.number === e.scenario);
       into = i >= 0 ? before[i] : after;
+    } else if (e.after != null) {
+      const i = played.findIndex(s => s.number === e.after);
+      into = i >= 0 ? before[i + 1] || after : after;
     }
     into.push({ event: e });
   }
@@ -2239,11 +2339,13 @@ function slotUse(c, level) {
 // How much of that room an item takes, by the slot the item cards print.
 const slotNeed = slot => slot === "onehand" ? ["hands", 1] : slot === "twohand" ? ["hands", 2] : [slot, 1];
 
+// A character can own any number of items, but equip only what the slots
+// hold (rulebook p. 43): where they own more, which to take is their pick.
 function itemCheck(c, level) {
   const { used, limits } = slotUse(c, level);
   const names = { head: "head items", body: "body items", legs: "legs items", hands: "hands' worth of items", small: "small items" };
   return Object.keys(limits).filter(k => used[k] > limits[k])
-    .map(k => `Carries ${used[k]} ${names[k]}, but has room for ${limits[k]}${k === "small" ? ` at level ${level}` : ""}.`);
+    .map(k => `Owns ${used[k]} ${names[k]} and can equip ${limits[k]}${k === "small" ? ` at level ${level}` : ""}: pick which to take into a scenario.`);
 }
 
 // --- Characters -----------------------------------------------------------------
@@ -2350,9 +2452,11 @@ function goalBoxes(checkmarks) {
 // listed, so nothing is silently left out.
 function attackDeckBlock(c, rows) {
   if (!rows.length) return null;
-  const { cards, total, unread } = attackDeck(rows.flatMap(r => Array(r.count).fill(r.match ? r.match.text : r.written)));
+  const sheet = classPerks(c.class);
+  const inOrder = [...rows].sort((a, b) => (a.match ? sheet.indexOf(a.match) : sheet.length) - (b.match ? sheet.indexOf(b.match) : sheet.length));
+  const { cards, total, unread } = attackDeck(inOrder.flatMap(r => Array(r.count).fill(r.match ? r.match.text : r.written)));
   // Sanctuary blessings in the session being recorded: for the next scenario.
-  const blessed = (draft?.donations || []).some(x => x.character === c.name);
+  const blessed = c.blessNext || (draft?.donations || []).some(x => x.character === c.name);
   return h("div", { class: "block deck-block" },
     h("div", { class: "block-head" }, h("span", { class: "label" }, "Attack modifier deck"),
       h("span", {}, `${total} cards${blessed ? " + 2 Bless" : ""}`)),
@@ -2410,9 +2514,10 @@ function setQuestCard(name, card) {
   try { if (card) localStorage.setItem(questCardKey(name), card); else localStorage.removeItem(questCardKey(name)); } catch {}
 }
 
-// Who played each completed scenario, as far as campaign.json says: its
-// results, and who was there in the session it was completed in (a casual
-// replay doesn't count). null when nothing records who played.
+// Who completed each scenario, as far as campaign.json says: its results,
+// its players, and who was there in a session it was won in, casual mode
+// included (rulebook p. 34: casual play makes quest progress). null when
+// nothing records who played.
 const completedByCache = new WeakMap();
 function completedBy(data) {
   if (completedByCache.has(data)) return completedByCache.get(data);
@@ -2423,7 +2528,9 @@ function completedBy(data) {
   }
   for (const session of data.sessions) {
     for (const x of session.scenarios || []) {
-      if (x.result === "success" && !x.casual && who.has(x.number)) for (const n of session.characters || []) who.get(x.number).add(n);
+      if (x.result !== "success") continue;
+      if (!who.has(x.number)) who.set(x.number, new Set());
+      for (const n of session.characters || []) who.get(x.number).add(n);
     }
   }
   for (const [n, names] of who) if (!names.size) who.set(n, null);
@@ -2459,6 +2566,7 @@ function questProgress(data, c, card) {
       return n;
     };
     if (kind === "scenarioName") out.n = scenarios(n => (refOf(n)?.name || "").includes(arg));
+    else if (kind === "scenarioIn") out.n = scenarios(n => arg.split(",").map(Number).includes(n));
     else if (kind === "bossScenarios") out.n = scenarios(n => refOf(n)?.boss);
     else if (kind === "scenariosCompleted") out.n = scenarios(() => true);
     else if (kind === "sideScenarios") {
@@ -2468,7 +2576,29 @@ function questProgress(data, c, card) {
       const [first, last] = arg.split("|").map(Number);
       out.n = scenarios(n => n === last);
       if (ready) out.opens = first;
-    } else if (kind === "battleGoals") out.n = c.checkmarks || 0;
+    } else if (kind === "retiredChars") {
+      // Other characters' quests fulfilled while this one adventured: those
+      // retired since it joined; one with no date may or may not count.
+      const others = data.characters.filter(o => o.retired && o.name !== c.name);
+      const dated = others.filter(o => o.retiredOn && (!c.joined || o.retiredOn >= c.joined));
+      out.n = dated.length;
+      out.extra = others.filter(o => !o.retiredOn).length;
+      out.extraWhy = "if retirements without a date came after they joined";
+    } else if (kind === "donatedGold" || kind === "enhancements") {
+      // Counted since the page began recording them: any higher count fits.
+      out.n = kind === "donatedGold" ? c.donated || 0 : c.enhanced || 0;
+      out.extra = Math.max(0, step.count - out.n);
+      out.extraWhy = `from before the page recorded ${kind === "donatedGold" ? "donations" : "enhancements"}`;
+    } else if (kind === "battleGoals") {
+      // Only checkmarks from completed battle goals count (FAQ, quest 519),
+      // which a scenario's results record; others on the sheet may be from
+      // battle goals played before results were kept, or from treasures.
+      const fromGoals = [...data.scenarios.flatMap(s => s.results || []), ...data.sessions.flatMap(x => (x.scenarios || []).flatMap(sc => sc.results || []))]
+        .filter(r => r.character === c.name).reduce((sum, r) => sum + (r.checkmarks || 0), 0);
+      out.n = fromGoals;
+      out.extra = Math.max(0, (c.checkmarks || 0) - fromGoals);
+      out.extraWhy = "if the sheet's other checkmarks came from battle goals";
+    }
     else if (kind === "gold") out.n = c.gold || 0;
     else if (kind === "itemType") out.n = c.items.filter(i => arg.split("|").includes(itemSlot(i))).length;
     else if (kind === "item") {
@@ -2478,19 +2608,19 @@ function questProgress(data, c, card) {
       out.auto = false;
       if (sameShape) out.n = recorded[i][0];
     }
-    if (!ready) { out.n = out.auto || out.n == null ? 0 : out.n; out.maybe = []; }
+    if (!ready) { out.n = out.auto || out.n == null ? 0 : out.n; out.maybe = []; out.extra = 0; }
     if (out.n != null) out.n = Math.min(out.n, step.count);
     steps.push(out);
   });
   // Written out, only when every step is known for certain.
-  const text = steps.every(x => x.n != null && !x.maybe.length)
+  const text = steps.every(x => x.n != null && !x.maybe.length && !x.extra)
     ? steps.map((x, i) => `${i ? (x.after ? ", then " : " + ") : ""}${x.n}/${x.count}`).join("") : null;
   // A recorded count agrees when each step is between what's counted and
   // that plus the scenarios no one recorded playing.
   const fits = written => {
     const r = questSteps(written);
     return Boolean(r) && r.length === steps.length && r.every(([n, m], i) => m === steps[i].count && steps[i].n != null
-      && n >= steps[i].n && n <= Math.min(steps[i].count, steps[i].n + steps[i].maybe.length));
+      && n >= steps[i].n && n <= Math.min(steps[i].count, steps[i].n + steps[i].maybe.length + (steps[i].extra || 0)));
   };
   const known = steps.every(x => x.n != null);
   return { name: quest.name, card, steps, text, known, fits, unlockClass: quest.unlockClass, openEnvelope: quest.openEnvelope };
@@ -2520,6 +2650,7 @@ function questDetail(data, c) {
         h("span", { class: "sub" }, [
           x.auto ? "counted from the record" : "as recorded by hand",
           x.maybe.length ? `${plural(x.maybe.length, "more")} if they played ${x.maybe.map(n => `#${n}`).join(", ")}` : null,
+          x.extra ? `up to ${x.extra} more, ${x.extraWhy}` : null,
           x.opens && !data.scenarios.some(s => s.number === x.opens) ? `opens #${x.opens} ${scenarioRef?.scenarios?.[String(x.opens)]?.name || ""}`.trim() : null,
         ].filter(Boolean).join(" · "))),
       h("span", { class: "num" }, x.n == null ? `?/${x.count}` : `${x.n}/${x.count}`)))) : null,
@@ -2622,7 +2753,7 @@ function renderCharacters(data) {
       // Items as a plain list, each with its slot: they aren't buttons.
       c.items.length ? h("div", { class: "block item-block" },
         h("div", { class: "block-head" }, h("span", { class: "label" }, "Items"), slotStrip(c, st.level)),
-        itemProblems.map(text => nudge("question", "Too many items", text)),
+        itemProblems.map(text => nudge("question", "More than can be equipped", text, "note")),
         h("ul", { class: "item-list" }, c.items.map(i => {
           const slot = itemSlot(i);
           return h("li", {}, slot ? gameIcon(`slot-${slot}`) : h("span", { class: "slot-blank", "aria-hidden": "true" }), i);
@@ -2783,7 +2914,7 @@ function renderShop(data) {
   const has = item => shopper?.items.some(i => sameItem(i, item.name));
   const bought = item => mineBuys.some(b => sameItem(b.item, item.name));
   const sold = item => mineSells.some(x => sameItem(x.item, item.name));
-  const canBuy = item => shopper && !has(item) && !bought(item) && left(item) > 0 && !dear(item) && !full(item);
+  const canBuy = item => shopper && !has(item) && !bought(item) && left(item) > 0 && !dear(item);
 
   // On the right: the price, and under it what the shopper can do. It goes
   // into the draft, as "Record it" does for a perk.
@@ -2878,11 +3009,12 @@ function slotStrip(c, level) {
     slots.map(([icon, on, over]) => h("span", { class: `slot${on ? " on" : ""}${over ? " over" : ""}` }, gameIcon(`slot-${icon}`))));
 }
 
-// Why an item wouldn't fit: the slot it needs is taken.
+// An item that wouldn't fit in the slots: it can still be bought (owning
+// isn't limited), but not equipped alongside what the slot already holds.
 function fullText(c, slot) {
-  if (slot === "onehand" || slot === "twohand") return `${c.name}'s hands are full`;
-  if (slot === "small") return `${c.name} has no room for another small item`;
-  return `${c.name}'s ${slot} slot is full`;
+  if (slot === "onehand" || slot === "twohand") return `${c.name}'s hands are full: owned, not equipped with the rest`;
+  if (slot === "small") return `more small items than ${c.name} can equip`;
+  return `${c.name} already has a ${slot} item to equip`;
 }
 
 // The room left in a character's slots, in words.
@@ -2897,7 +3029,7 @@ function freeRoom({ used, limits }) {
 
 // The Enhancer: what a sticker costs, from what's printed on the card.
 // "Record it" puts the enhancement in the draft, which takes the gold off.
-const enhancing = { sticker: "attack", level: "1", multi: false, previous: "0", hexes: "3" };
+const enhancing = { sticker: "attack", level: "1", multi: false, previous: "0", hexes: "3", classCards: "0", already: false };
 
 function enhancer(data) {
   if (!data.city.globalAchievements.some(a => a.id === "the-power-of-enhancement")) return null;
@@ -2921,11 +3053,20 @@ function enhancer(data) {
             ENHANCEMENTS.map(([group, list]) => h("optgroup", { label: group },
               list.map(([k, label]) => h("option", { value: k, selected: k === key }, label)))))),
           field("Card level", select("level", counting(1, 9))),
-          field("Already on it", select("previous", counting(0, 4))),
+          field("Already on it", select("previous", counting(0, 3))),
           key === "hex" ? field("Hexes it has", select("hexes", counting(1, 12))) : null),
         canDouble(key) ? h("label", { class: "rec-check" },
           h("input", { type: "checkbox", "data-key": "enh-multi", checked: Boolean(enhancing.multi), onchange: set("multi") }),
           "The ability targets more than one figure") : null,
+        // A class's enhanced cards can't outnumber the prosperity level (p. 46).
+        h("div", { class: "rec-row" },
+          field("Cards this class has enhanced", select("classCards", counting(0, 9))),
+          h("label", { class: "rec-check" },
+            h("input", { type: "checkbox", "data-key": "enh-already", checked: Boolean(enhancing.already), onchange: set("already") }),
+            "This card is one of them")),
+        !enhancing.already && num(enhancing.classCards) >= stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY)
+          ? nudge("question", "Over the limit", `A class can have only as many enhanced cards as the prosperity level (${stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY)}), counting every character of the class, retired ones too.`)
+          : null,
         h("p", { class: "small muted" }, "A level X card counts as level 1.")),
       h("div", { class: "enhancer-cost" },
         h("div", { class: "enhancer-total", "aria-live": "polite" }, h("span", { class: "figure" }, cost.total), h("span", {}, "gold")),
@@ -3063,6 +3204,11 @@ function applyDraft(raw, d, data) {
     c.items.push(item);
     changed.add(name);
   };
+  // Every copy of an item already owned by someone still adventuring.
+  const noCopyLeft = item => {
+    const copies = Object.values(itemsRef?.items || {}).find(x => sameItem(x.name, item))?.count;
+    return Boolean(copies) && out.characters.filter(c => !c.retired && (c.items || []).some(i => sameItem(i, item))).length >= copies;
+  };
   // A copy of an item the shop doesn't otherwise sell goes back into its
   // supply when sold or when its owner retires; buying it takes it out.
   const normal = name => data.shop?.normal?.has(String(name).toLowerCase()) ?? true;
@@ -3094,66 +3240,53 @@ function applyDraft(raw, d, data) {
     g[key] += amount;
     gainFor.set(name, g);
   };
-  // Retirements, then newcomers, before anything else: a newcomer can play
-  // tonight's scenarios and go shopping. A newcomer's line comes first in the
-  // summary; a retirement's after the scenarios, where it reads in order.
+  // Newcomers before anything else: a newcomer can play tonight's scenarios
+  // and go shopping. Retirements come after the scenarios (below). Each
+  // retirement tonight is a prosperity checkmark (p. 48), which counts for a
+  // newcomer's starting level and for advancing to the prosperity level.
   const joinLog = [];
-  for (const x of (d.retirements || []).filter(x => x.character)) {
-    const c = who(x.character);
-    if (!c || c.retired) { warnings.push(`${x.character} isn't an active character.`); continue; }
-    c.retired = true;
-    delete c.inactive;
-    for (const item of c.items || []) returnItem(item);
-    joinLog.push(`${c.name} retires: a prosperity checkmark, the ${c.class} retirement events go into the decks, and their items go back to the shop`);
-    if (!x.unlocks) continue;
-    // Two quests open Envelope X instead of a class box.
-    if (x.unlocks === "envelope-x") {
-      if (data.city.envelopeX || out.city?.envelopeX) {
-        c.questDraws = { itemDesign: null, scenario: null };
-        joinLog.push(`${c.name}'s personal quest opens Envelope X, which is already open: instead, draw a random item design and a random side scenario`);
-      } else {
-        out.city ||= {};
-        out.city.envelopeX = true;
-        joinLog.push(`${c.name}'s personal quest opens Envelope X`);
-      }
-      continue;
-    }
-    // A box already opened gives a random item design and a random side
-    // scenario instead (rulebook p. 48): the Campaign record asks for both.
-    if (data.city.unlockedClasses.some(u => u.id === x.unlocks)
-        || (out.city?.unlockedClasses || []).includes(className(classRef, x.unlocks))) {
-      c.questDraws = { itemDesign: null, scenario: null };
-      joinLog.push(`${c.name}'s personal quest opens the box with the ${classIconName(x.unlocks)} icon, which is already open: instead, draw a random item design and a random side scenario`);
-      continue;
-    }
-    out.city ||= {};
-    out.city.unlockedClasses = [...(out.city.unlockedClasses || []), className(classRef, x.unlocks)];
-    joinLog.push(`${c.name}'s personal quest unlocks the class with the ${classIconName(x.unlocks)} icon, and its events go into the decks`);
-  }
-  const prosperity = stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
+  // How many characters a player has retired, tonight's retirements included
+  // (with the player named on the retirement row, if not already known).
+  const playerOf = c => String((d.retirements || []).find(x => x.character === c.name)?.player || c.player || "").trim().toLowerCase();
+  const retiredBy = player => {
+    const name = String(player || "").trim().toLowerCase();
+    if (!name) return 0;
+    return out.characters.filter(c => playerOf(c) === name && (c.retired || (d.retirements || []).some(x => x.character === c.name))).length;
+  };
+  const retiring = new Set((d.retirements || []).map(x => x.character).filter(name => who(name) && !who(name).retired));
+  const prosperityTonight = stepFor(data.city.prosperityCheckmarks + retiring.size, CHECKMARKS_FOR_PROSPERITY);
   const joined = [];
+  const newLevels = [];
   for (const x of d.newCharacters || []) {
     const name = String(x.name || "").trim();
     if (!name && !x.class) continue;
     if (!name) { warnings.push(`A new ${x.class} has no name.`); continue; }
     if (who(name)) { warnings.push(`There's already a character called ${name}.`); continue; }
     if (!x.class) { warnings.push(`${name}: pick a class.`); continue; }
-    const level = Math.max(1, Math.min(prosperity, num(x.level) || 1));
-    const twin = out.characters.find(c => !c.retired && c.class === x.class);
+    const level = Math.max(1, Math.min(prosperityTonight, num(x.level) || 1));
+    const twin = out.characters.find(c => !c.retired && !retiring.has(c.name) && c.class === x.class);
     if (twin) warnings.push(`${twin.name} already plays a ${x.class}: a party can't have two of the same class.`);
-    const bonus = Math.max(0, num(x.bonusPerks));
+    // One extra perk for each character this player has retired (p. 48):
+    // as entered, or counted from the player's retired characters.
+    const bonus = filled(x.bonusPerks) ? Math.max(0, num(x.bonusPerks)) : retiredBy(x.player);
     out.characters.push({ name, class: x.class, xp: XP_FOR_LEVEL[level - 1], gold: startingGold(level), checkmarks: 0,
-                          perks: [], items: [], personalQuest: "", retired: false, ...(bonus ? { perkBonus: bonus } : {}), notes: "" });
+                          perks: [], items: [], personalQuest: "", retired: false, ...(bonus ? { perkBonus: bonus } : {}),
+                          ...(String(x.player || "").trim() ? { player: String(x.player).trim() } : {}), joined: d.date || today(), notes: "" });
     const perks = level - 1 + bonus;
-    log.push(`${name} the ${x.class} joins at level ${level}, with ${XP_FOR_LEVEL[level - 1]} XP and ${startingGold(level)} gold${perks ? `, and ${plural(perks, "perk")} to choose` : ""}`);
+    log.push(`${name} the ${x.class} joins at level ${level}, with ${XP_FOR_LEVEL[level - 1]} XP and ${startingGold(level)} gold${perks ? `, and ${plural(perks, "perk")} to choose` : ""}${level > 1 ? `; and ${plural(level - 1, "ability card")} to add, one for each level from 2 to ${level} (each of that level or lower)` : ""}`);
+    for (let l = 2; l <= level; l++) newLevels.push({ character: name, level: l });
     if (x.playing !== false) joined.push(name);
   }
 
+  const playedTonight = d.scenarios.some(s => num(s.number));
   // Who played: those marked, and newcomers unless they sat it out.
   const party = [...d.party.filter(name => who(name) && !joined.includes(name)), ...joined];
   const played = d.scenarios.filter(s => num(s.number));
   // The first scenario tonight: where a road event with none picked led.
   const firstScenario = num(played[0]?.number) || null;
+  // The last scenario completed before tonight: an event in town on an
+  // evening without one came after it.
+  const lastCompleted = [...(raw.scenarios || [])].reverse().find(s => s.status === "completed")?.number ?? null;
 
   // Only an evening of play goes in the session log: a perk taken or an item
   // bought between sessions changes the sheets and nothing else.
@@ -3174,8 +3307,29 @@ function applyDraft(raw, d, data) {
     else entry.characters = [...party];
     if (e.paid === "yes") entry.paid = true;
     if (e.paid === "no") entry.paid = false;
-    // A road event with no scenario picked came before the first one tonight.
+    // Not said: paid if the party had the gold, as the rule has it.
+    if (e.paid !== "yes" && e.paid !== "no" && e.option) {
+      const { could } = eventPayment(data, e.deck, entry.number, e.option, party.map(who).filter(Boolean));
+      if (could !== null) entry.paid = could;
+    }
+    // A city event with no scenario picked came in town before tonight's
+    // first scenario, or, on an evening in town only, after the last one
+    // played; a road event, on the way to the first scenario tonight.
+    // "After" points at a scenario in the campaign's order: the last one
+    // newly completed tonight, else the last completed before tonight (a
+    // failure or casual replay doesn't move it).
+    const lastTonight = num(played.filter(s => s.result === "success" && !isCasual(s, data)
+      && data.scenarios.find(x => x.number === num(s.number))?.status !== "completed").at(-1)?.number) || lastCompleted;
+    if (e.deck === "city" && e.scenario === "after" && lastTonight) entry.after = lastTonight;
+    else if (e.deck === "city" && !entry.scenario && firstScenario) entry.scenario = firstScenario;
+    else if (e.deck === "city" && !entry.scenario && lastCompleted) entry.after = lastCompleted;
     if (e.deck === "road" && !entry.scenario && firstScenario) entry.scenario = firstScenario;
+    // A road event for a scenario that doesn't take one (p. 41).
+    const toward = e.deck === "road" ? played.find(s => num(s.number) === entry.scenario) : null;
+    if (toward && isCasual(toward, data)) warnings.push(`${eventLabel(e.deck, entry.number)}: no road event is drawn for a scenario in casual mode.`);
+    // Only from town: the first scenario tonight. Travelling on from an
+    // earlier one needs a road event unless the two are linked (p. 41).
+    else if (toward && toward === played[0] && !needsRoadEvent(entry.scenario)) warnings.push(`${eventLabel(e.deck, entry.number)}: #${entry.scenario} is linked to Gloomhaven, so it takes no road event from town.`);
     if (!classRef?.events?.[e.deck]?.[String(entry.number)]) warnings.push(`${eventLabel(e.deck, entry.number)} isn't in the event data.`);
     // A card that isn't in its deck can't be drawn: most likely a typo.
     else if (data.eventState?.decks?.[e.deck] && !data.eventState.decks[e.deck].has(entry.number)) {
@@ -3208,6 +3362,14 @@ function applyDraft(raw, d, data) {
         if (total !== want) warnings.push(`${label}: ${want} gold to ${fx.amount > 0 ? "share" : "pay"}, but the shares come to ${total}.`);
         for (const name of party) if (num(shares[name]) > 0) eventGain(name, "gold", Math.sign(fx.amount) * num(shares[name]));
         if (total) log.push(`${label}: ${total} gold ${fx.amount > 0 ? "shared" : "paid"} (${party.filter(n => num(shares[n]) > 0).map(n => `${n} ${num(shares[n])}`).join(", ")})`);
+      } else if (fx.type === "checkmarks") {
+        for (const name of party) {
+          const c = who(name);
+          if (fx.amount > 0) gain(name, "checkmarks", fx.amount);
+          // A character can never lose a checkmark that would cost a perk (p. 42).
+          else if (c) c.checkmarks = Math.max(3 * Math.floor((c.checkmarks || 0) / 3), (c.checkmarks || 0) + fx.amount);
+        }
+        log.push(`${label}: ${signed(fx.amount)} battle goal ${Math.abs(fx.amount) === 1 ? "checkmark" : "checkmarks"} each, for ${party.join(", ")}${fx.amount < 0 ? " (never one that would cost a perk)" : ""}`);
       } else if (fx.type === "choose" && fx.of.some(x => x.type === "gold" || x.type === "experience")) {
         warnings.push(`${label}: a choice (${fx.of.map(x => x.amount != null ? `${signed(x.amount)} ${x.type === "experience" ? "XP" : x.type}` : x.type).join(" or ")}); add any gold or XP by hand.`);
       } else if (fx.type === "item") {
@@ -3239,7 +3401,7 @@ function applyDraft(raw, d, data) {
     // its record stays as it was (rulebook p. 34).
     const casual = isCasual(s, data);
     if (info && known && !casual) {
-      if (known.status === "completed" && s.result === "success") warnings.push(`${label} is already completed: tick Casual to replay it.`);
+      if (known.status === "completed" && s.result === "success") warnings.push(`${label} is already completed: tick Casual mode to replay it.`);
       else if (known.status === "blocked" && s.result === "success") warnings.push(`${label} is blocked.`);
     }
 
@@ -3291,6 +3453,11 @@ function applyDraft(raw, d, data) {
               gain(t.character, "gold", value);
               returnItem(item);
               log.push(`${t.character} already has ${item}, so the one from treasure ${t.number} is sold at once for ${value} gold`);
+            } else if (noCopyLeft(item)) {
+              // Every copy is someone's: the looter gains its sell value instead (FAQ).
+              const value = Math.floor((Object.values(itemsRef?.items || {}).find(x => sameItem(x.name, item))?.cost || 0) / 2);
+              gain(t.character, "gold", value);
+              log.push(`No copy of ${item} is left, so ${t.character} gains its sell value from treasure ${t.number}: ${value} gold`);
             } else {
               giveItem(t.character, item);
               log.push(`${t.character} takes ${item} from treasure ${t.number}`);
@@ -3333,9 +3500,18 @@ function applyDraft(raw, d, data) {
 
     // Rewards each character gets, and what treasures gave their looters.
     const r = info?.rewards || {};
-    for (const name of party) { gain(name, "gold", r.gold || 0); gain(name, "xp", r.experience || 0); }
+    for (const name of party) { gain(name, "gold", r.gold || 0); gain(name, "xp", r.experience || 0); gain(name, "checkmarks", r.battleGoals || 0); }
+    if (r.battleGoals) log.push(`${label} reward: ${plural(r.battleGoals, "battle goal checkmark")} each`);
     if (r.gold || r.experience) log.push(`${label} reward: ${[r.gold ? `${r.gold} gold` : null, r.experience ? `${r.experience} XP` : null].filter(Boolean).join(" and ")} each`);
-    if (r.collectiveGold) warnings.push(`${label} gives ${r.collectiveGold} gold to share: add it to the characters' gold by hand.`);
+    if (r.collectiveGold) {
+      // Shared as the party split it in the form.
+      const shares = s.rewardShares || {};
+      const total = party.reduce((sum, name) => sum + Math.max(0, num(shares[name])), 0);
+      for (const name of party) if (num(shares[name]) > 0) gain(name, "gold", num(shares[name]));
+      if (total !== r.collectiveGold) warnings.push(`${label} gives ${r.collectiveGold} gold to share, but the shares come to ${total}.`);
+      else log.push(`${label} reward: ${total} gold shared (${party.filter(n => num(shares[n]) > 0).map(n => `${n} ${num(shares[n])}`).join(", ")})`);
+    }
+    if (r.hints?.gold) warnings.push(`${label}: ${r.hints.gold.replace(/\.?$/, "")} (the scenario book).`);
     // Reward items: one copy each, to one of the characters there (p. 49).
     if (s.result === "success") rewardCopies(info).forEach((item, k) => {
       const taker = (s.rewardTakers || [])[k];
@@ -3343,7 +3519,14 @@ function applyDraft(raw, d, data) {
       giveItem(taker, item);
       log.push(`${taker} takes ${item}, a reward of ${label}`);
     });
-    if (r.chooseLocation) warnings.push(`${label} lets you choose one of ${r.chooseLocation.map(x => `#${x}`).join(", ")}: note the choice.`);
+    if (r.chooseLocation) {
+      const chosen = num(s.chosen);
+      if (!chosen) warnings.push(`${label} lets you choose one of ${r.chooseLocation.map(x => `#${x}`).join(", ")}: pick it in the form.`);
+      else if (!out.scenarios.some(x => x.number === chosen)) {
+        out.scenarios.push({ number: chosen, name: scenarioRef?.scenarios?.[String(chosen)]?.name, status: "available", unlockedBy: n });
+        log.push(`${label}: #${chosen} chosen as the party's new location`);
+      }
+    }
     loot();
   }
 
@@ -3396,15 +3579,53 @@ function applyDraft(raw, d, data) {
     log.push(`Treasure ${c.treasure} in ${c.where}: ${x.character} looted ${c.item}${x.kept !== false ? "" : ", and has since sold it"}`);
   }
 
+  // Retirements, after the evening's scenarios: a character who played tonight
+  // keeps tonight's loot until retiring, then it all goes back to the shop.
+  for (const x of (d.retirements || []).filter(x => x.character)) {
+    const c = who(x.character);
+    if (!c || c.retired) { warnings.push(`${x.character} isn't an active character.`); continue; }
+    c.retired = true;
+    c.retiredOn = d.date || today();
+    if (String(x.player || "").trim()) c.player = String(x.player).trim();
+    // All money the character owned is gone (p. 48).
+    c.gold = 0;
+    delete c.inactive;
+    for (const item of c.items || []) returnItem(item);
+    joinLog.push(`${c.name} retires: a prosperity checkmark, the ${c.class} retirement events go into the decks, and their items go back to the shop, and their gold is gone`);
+    if (!x.unlocks) continue;
+    // Two quests open Envelope X instead of a class box.
+    if (x.unlocks === "envelope-x") {
+      if (data.city.envelopeX || out.city?.envelopeX) {
+        c.questDraws = { itemDesign: null, scenario: null };
+        joinLog.push(`${c.name}'s personal quest opens Envelope X, which is already open: instead, draw a random item design and a random side scenario`);
+      } else {
+        out.city ||= {};
+        out.city.envelopeX = true;
+        joinLog.push(`${c.name}'s personal quest opens Envelope X`);
+      }
+      continue;
+    }
+    // A box already opened gives a random item design and a random side
+    // scenario instead (rulebook p. 48): the Campaign record asks for both.
+    if (data.city.unlockedClasses.some(u => u.id === x.unlocks)
+        || (out.city?.unlockedClasses || []).includes(className(classRef, x.unlocks))) {
+      c.questDraws = { itemDesign: null, scenario: null };
+      joinLog.push(`${c.name}'s personal quest opens the box with the ${classIconName(x.unlocks)} icon, which is already open: instead, draw a random item design and a random side scenario`);
+      continue;
+    }
+    out.city ||= {};
+    out.city.unlockedClasses = [...(out.city.unlockedClasses || []), className(classRef, x.unlocks)];
+    joinLog.push(`${c.name}'s personal quest unlocks the class with the ${classIconName(x.unlocks)} icon, and its events go into the decks`);
+  }
+
   // Advancing to the prosperity level: XP up to that level's start (p. 48).
-  const cityLevel = stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
   for (const name of d.advances || []) {
     const c = who(name);
     if (!c || c.retired) continue;
-    const short = XP_FOR_LEVEL[cityLevel - 1] - (c.xp || 0) - (gainFor.get(name)?.xp || 0);
+    const short = XP_FOR_LEVEL[prosperityTonight - 1] - (c.xp || 0) - (gainFor.get(name)?.xp || 0);
     if (short <= 0) continue;
     gain(name, "xp", short);
-    log.push(`${name} advances to level ${cityLevel}, the prosperity level`);
+    log.push(`${name} advances to level ${prosperityTonight}, the prosperity level`);
   }
 
   // XP, gold and checkmarks onto the character sheets. Passing a level means
@@ -3418,13 +3639,17 @@ function applyDraft(raw, d, data) {
     c.checkmarks = (c.checkmarks || 0) + g.checkmarks;
     log.push(`${name}: ${[g.xp ? `${signed(g.xp)} XP` : null, g.gold ? `${signed(g.gold)} gold` : null,
                           g.checkmarks ? `${signed(g.checkmarks)} ${g.checkmarks === 1 ? "checkmark" : "checkmarks"}` : null].filter(Boolean).join(", ")}`);
-    const now = stepFor(c.xp, XP_FOR_LEVEL);
+    const now = c.retired ? was : stepFor(c.xp, XP_FOR_LEVEL);
     for (let level = was + 1; level <= now; level++) {
       levelUps.push({ character: name, level });
       log.push(`${name} reaches level ${level}: add an ability card of level ${level} or lower, and take a perk`);
     }
   }
-  if (levelUps.length) session.levelUps = levelUps;
+  if (levelUps.length || newLevels.length) session.levelUps = [...newLevels, ...levelUps];
+  // Bless cards kept from an earlier donation are used in tonight's scenario.
+  if (playedTonight) for (const name of party) if (who(name)?.blessNext && !(d.donations || []).some(x => x.character === name && x.when === "after")) delete who(name).blessNext;
+  // Who retired tonight leaves with nothing: their gold is gone (p. 48).
+  for (const name of retiring) if (who(name)?.retired) who(name).gold = 0;
 
   log.push(...joinLog);
 
@@ -3467,7 +3692,11 @@ function applyDraft(raw, d, data) {
     const c = who(x.character);
     c.gold = (c.gold || 0) - DONATION;
     out.city.donations = (out.city.donations || 0) + DONATION;
-    log.push(`${x.character} donates ${DONATION} gold to the Sanctuary: two blessings in their next scenario`);
+    c.donated = (c.donated || 0) + DONATION;
+    // Two Bless cards for their next scenario (p. 45): tonight's, if they
+    // play one after this; otherwise kept on the sheet until they do.
+    if (x.when === "after" || !(playedTonight && party.includes(c.name))) c.blessNext = true;
+    log.push(`${x.character} donates ${DONATION} gold to the Sanctuary: two Bless cards in their next scenario`);
   }
   for (const name of new Set(donors.map(x => x.character))) {
     if (donors.filter(x => x.character === name).length > 1) warnings.push(`${name} donates more than once: it's once per visit to the city.`);
@@ -3483,6 +3712,7 @@ function applyDraft(raw, d, data) {
     const c = who(x.character);
     if (!c) continue;
     c.gold = (c.gold || 0) - num(x.cost);
+    c.enhanced = (c.enhanced || 0) + 1;
     log.push(`${x.character} enhances a card (${x.what}) for ${num(x.cost)} gold`);
   }
   for (const p of d.perks.filter(p => p.character && p.perk)) {
@@ -3490,17 +3720,6 @@ function applyDraft(raw, d, data) {
     log.push(`${p.character} takes "${p.perk}"`);
   }
   for (const c of out.characters) if (c.gold < 0) warnings.push(`${c.name} would have ${c.gold} gold.`);
-  // Items that won't fit, because of what the draft buys: a second body
-  // item, say. Problems a character already had are left to Before you play.
-  for (const name of changed) {
-    const now = out.characters.find(c => c.name === name);
-    if (!now) continue;
-    const was = data.characters.find(c => c.name === name);
-    const already = new Set(was ? itemCheck(was, stepFor(was.xp || 0, XP_FOR_LEVEL)) : []);
-    for (const problem of itemCheck(now, stepFor(now.xp || 0, XP_FOR_LEVEL))) {
-      if (!already.has(problem)) warnings.push(`${name}: ${problem.charAt(0).toLowerCase()}${problem.slice(1)}`);
-    }
-  }
 
   // The draft's id, just after "updated" (replacing an earlier one).
   const marked = {};
@@ -3633,7 +3852,7 @@ function renderRecorder(data) {
     if (!info) return "Not a scenario number.";
     const rewards = describeRewards(scenarioRef, info.rewards, classRef);
     const casual = isCasual(s, data);
-    if (casual) return `${info.name} · a casual replay: XP, gold, loot and battle goals, but no rewards or unlocks`;
+    if (casual) return `${info.name} · casual mode: XP, gold, loot, battle goals and quest progress, but no rewards or unlocks`;
     return `${info.name}${s.result === "success" && rewards.length ? ` · rewards: ${rewards.join(", ")}` : ""}`;
   };
   // Playable scenarios not already in this draft.
@@ -3650,11 +3869,12 @@ function renderRecorder(data) {
     const g = scenarioGain(s, r, data);
     return `Comes to ${g.xp} XP and ${g.gold} gold`;
   };
+  const reward = n => scenarioRef?.scenarios?.[String(n)]?.rewards;
   const scenarioBlock = (s, i) => {
     const n = num(s.number);
     s.level ??= String(draftLevel(s, data));
     const known = data.scenarios.find(x => x.number === n);
-    const casualOk = known?.status === "completed";
+    const casualOk = Boolean(known);
     const casual = isCasual(s, data);
     const st = scenarioStats(draftLevel(s, data));
     return h("fieldset", { class: "card rec-block" },
@@ -3667,7 +3887,7 @@ function renderRecorder(data) {
       // Next to the result, as it changes what the scenario gives.
       casualOk ? h("label", { class: "rec-check" },
         h("input", { type: "checkbox", "data-key": `sc-${i}-casual`, checked: casual, onchange: set(s, "casual", true) }),
-        "Casual replay: no rewards or unlocks, and its record stays as it was") : null,
+        "Casual mode: no rewards or unlocks, and its record stays as it was") : null,
       // Its name, kept current as you type; and while it's empty, the
       // scenarios the party can play, to tap (phones don't list a number
       // box's suggestions).
@@ -3710,6 +3930,16 @@ function renderRecorder(data) {
             h("strong", { class: "rec-who" }, item),
             field("Taken by", select(`sc-${i}-rw${k}`, s.rewardTakers, k, partyOptions)));
         })) : null,
+      // Rewards the party settles: gold to share, a location to choose.
+      s.result === "success" && !casual && (reward(n)?.collectiveGold || reward(n)?.chooseLocation || reward(n)?.hints?.gold) ? h("div", { class: "rec-results" },
+        h("span", { class: "label" }, "Rewards to settle"),
+        reward(n)?.hints?.gold ? h("p", { class: "small muted" }, reward(n).hints.gold) : null,
+        reward(n)?.collectiveGold ? h("div", { class: "rec-row" },
+          h("strong", { class: "rec-who" }, `${reward(n).collectiveGold} gold to share`),
+          party.map(c => field(c.name, text(`sc-${i}-rs-${c.name}`, (s.rewardShares ||= {}), c.name,
+            { type: "number", min: 0, inputmode: "numeric", placeholder: "0", "aria-label": `${c.name}'s share` }), "short"))) : null,
+        reward(n)?.chooseLocation ? field("New location", select(`sc-${i}-loc`, s, "chosen",
+          [["", "Choose"], ...reward(n).chooseLocation.map(x => [x, scenarioLabel(data, Number(x))])])) : null) : null,
       // Treasures are looted on a failure too: what they give comes at once.
       h("div", { class: "rec-results" },
         h("span", { class: "label" }, "Treasures looted"),
@@ -3733,6 +3963,12 @@ function renderRecorder(data) {
   };
 
   const firstPlayed = num(d.scenarios.find(s => num(s.number))?.number);
+  const lastPlayed = num(d.scenarios.filter(s => num(s.number)).at(-1)?.number);
+  // Paying for an event isn't a choice: the party pays if it has the gold.
+  const payDefault = e => {
+    const { could } = eventPayment(data, e.deck, num(e.number), e.option, party);
+    return could === null ? "Not sure" : could ? "Yes (they had the gold)" : "No (not enough gold)";
+  };
   const eventBlock = (e, i) => {
     const options = classRef?.events?.[e.deck]?.[String(num(e.number))];
     const pays = options && JSON.stringify(options).includes('"type":"pay');
@@ -3743,9 +3979,12 @@ function renderRecorder(data) {
       // A road event is drawn on the way to a scenario: the first tonight
       // unless another is picked. A city event can come in town, between.
       field("Before", select(`ev-${i}-s`, e, "scenario",
-        [["", e.deck === "road" ? (firstPlayed ? `${scenarioLabel(data, firstPlayed)} (the first)` : "Tonight's scenario") : "In town / between"],
-         ...d.scenarios.filter(s => num(s.number)).map(s => [num(s.number), scenarioLabel(data, num(s.number))])])),
-      pays ? field("Paid?", select(`ev-${i}-p`, e, "paid", [["", "Not sure"], ["yes", "Yes"], ["no", "No"]])) : null,
+        [["", e.deck === "road" ? (firstPlayed ? `${scenarioLabel(data, firstPlayed)} (the first)` : "Tonight's scenario")
+              : firstPlayed ? `In town, before ${scenarioLabel(data, firstPlayed)}` : "In town"],
+         ...d.scenarios.filter(s => num(s.number)).map(s => [num(s.number), scenarioLabel(data, num(s.number))]),
+         // A city event back in town at the end of the evening.
+         ...(e.deck === "city" && lastPlayed ? [["after", `Back in town, after ${scenarioLabel(data, lastPlayed)}`]] : [])])),
+      pays ? field("Paid?", select(`ev-${i}-p`, e, "paid", [["", payDefault(e)], ["yes", "Yes"], ["no", "No"]])) : null,
       remove(d.events, i, "event", "add-event")),
       h("p", { class: "small muted", "data-ev-note": i }, eventNote(e, i, firstAfter)),
       shareRow(e, i));
@@ -3784,14 +4023,26 @@ function renderRecorder(data) {
   const locked = [...boxes.filter(id => !unlocked.has(id)), ...boxes.filter(id => unlocked.has(id))];
   const retireBlock = (x, i) => h("div", { class: "rec-row" },
     field("Who retires", select(`ret-${i}-c`, x, "character", activeOptions)),
+    // Who played them: their next characters get a perk for each retirement (p. 48).
+    field("Player (optional)", text(`ret-${i}-p`, x, "player", { autocomplete: "off", "aria-label": "Who played the retiring character",
+      placeholder: data.characters.find(c => c.name === x.character)?.player || "" })),
     field("Their personal quest unlocks", select(`ret-${i}-u`, x, "unlocks",
       [["", "No class, or not yet"], ...locked.map(id => [id, `The class with the ${classIconName(id)} icon${unlocked.has(id) ? " (already open)" : ""}`]),
        ["envelope-x", `Envelope X${data.city.envelopeX ? " (already open)" : ""}`]]), "wide"),
     x.unlocks && x.unlocks !== "envelope-x" ? h("span", { class: "rec-note rec-icon" }, gameIcon(`class-${x.unlocks}`, `${classIconName(x.unlocks)} icon`)) : null,
     remove(d.retirements, i, "retirement", "add-retire"));
   // A newcomer: any unlocked class (or one unlocked tonight), at any level up
-  // to the prosperity level.
-  const prosperity = stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
+  // to the prosperity level, counting a checkmark for each retirement tonight
+  // (as the save step does).
+  const retiringTonight = d.retirements.filter(x => active.some(c => c.name === x.character)).length;
+  // A player's retired characters, tonight's included: their newcomer's extra perks.
+  const retiredByPlayer = player => {
+    const name = String(player || "").trim().toLowerCase();
+    if (!name) return 0;
+    const playerOf = c => String(d.retirements.find(x => x.character === c.name)?.player || c.player || "").trim().toLowerCase();
+    return data.characters.filter(c => playerOf(c) === name && (c.retired || d.retirements.some(x => x.character === c.name))).length;
+  };
+  const prosperity = stepFor(data.city.prosperityCheckmarks + retiringTonight, CHECKMARKS_FOR_PROSPERITY);
   d.advances ||= [];
   const behind = active.filter(c => characterStats(c).level < prosperity);
   const classOptions = [...new Set([...data.city.unlockedClasses.map(u => u.name),
@@ -3802,8 +4053,11 @@ function renderRecorder(data) {
       field("Name", text(`new-${i}-n`, x, "name", { autocomplete: "off" }, true), "wide"),
       field("Class", select(`new-${i}-c`, x, "class", [["", "Pick a class"], ...classOptions.map(n => [n, n])])),
       prosperity > 1 ? field("Level", select(`new-${i}-l`, x, "level", Array.from({ length: prosperity }, (_, l) => [String(l + 1), String(l + 1)]))) : null,
-      // Each character their player has retired gives one more perk (p. 48).
-      field("Perks from retirements", text(`new-${i}-b`, x, "bonusPerks", { type: "number", min: 0, inputmode: "numeric", placeholder: "0",
+      // Each character their player has retired gives one more perk (p. 48):
+      // counted from the player's name, or entered.
+      field("Player (optional)", text(`new-${i}-p`, x, "player", { autocomplete: "off", "aria-label": "Who plays this character" })),
+      field("Perks from retirements", text(`new-${i}-b`, x, "bonusPerks", { type: "number", min: 0, inputmode: "numeric",
+        placeholder: String(retiredByPlayer(x.player)),
         "aria-label": "Extra perks: one for each character this player has retired" }), "short"),
       h("span", { class: "small muted rec-note" }, `Starts at level ${level} with ${XP_FOR_LEVEL[level - 1]} XP and ${startingGold(level)} gold`),
       remove(d.newCharacters, i, "new character", "add-new"));
@@ -3956,6 +4210,8 @@ function renderRecorder(data) {
         ? h("div", { class: "card rec-block" }, d.buys.map(buyBlock), d.sells.map(sellBlock), d.perks.map(perkBlock),
             d.donations.map((x, i) => h("div", { class: "rec-row" },
               field(`Donates ${DONATION} gold, for 2 Bless next scenario`, select(`don-${i}-c`, x, "character", partyOptions)),
+              // Before tonight's scenario the Bless is used in it; after, it waits.
+              firstPlayed ? field("When", select(`don-${i}-w`, x, "when", [["", `In town, before ${scenarioLabel(data, firstPlayed)}`], ["after", "Back in town, after it"]])) : null,
               remove(d.donations, i, "donation", "add-donation"))),
             // Enhancements, from the calculator's Record it.
             d.enhancements.map((x, i) => h("div", { class: "rec-row" },

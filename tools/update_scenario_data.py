@@ -41,7 +41,7 @@ ITEMS_OUTPUT = DATA_DIR / "gloomhaven-items.json"
 QUESTS_OUTPUT = DATA_DIR / "gloomhaven-quests.json"
 
 # Fields copied from each scenario file. Map layouts and monsters are left out.
-FIELDS = ["name", "unlocks", "blocks", "requires", "requirements", "rewards", "links"]
+FIELDS = ["name", "unlocks", "blocks", "requires", "requirements", "rewards", "links", "eventType"]
 
 
 def fetch(url):
@@ -50,7 +50,32 @@ def fetch(url):
 
 
 # Requirement values that the source writes as a display name or misspells.
-ALIASES = {"dept collection": "debt-collection"}
+ALIASES = {"dept collection": "debt-collection", "the demmon's errand": "a-demons-errand"}
+
+
+def achievement_ids(labels):
+    """Achievement display name (lower case) -> id, both kinds."""
+    ids = {}
+    for kind in ("global", "party"):
+        for achievement_id, name in labels[f"{kind}Achievements"].items():
+            ids[name.lower()] = achievement_id
+            ids[achievement_id] = achievement_id
+    return ids
+
+
+def normalize_rewards(rewards, labels, number):
+    """Make every achievement a reward gains or loses an id; stop on one that isn't known."""
+    ids = achievement_ids(labels)
+    for key in ("globalAchievements", "partyAchievements", "lostGlobalAchievements", "lostPartyAchievements"):
+        if key in rewards:
+            fixed = []
+            for value in rewards[key]:
+                found = ALIASES.get(value.lower()) or ids.get(value.lower()) or ids.get(value)
+                if not found:
+                    raise SystemExit(f"Scenario {number}: unknown achievement {value!r} in {key}")
+                fixed.append(found)
+            rewards[key] = fixed
+    return rewards
 
 
 def normalize_requirements(requirements, labels):
@@ -114,6 +139,13 @@ def summarize_effect(effect):
         result = {"type": "item", "item": int(values[0])}
     elif kind == "randomItemDesign":
         result = {"type": "randomItemDesign"}
+    elif kind in ("scenarioCondition", "scenarioDamage", "discard", "discardOne", "consumeItem",
+                  "consumeCollectiveItem", "scenarioSingleMinus1"):
+        # At the start of the next scenario: kept so the page can remind the party.
+        result = {"type": "nextScenario", "what": kind, "values": values}
+    elif kind in ("battleGoal", "loseBattleGoal"):
+        # Battle-goal checkmarks gained or lost (each character).
+        result = {"type": "checkmarks", "amount": (1 if kind == "battleGoal" else -1) * int(values[0] if values else 1)}
     elif kind == "choose":
         result = {"type": "choose", "of": [e for e in map(summarize_effect, values) if e]}
     else:
@@ -199,6 +231,10 @@ def perk_text(perk):
     if perk["type"] == "custom":
         return CUSTOM_PERKS.get(perk["custom"], perk["custom"])
     cards = [cards_text(c) for c in perk.get("cards", [])]
+    # Some "add" perks also ignore negative item or scenario effects, as the
+    # sheet words it: "Ignore negative item effects and add one +1 card".
+    if perk.get("custom") and perk["type"] == "add":
+        return CUSTOM_PERKS.get(perk["custom"], perk["custom"]) + " and add " + " and ".join(cards)
     if perk["type"] == "remove":
         return "Remove " + " and ".join(cards)
     if perk["type"] == "replace":
@@ -282,7 +318,13 @@ def resolve(text, labels, spoiler_labels, item_names):
 
 # How the tracker counts a step the source leaves to the players, when
 # campaign.json records enough to count it.
-TRACK_OVERRIDES = {("510", 1): "scenarioName:Crypt"}
+# Regions follow the official FAQ's lists (Dagger Forest for 521, Lingering
+# Swamp for 529).
+TRACK_OVERRIDES = {
+    ("510", 1): "scenarioName:Crypt",
+    ("521", 1): "scenarioIn:3,28,29,38,43,44,48,55,56,59,81,91",
+    ("529", 1): "scenarioIn:19,32,45,49,61,62,68,79",
+}
 
 
 def build_quests(labels, spoiler_labels, item_names):
@@ -338,6 +380,8 @@ def main():
             scenario["treasures"] = sorted(tiles, key=int)
         if "requirements" in scenario:
             scenario["requirements"] = normalize_requirements(scenario["requirements"], labels)
+        if "rewards" in scenario:
+            scenario["rewards"] = normalize_rewards(scenario["rewards"], labels, number)
         scenarios[str(number)] = scenario
         print(f"#{number} {data['name']}")
 
