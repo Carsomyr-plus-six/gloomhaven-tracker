@@ -66,7 +66,7 @@ The form starts with whoever is picked to play on the Overview's scenario level.
 Some things can be recorded straight from where you see them, each opening the form at the right row:
 - **A perk to choose:** **Record it** in **Before you play** on the Overview, or on the character's sheet. Once picked, the perk stops being asked for while the draft waits to be saved.
 - **A scenario you can play:** **Record it** in its details under Scenarios, at tonight's level.
-- **Items:** in the Shop, pick who is shopping (this phone's character to start with). **Buy** shows on what they can afford and have room for, and **Sell** on what they carry; either puts it in the draft and stays in the Shop, the item then saying it's in the draft. **Can buy** narrows the list to what they could buy. The Shop counts the draft: its purchases take gold, slots and copies, and its sales free them. On a phone, Buy and Sell show on the phone recording the evening only.
+- **Items:** in the Shop, pick who is shopping (this phone's character to start with). **Buy** shows on what they can afford and have room for, and **Sell** on what they carry; either puts it in the draft and stays in the Shop, the item then saying it's in the draft. **Can buy** narrows the list to what they could buy. The Shop counts the draft: its purchases take gold, slots and copies, and its sales free them. On a phone, Buy and Sell show on the phone recording the evening only. In the form, a purchase, sale, perk or donation added on a phone starts with that phone's character.
 - **An enhancement:** **Record it** on the enhancement calculator, for whoever is shopping or picked in the form; the gold comes off when it's saved.
 
 A form opened and closed with nothing in it leaves no draft behind.

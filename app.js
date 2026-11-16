@@ -1442,7 +1442,7 @@ function scenarioRow(data, s, depth = 0, lines = []) {
     return rail;
   });
 
-  const row = h("article", { class: `row${open ? " open" : ""}${depth ? " in-tree" : ""}`, id: `scenario-${s.number}`, "data-scenario": s.number },
+  const row = h("article", { class: `row${open ? " open" : ""}${depth ? " in-tree" : ""}${s.status === "blocked" ? " blocked" : ""}`, id: `scenario-${s.number}`, "data-scenario": s.number },
     rails,
     h("button", {
         type: "button", class: "row-head", "data-key": `row-${s.number}`, "aria-expanded": String(open),
@@ -3041,6 +3041,9 @@ function renderRecorder(data) {
   const partyOptions = [["", "Who?"], ...party.map(c => [c.name, c.name])];
   // Perks are taken in town, by anyone still adventuring.
   const activeOptions = [["", "Who?"], ...[...active, ...newcomers].map(c => [c.name, c.name])];
+  // On a phone, the rows it adds (a purchase, a sale, a perk, a donation)
+  // start with the phone's own character, as the Shop does.
+  const mine = phone.matches && active.some(c => c.name === me) ? me : "";
   const available = data.scenarios.filter(s => s.status === "available").sort((a, b) => a.number - b.number);
 
   // What the campaign would look like with this draft saved: the events'
@@ -3463,10 +3466,12 @@ function renderRecorder(data) {
               h("span", { class: "small muted rec-note" }, `${x.what}: ${x.cost} gold`),
               remove(d.enhancements, i, "enhancement", "add-buy")))) : null,
       h("div", { class: "rec-buttons" },
-        addButton("add-buy", "Buy an item", () => d.buys.push({ character: "", item: "" }), () => `buy-${d.buys.length - 1}-c`),
-        addButton("add-sell", "Sell an item", () => d.sells.push({ character: "", item: "" }), () => `sell-${d.sells.length - 1}-c`),
-        addButton("add-perk", "Take a perk", () => d.perks.push({ character: "", perk: "" }), () => `perk-${d.perks.length - 1}-c`),
-        addButton("add-donation", "Donate to the Sanctuary", () => d.donations.push({ character: "" }), () => `don-${d.donations.length - 1}-c`)),
+        // On a phone, for its own character to start with; the next box is
+        // then what they buy, sell, take or give.
+        addButton("add-buy", "Buy an item", () => d.buys.push({ character: mine, item: "" }), () => `buy-${d.buys.length - 1}-${mine ? "i" : "c"}`),
+        addButton("add-sell", "Sell an item", () => d.sells.push({ character: mine, item: "" }), () => `sell-${d.sells.length - 1}-${mine ? "i" : "c"}`),
+        addButton("add-perk", "Take a perk", () => d.perks.push({ character: mine, perk: "" }), () => `perk-${d.perks.length - 1}-${mine ? "p" : "c"}`),
+        addButton("add-donation", "Donate to the Sanctuary", () => d.donations.push({ character: party.some(c => c.name === mine) ? mine : "" }), () => `don-${d.donations.length - 1}-c`)),
       !rawCampaign.city?.envelopeB && (rawCampaign.city?.donations || 0) + DONATION * d.donations.filter(x => x.character).length >= ENVELOPE_B_DONATIONS
         ? h("label", { class: "rec-check" },
             h("input", { type: "checkbox", "data-key": "rec-envelope-b", checked: Boolean(d.envelopeB), onchange: set(d, "envelopeB", true) }),

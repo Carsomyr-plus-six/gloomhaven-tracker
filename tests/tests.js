@@ -323,6 +323,11 @@ async function runTests(load, loadText) {
     ["sun", 2, false, false, true], ["eclipse", 0, false, false, true], ["events-plus-20", 2, false, false, false],
     ["events-minus-20", 0, false, false, false], ["drake", 0, false, false, false], ["envelope-x", 0, false, false, true],
   ]);
+  // Reputation milestones count the highest and lowest reached, and say so
+  // where reputation now stands elsewhere.
+  same("milestones: reputation, as reached and as it stands",
+    milestoneStates(buildData(copy(raw))).filter(m => ["sun", "eclipse"].includes(m.id)).map(m => m.says),
+    ["+2 of +10 reputation", "0 of −10 reputation: the lowest so far, now +2"]);
 
   return results;
 }
