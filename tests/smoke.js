@@ -123,6 +123,33 @@ async function runSmoke() {
       if (!shown.some(s => s.innerText.trim())) empty.push(tab);
     }
     check("phone: every tab is drawn once shown", !empty.length, empty.length ? `nothing drawn on ${empty.join(", ")}` : "all drawn");
+    // The attack modifier deck, on the Play tab: every column the same box
+    // (a shared top, bottom and width), no label wider than its column, and
+    // a Curse added at the end shows as a block and a pip, then taken out.
+    // A character's table state isn't kept by data file, so it's put back.
+    {
+      doc.querySelector('.tabs a[data-tab="play"]')?.click();
+      await wait(150);
+      const deck = () => doc.querySelector(".char-card .deck-block");
+      const name = doc.querySelector(".char-card")?.dataset.char;
+      const kept = frame.contentWindow.localStorage.getItem(`table:${name}`);
+      const boxes = [...(deck()?.querySelectorAll(".deck-stack") || [])].map(s => { const r = s.getBoundingClientRect(); return `${Math.round(r.top)}/${Math.round(r.bottom)}/${Math.round(r.width)}`; });
+      const wide = [...(deck()?.querySelectorAll(".deck-label") || [])].filter(l => l.scrollWidth > l.clientWidth + 1).map(l => l.innerText);
+      const pips = () => deck()?.querySelectorAll(".deck-pips i").length || 0;
+      const blocks = () => deck()?.querySelectorAll(".deck-col.curse i").length || 0;
+      doc.querySelector(`[data-key="cond-curse-up-${name}"]`)?.click();
+      await wait(80);
+      const added = [pips(), blocks()];
+      doc.querySelector(`[data-key="cond-curse-down-${name}"]`)?.click();
+      await wait(80);
+      const store = frame.contentWindow.localStorage;
+      if (kept === null) store.removeItem(`table:${name}`); else store.setItem(`table:${name}`, kept);
+      check("phone: the deck's columns line up, and a Curse added at the end shows",
+        boxes.length > 8 && new Set(boxes).size === 1 && !wide.length && added.join() === "1,1" && pips() === 0 && !errors.length,
+        errors.join("; ") || `${boxes.length} columns, ${new Set(boxes).size} sizes, too wide: ${wide.join(", ") || "none"}; a Curse added: ${added[0]} pip, ${added[1]} block; taken out: ${pips()} pips`);
+      doc.querySelector('.tabs a[data-tab="tonight"]')?.click();
+      await wait(150);
+    }
     [...doc.querySelectorAll("button")].find(b => b.innerText.trim().startsWith("Record the evening"))?.click();
     await wait(200);
     check("phone: the form opens over Tonight, drawn from the Campaign tab's section",
