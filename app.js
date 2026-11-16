@@ -2801,6 +2801,8 @@ function renderCharacters(data) {
               // Only a level 1 character with under 3 checkmarks has none earned.
               : `None yet: the first comes at level 2, or with ${plural(3 - c.checkmarks % 3, "more battle-goal checkmark")}.`)),
       // The attack modifier deck those perks make, to build at the table.
+      // Phones: the ability cards in hand, discarded and lost.
+      c.retired ? null : cardBlock(c),
       attackDeckBlock(c, check.rows),
       // Phones: the conditions on them in the scenario being played.
       c.retired ? null : condBlock(c),
@@ -2883,7 +2885,7 @@ function tableState(name) {
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(tableKey(name))); } catch {}
   // hp null: at full health, whatever the maximum is by then.
-  return { hp: null, xp: 0, coins: 0, items: {}, conds: {}, ...(saved && typeof saved === "object" ? saved : {}) };
+  return { hp: null, xp: 0, coins: 0, items: {}, conds: {}, cards: null, ...(saved && typeof saved === "object" ? saved : {}) };
 }
 // The tracker and the items each save their own part over what's stored.
 function saveTable(name, part) {
@@ -2893,8 +2895,9 @@ function saveTable(name, part) {
 // Items at the table (phones): tapping one marks it used, as its card is
 // turned sideways (spent) or face down (consumed); one with circles takes a
 // tap for each use, the last one using it up. Tapping a used item readies
-// it again, as a refresh does. A long rest refreshes every spent item.
-// Items that are never used up are listed, not buttons.
+// it again, as a refresh does. Refresh readies every spent item, as a long
+// rest does (the Cards block's Long rest does it too). Items that are never
+// used up are listed, not buttons.
 const USED_WORDS = { spent: "Spent", consumed: "Consumed" };
 
 function itemTrack(c) {
@@ -2937,8 +2940,104 @@ function itemTrack(c) {
     })),
     spent.length ? h("button", { type: "button", class: "btn item-rest", "data-key": `item-rest-${c.name}`,
       onclick: change(`item-rest-${c.name}`, () => { for (const n of spent) delete marks[n]; }) },
-      icon("replay"), `Long rest: refresh ${spent.length === 1 ? "the spent item" : `${spent.length} spent items`}`) : null);
+      icon("replay"), `Refresh ${spent.length === 1 ? "the spent item" : `${spent.length} spent items`}`) : null);
   return box;
+}
+
+// Ability cards at the table (phones): how many are in hand, in the discard
+// pile and lost, starting from the class's hand size. Cards played go from
+// hand to discard or lost; a rest, which needs two cards in the discard pile,
+// takes them back into hand but one, which is lost: at random in a short
+// rest, chosen in a long one, which also heals 2 and refreshes spent items
+// (rulebook p. 17). A character who can't play two cards or rest is
+// exhausted. Only counts are kept, not which cards.
+function handSize(c) {
+  const id = classId(c.class);
+  return (id && classRef.classEvents?.[id]?.handSize) || null;
+}
+function cardPiles(c) {
+  return tableState(c.name).cards || { hand: handSize(c) || 0, discard: 0, lost: 0 };
+}
+
+// The most rounds left: two cards a round, all to the discard pile, with a
+// short rest (which takes no round) whenever the hand runs out.
+function roundsLeft({ hand, discard }) {
+  let rounds = 0;
+  for (;;) {
+    if (hand >= 2) { hand -= 2; discard += 2; rounds++; }
+    else if (discard >= 2) { hand += discard - 1; discard = 0; }
+    else return rounds;
+  }
+}
+
+const cardUndo = new Map();   // per character, this visit only
+
+function cardBlock(c) {
+  const piles = cardPiles(c);
+  const undo = cardUndo.get(c.name) || [];
+  const card = () => document.querySelector(`.char-card[data-char="${CSS.escape(c.name)}"]`);
+  // One move, saved, with what it changes kept to undo: the piles, and for a
+  // long rest the hit points and items too.
+  const move = (key, can, fn, also) => (...label) => h("button", {
+    type: "button", class: "btn pile-move", "data-key": `${key}-${c.name}`, "aria-disabled": String(!can),
+    onclick: () => {
+      if (!can) return;
+      const before = tableState(c.name);
+      cardUndo.set(c.name, [...undo, also ? { cards: piles, hp: before.hp, items: before.items } : { cards: piles }].slice(-20));
+      const next = { ...piles };
+      fn(next);
+      saveTable(c.name, { cards: next });
+      also?.();
+      redraw(`${key}-${c.name}`);
+    } }, ...label);
+  const redraw = key => {
+    const fresh = cardBlock(c);
+    block.replaceWith(fresh);
+    const target = fresh.querySelector(`[data-key="${CSS.escape(key)}"]`);
+    (target?.getAttribute("aria-disabled") === "true" ? fresh.querySelector('.pile-move[aria-disabled="false"]') : target)?.focus({ preventScroll: true });
+  };
+  const canRest = piles.discard >= 2;
+  const left = roundsLeft(piles);
+  const exhausted = piles.hand < 2 && !canRest;
+  const pile = (name, n, kind) => h("div", { class: `pile ${kind}${n ? "" : " none"}` },
+    h("output", { class: "num", "aria-live": "polite" }, String(n), h("span", { class: "sr-only" }, ` ${n === 1 ? "card" : "cards"} ${name === "Hand" ? "in hand" : name === "Discard" ? "in the discard pile" : "lost"}`)),
+    h("span", { class: "label", "aria-hidden": "true" }, name));
+
+  const block = h("div", { class: "block card-block", id: `cards-${c.name}` },
+    h("div", { class: "block-head" }, h("h4", { class: "label" }, "Ability cards"),
+      h("span", { class: `small${exhausted ? " pile-warn" : " muted"}` },
+        exhausted ? "Exhausted" : piles.hand < 2 ? "Rest this round" : `Up to ${plural(left, "round")} left`)),
+    h("div", { class: "piles" }, pile("Hand", piles.hand, "hand"), pile("Discard", piles.discard, "discard"), pile("Lost", piles.lost, "lost")),
+    h("div", { class: "pile-row" }, h("span", { class: "label" }, "Play"),
+      move("pile-discard", piles.hand > 0, p => { p.hand--; p.discard++; })("To discard"),
+      move("pile-lose", piles.hand > 0, p => { p.hand--; p.lost++; })("To lost")),
+    h("div", { class: "pile-row" }, h("span", { class: "label" }, "Rest"),
+      move("pile-short", canRest, p => { p.hand += p.discard - 1; p.lost++; p.discard = 0; })("Short rest"),
+      move("pile-long", canRest, p => { p.hand += p.discard - 1; p.lost++; p.discard = 0; }, () => {
+        // Heal 2 and refresh spent items, on the tracker and the item list.
+        const st = tableState(c.name);
+        const max = maxHealth(c);
+        const marks = st.items || {};
+        for (const n of Object.keys(marks)) if (marks[n]?.down && itemInfo(n)?.use === "spent") delete marks[n];
+        saveTable(c.name, { hp: max ? Math.min(max, (st.hp ?? max) + 2) : st.hp, items: marks });
+        card()?.querySelector(".item-track")?.replaceWith(itemTrack(c));
+        card()?.querySelector(".table-dock")?.replaceWith(tableDock(c));
+      })("Long rest")),
+    h("div", { class: "pile-row pile-more" },
+      move("pile-burn", piles.discard > 0, p => { p.discard--; p.lost++; })("Lose from discard"),
+      move("pile-recover", piles.lost > 0, p => { p.lost--; p.hand++; })("Recover lost"),
+      undo.length ? h("button", { type: "button", class: "btn quiet pile-undo", "data-key": `pile-undo-${c.name}`,
+        onclick: () => {
+          cardUndo.set(c.name, undo.slice(0, -1));
+          saveTable(c.name, undo.at(-1));
+          card()?.querySelector(".item-track")?.replaceWith(itemTrack(c));
+          card()?.querySelector(".table-dock")?.replaceWith(tableDock(c));
+          redraw(`pile-undo-${c.name}`);
+        } }, icon("replay"), "Undo") : null),
+    h("p", { class: "small muted" }, canRest
+      ? "A short rest loses a random card; a long rest takes the round, loses the card you choose, heals 2 and refreshes spent items."
+      : "Resting needs two cards in the discard pile."));
+  return block;
 }
 
 // Conditions at the table (phones), as the tokens on the character's mat:
@@ -3049,7 +3148,7 @@ function tableDock(c) {
   // Starting over asks twice: a slip of the thumb would lose the evening.
   let armed = null;
   const reset = h("button", { type: "button", class: "dock-reset", "data-key": `dock-reset-${c.name}`,
-    "aria-label": "New scenario: full hit points, no XP, coins or conditions, every item ready",
+    "aria-label": "New scenario: full hit points and hand, no XP, coins or conditions, every item ready",
     onclick: () => {
       if (!armed) {
         reset.classList.add("armed");
@@ -3059,12 +3158,14 @@ function tableDock(c) {
       }
       disarm();
       Object.assign(state, { hp: null, xp: 0, coins: 0 });
-      saveTable(c.name, { hp: null, xp: 0, coins: 0, items: {}, conds: {} });
+      saveTable(c.name, { hp: null, xp: 0, coins: 0, items: {}, conds: {}, cards: null });
+      cardUndo.delete(c.name);
       paint();
       // Every item ready again, on the sheet above.
       const items = document.querySelector(`.char-card[data-char="${CSS.escape(c.name)}"] .item-track`);
       items?.replaceWith(itemTrack(c));
       document.getElementById(`conds-${c.name}`)?.replaceWith(condBlock(c));
+      document.getElementById(`cards-${c.name}`)?.replaceWith(cardBlock(c));
       dock.querySelector(".dock-conds")?.replaceWith(condStrip(c));
     } }, icon("replay"));
   const disarm = () => { clearTimeout(armed); armed = null; reset.classList.remove("armed"); reset.replaceChildren(icon("replay")); };
