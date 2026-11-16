@@ -53,6 +53,7 @@ function scenarioStats(level) {
     gold: [2, 2, 3, 3, 4, 4, 5, 6][level],
     trap: 2 + level,
     xp: 4 + 2 * level,
+    hazard: 1 + Math.ceil(level / 3),
   };
 }
 
@@ -552,6 +553,8 @@ function renderOverview(data) {
       // Phones split the Overview: setting up tonight on the Tonight tab,
       // reputation, prosperity and the party on the Campaign tab (data-tab).
       h("div", { class: "tiles" }, levelTile(data), reputationTile(party, data.ledger), prosperityTile(city, data.ledger)),
+      // Phones: the scenario picked for tonight, to set up by.
+      scenarioCard(data),
       h("div", { class: "hero-side" },
         todoList(data),
         h("div", { class: "ready", "data-tab": "tonight" },
@@ -561,8 +564,12 @@ function renderOverview(data) {
           ready.length
             ? h("div", { class: "ready-list" }, ready.map(s => {
                 const tried = attemptsText(data, s.number);
-                return h("a", { class: "ready-card", href: "#scenarios", onclick: () => openScenario(data, s.number),
-                                "aria-label": [`#${s.number} ${s.name || "Untitled"}`, from(s), tried ? capitalize(tried) : null].filter(Boolean).join(", ") },
+                // A phone picks it for tonight, here; a wide screen opens its details.
+                const picked = tonightScenario(data)?.number === s.number;
+                return h("a", { class: `ready-card${picked ? " picked" : ""}`, href: "#scenarios", "data-key": `ready-${s.number}`,
+                                onclick: e => { if (phone.matches) { e.preventDefault(); pickTonight(data, s.number); } else openScenario(data, s.number); },
+                                "aria-current": picked ? "true" : null,
+                                "aria-label": [`#${s.number} ${s.name || "Untitled"}`, from(s), tried ? capitalize(tried) : null, picked ? "tonight's scenario" : null].filter(Boolean).join(", ") },
                   hex(s.number),
                   h("span", {},
                     h("span", { class: "ready-name" }, s.name || "Untitled"),
@@ -572,6 +579,86 @@ function renderOverview(data) {
             : empty("Nothing is unlocked to play right now.")))),
     partyList(data),
   ];
+}
+
+// --- Tonight's scenario (phones) ----------------------------------------------
+// Tapping a Ready to play card on a phone picks it for tonight, and the
+// Tonight tab shows what setting it up needs: its level's numbers, whether a
+// road event comes first, its treasure tiles, and each player's hand size
+// and hit points. Kept in this browser; a scenario no longer open to play is
+// forgotten. Without a pick, the first scenario in the draft stands in.
+const PICK_KEY = storeKey("tonightScenario");
+let tonightPick = null;
+try { tonightPick = Number(localStorage.getItem(PICK_KEY)) || null; } catch {}
+
+function pickTonight(data, number) {
+  tonightPick = number;
+  try { if (number) localStorage.setItem(PICK_KEY, String(number)); else localStorage.removeItem(PICK_KEY); } catch {}
+  render(data, "overview");
+  const card = document.querySelector(".scen-ref");
+  if (card) { card.scrollIntoView({ block: "start", behavior: "instant" }); card.focus({ preventScroll: true }); }
+  else document.querySelector(".ready-card")?.focus();
+}
+
+function tonightScenario(data) {
+  const open = n => data.scenarios.find(s => s.number === n && s.status === "available") || null;
+  const drafted = (draft?.scenarios || []).map(s => num(s.number)).find(n => n && open(n));
+  return open(tonightPick) || (drafted ? open(drafted) : null);
+}
+
+// The last scenario played, as straightOn() reads it.
+function lastPlayed(data) {
+  return [...data.sessions].filter(s => s.date && s.scenarios?.length)
+    .sort((a, b) => b.date.localeCompare(a.date))[0]?.scenarios.at(-1) || null;
+}
+
+// Whether a road event comes before this scenario (rulebook p. 41).
+function roadEventText(data, number) {
+  if (!needsRoadEvent(number)) return "None: it's linked to Gloomhaven";
+  const last = lastPlayed(data);
+  if (last && last.number === number && last.result !== "success") return `None to retry it straight away; from town, draw one`;
+  const links = (scenarioRef?.scenarios?.[String(last?.number)]?.links || []).map(Number);
+  if (links.includes(number)) return `None going straight on from #${last.number}; from town, draw one`;
+  return "Draw one on the way";
+}
+
+function scenarioCard(data) {
+  const s = tonightScenario(data);
+  if (!s) return null;
+  const ref = scenarioRef?.scenarios?.[String(s.number)] || {};
+  const t = tonight(data);
+  const playing = characterOrder(data).filter(c => !c.retired && levelParty?.has(c.name));
+  const looted = new Set((s.treasures || []).map(x => String(x.number ?? x)));
+  const tiles = ref.treasures || [];
+  const facts = [
+    ["Road event", roadEventText(data, s.number)],
+    ["Treasure", tiles.length ? tiles.map(n => looted.has(String(n)) ? `${n} (looted)` : String(n)).join(", ") : "None"],
+    ["Boss", ref.boss ? "Yes" : null],
+    ["Rewards", s.rewards?.length ? capitalize(s.rewards.join(", ")) : null],
+  ].filter(([, v]) => v);
+  const fact = (label, value) => h("span", {}, h("b", { class: "num" }, value), " ", label);
+  return h("section", { class: "card scen-ref", "data-tab": "tonight", tabindex: "-1", "aria-labelledby": "scen-ref-title" },
+    h("div", { class: "scen-ref-head" },
+      hex(s.number),
+      h("div", {},
+        h("span", { class: "label" }, "Tonight's scenario"),
+        h("h2", { id: "scen-ref-title" }, s.name || `Scenario ${s.number}`)),
+      tonightPick === s.number ? h("button", { type: "button", class: "btn quiet scen-ref-change", "data-key": "scen-ref-change",
+        onclick: () => pickTonight(data, null) }, "Change") : null),
+    // The level's numbers, as the monster stat cards and the map need them.
+    t ? h("p", { class: "ref-level" },
+          fact("monster level", t.level), fact("trap damage", t.trap), fact("hazardous terrain", t.hazard),
+          fact("gold a coin", t.gold), fact("bonus XP", `+${t.xp}`))
+      : h("p", { class: "small muted" }, "Pick who is playing, under Scenario level, for the numbers."),
+    h("dl", { class: "facts" }, facts.map(([k, v]) => h("div", {}, h("dt", {}, k), h("dd", {}, v)))),
+    // Each player's setup.
+    playing.length ? h("div", { class: "ref-players" },
+      h("h3", { class: "label" }, "Each player"),
+      h("ul", {}, playing.map(c => h("li", {},
+        h("strong", {}, c.name),
+        h("span", {}, [handSize(c) ? plural(handSize(c), "card") : null, maxHealth(c) ? `${maxHealth(c)} HP` : null].filter(Boolean).join(" · "))))),
+      h("p", { class: "small muted" }, "Deal each player two battle goals; each keeps one.")) : null,
+    h("a", { class: "ref-more", href: "#scenarios", onclick: () => openScenario(data, s.number) }, "Its details under Scenarios"));
 }
 
 // Going straight on from the last scenario played to one linked to it needs
@@ -643,7 +730,8 @@ function tonightStrip(data) {
     step(3, "Road event", drawn("road") || (decks ? `${decks.road.size} in the deck` : "Draw one") + straightOn(data), "#events",
       () => recordEvent(data, "road"), Boolean(drawn("road"))),
     step(4, "Scenario", (played.length ? played.map(s => scenarioLabel(data, num(s.number))).join(", ")
-      : t ? `Level ${t.level} · deal battle goals` : anyone ? "Pick who is playing" : "Add characters first"), anyone ? "#scenarios" : "#sessions",
+      : t ? (tonightScenario(data) ? `${scenarioLabel(data, tonightScenario(data).number)} · level ${t.level}` : `Level ${t.level} · deal battle goals`)
+      : anyone ? "Pick who is playing" : "Add characters first"), anyone ? "#scenarios" : "#sessions",
       played.length ? () => showInRecorder(data, `sc-${firstPlayed}-n`) : anyone ? null : () => addNewcomer(data), played.length > 0),
     rawCampaign ? h("button", { type: "button", class: `btn${recording ? "" : " primary"} tonight-record`, "data-key": "tonight-record",
       onclick: () => { if (!draft) draft = newDraft(data); showInRecorder(data, "rec-date"); } },

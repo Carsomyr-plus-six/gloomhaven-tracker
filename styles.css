@@ -627,8 +627,9 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .perks > li.open { color: var(--fg-3); }
 .item-list > li { gap: 10px; }
 .item-list .gicon, .slot-blank { flex: none; width: 1.15em; height: 1.15em; margin: 0; color: var(--fg-3); }
-/* Cards, items and conditions to track at the table: phones only. */
-.item-track, .cond-block, .card-block { display: none; }
+/* Cards, items and conditions to track at the table, and tonight's
+   scenario to set up: phones only. */
+.item-track, .cond-block, .card-block, .scen-ref { display: none; }
 .perks .perk-text { flex: 1; }
 .perks .icon { font-size: var(--t-md); color: var(--verdigris); stroke-width: 2.8; }
 .perks .unsure .icon { color: var(--brass); stroke-width: 2.2; }
@@ -1133,6 +1134,23 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .hero-decor { display: none; }
   .hero-side { display: contents; }
   .ready { align-self: stretch; order: 1; }
+  /* Tonight's scenario, picked from Ready to play below it. */
+  .scen-ref { order: 1; display: flex; flex-direction: column; gap: 14px; scroll-margin-top: 16px; }
+  .scen-ref:focus { outline: none; }
+  .scen-ref-head { display: flex; align-items: center; gap: 12px; }
+  .scen-ref-head .hex { --w: 48px; }
+  .scen-ref-head > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .scen-ref-head h2 { font: 700 var(--d-sm)/1.1 var(--display); overflow-wrap: break-word; }
+  .scen-ref-change { flex: none; min-height: 44px; }
+  .ref-level { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ref-level > span { padding: 4px 10px; border: 1px solid var(--line); border-radius: var(--r-pill); font-size: var(--t-sm); color: var(--muted); }
+  .ref-level b { font-weight: 700; color: var(--fg); }
+  .ref-players { display: flex; flex-direction: column; gap: 6px; }
+  .ref-players ul { display: flex; flex-direction: column; }
+  .ref-players li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line-soft); }
+  .ref-players li span { color: var(--fg-2); }
+  .ref-more { display: inline-flex; align-items: center; min-height: 44px; align-self: flex-start; font-weight: 600; color: var(--fg-2); }
+  .ready-card.picked { border-color: var(--brass); }
   .tiles { order: 2; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .level-tile { grid-area: auto; grid-column: 1 / -1; }
   .rep-tile, .prosp-tile { grid-area: auto; }
