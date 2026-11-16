@@ -1439,6 +1439,7 @@ function scenarioRow(data, s, depth = 0, lines = []) {
   const open = scenarioOpen === s.number;
   const blockedWhy = s.status === "blocked" && s.reasons.length ? s.reasons.join(" · ") : null;
   const tried = attemptsText(data, s.number);
+  const took = open ? completionResults(data, s.number) : [];
   const meta = s.status === "completed"
     ? [formatDate(s.completed), s.treasures?.length ? `treasure ${s.treasures.map(t => t.number || t).join(", ")}` : null, tried || null].filter(Boolean).join(" · ")
     : s.status === "available"
@@ -1476,7 +1477,7 @@ function scenarioRow(data, s, depth = 0, lines = []) {
     open ? h("div", { class: "row-body" },
       scenarioFacts(data, s),
       scenarioAction(data, s),
-      completionResults(data, s.number).length ? resultsList(completionResults(data, s.number)) : null,
+      took.length ? resultsList(took) : null,
       notes(s.notes)) : null);
   // An opened row's details start clear of the tree's lines.
   if (depth) row.style.setProperty("--indent", `${depth * TREE_STEP}px`);
@@ -1530,6 +1531,7 @@ function unlockMap(data, all, layout) {
   });
 
   const s = all.find(sc => sc.number === scenarioPicked);
+  const took = s ? completionResults(data, s.number) : [];
   return h("div", { class: "map" },
     h("div", { class: "map-scroll" }, canvas),
     s ? h("div", { class: "map-detail" },
@@ -1542,7 +1544,7 @@ function unlockMap(data, all, layout) {
               s.status === "available" ? " · ready to play" : null))),
         s.reasons.length ? h("div", { class: "reasons" }, s.reasons.map(r => h("span", {}, r))) : null,
         scenarioFacts(data, s), scenarioAction(data, s)),
-      completionResults(data, s.number).length ? h("div", {}, h("span", { class: "label" }, "What each character took home"), resultsList(completionResults(data, s.number))) : null,
+      took.length ? h("div", {}, h("span", { class: "label" }, "What each character took home"), resultsList(took)) : null,
       s.notes ? h("div", {}, h("span", { class: "label" }, "Notes"), notes(s.notes)) : null) : null);
 }
 
