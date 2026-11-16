@@ -12,7 +12,8 @@ Keeps only what the tracker needs and writes three files:
   perks (written out as on the character sheet, with how many boxes each
   has), its hit points at each level and its hand size.
 - data/gloomhaven-items.json: each item's name, cost, number of copies,
-  slot and the prosperity level that puts it in the shop. No item text.
+  slot, the prosperity level that puts it in the shop, and whether using it
+  spends or consumes it (and after how many uses). No item text.
 - data/gloomhaven-quests.json: each personal quest card: its name, its steps
   (a short label, the count, which step must come first, and how the source
   tracks it), and the class box or envelope it opens. Characters' quests are
@@ -414,8 +415,12 @@ def main():
     counts = ", ".join(f"{len(cards)} {deck}" for deck, cards in events["events"].items())
     print(f"Wrote {counts} events to {EVENTS_OUTPUT}")
 
+    # How each is used up in a scenario, for the table tracker: "spent" or
+    # "consumed" (none: always ready), and "uses", the circles to mark first.
     items = {str(item["id"]): {key: item[key] for key in ("name", "cost", "count", "slot") if key in item}
                               | ({"prosperity": item["unlockProsperity"]} if item.get("unlockProsperity") else {})
+                              | ({"use": "consumed"} if item.get("consumed") else {"use": "spent"} if item.get("spent") else {})
+                              | ({"uses": int(item["slots"])} if item.get("slots") else {})
              for item in fetch(f"{RAW}/items.json")}
     write_json(ITEMS_OUTPUT, {
         "source": f"https://github.com/{REPO}",
