@@ -166,6 +166,7 @@ const ICONS = {
   lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
   chevron: '<path d="M6 9l6 6 6-6"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
+  minus: '<path d="M5 12h14"/>',
   question: '<circle cx="12" cy="12" r="9"/><path d="M9.500 9.500a2.500 2.500 0 1 1 3.600 2.200c-.700.400-1.100 1-1.100 1.800"/><path d="M12 17h.010"/>',
   replay: '<path d="M4 12a8 8 0 1 0 2.400-5.700"/><path d="M4 4v4h4"/>',
   eye: '<path d="M2.500 12S6 5.500 12 5.500 21.500 12 21.500 12 18 18.500 12 18.500 2.500 12 2.500 12z"/><circle cx="12" cy="12" r="2.800"/>',
@@ -2806,7 +2807,9 @@ function renderCharacters(data) {
           const slot = itemSlot(i);
           return h("li", {}, slot ? gameIcon(`slot-${slot}`) : h("span", { class: "slot-blank", "aria-hidden": "true" }), i);
         }))) : null,
-      c.notes ? h("div", { class: "block char-notes" }, h("h4", { class: "label" }, "Notes"), notes(c.notes)) : null);
+      c.notes ? h("div", { class: "block char-notes" }, h("h4", { class: "label" }, "Notes"), notes(c.notes)) : null,
+      // Last, so it docks at the foot of the screen from the top of the sheet.
+      c.retired ? null : tableDock(c));
   };
 
   const active = order.filter(playable);
@@ -2856,6 +2859,103 @@ function renderCharacters(data) {
     active.length || inactive.length ? meLine(data) : null,
     retired.length ? [h("h3", { class: "subhead" }, "Retired"), h("div", { class: "char-grid" }, retired.map(card))] : null,
   ];
+}
+
+// --- At the table ---------------------------------------------------------------
+// While a scenario is played, a phone keeps its character's hit points, the
+// XP on their dial and the coins they've picked up, as the dials and tokens
+// do. Kept in this browser only, per character, so a locked screen or a
+// reload loses nothing; New scenario starts again at full health. Hit points
+// by class and level: data/gloomhaven-events.json.
+
+function maxHealth(c) {
+  const id = classId(c.class);
+  return (id && classRef.classEvents?.[id]?.health?.[characterStats(c).level - 1]) || null;
+}
+
+const tableKey = name => storeKey(`table:${name}`);
+function tableState(name) {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(tableKey(name))); } catch {}
+  // hp null: at full health, whatever the maximum is by then.
+  return { hp: null, xp: 0, coins: 0, ...(saved && typeof saved === "object" ? saved : {}) };
+}
+function saveTable(name, state) {
+  try { localStorage.setItem(tableKey(name), JSON.stringify(state)); } catch {}
+}
+
+// Docked at the foot of the screen, above the tabs, while the sheet scrolls
+// under it: the counters stay under the thumb. Phones only (styles.css).
+// Each tap changes the numbers in place, so the sheet doesn't redraw and a
+// screen reader hears the new value.
+function tableDock(c) {
+  const max = maxHealth(c);
+  const state = tableState(c.name);
+  const hp = () => Math.max(0, Math.min(max, state.hp ?? max));
+  // Each value says what it counts, so a screen reader hears "5 XP".
+  const out = () => h("output", { class: "dock-value num", "aria-live": "polite" });
+  const hpOut = out(), xpOut = out(), coinsOut = out();
+  const bar = h("span");
+  const hpLabel = h("span", { class: "label", "aria-hidden": "true" }, "HP");
+  const dock = h("section", { class: "table-dock", "aria-label": `${c.name}: this scenario` });
+  const steps = [];
+  const step = (key, iconName, words, can, change) => {
+    const b = h("button", { type: "button", class: "dock-step", "data-key": `dock-${key}-${c.name}`, "aria-label": words,
+      onclick: () => { if (!can()) return; change(); saveTable(c.name, state); paint(); } }, icon(iconName));
+    steps.push([b, can]);
+    return b;
+  };
+  const paint = () => {
+    if (max) {
+      hpOut.replaceChildren(String(hp()), h("span", { class: "of" }, ` / ${max}`), h("span", { class: "sr-only" }, hp() ? " hit points" : " hit points: exhausted"));
+      // At none, the character is exhausted: out of the scenario.
+      hpLabel.textContent = hp() ? "HP" : "Exhausted";
+      bar.style.width = `${Math.round(hp() / max * 100)}%`;
+      dock.classList.toggle("exhausted", hp() === 0);
+      dock.classList.toggle("hurt", hp() > 0 && hp() <= max / 3);
+    }
+    xpOut.replaceChildren(String(state.xp), h("span", { class: "dock-unit" }, " XP"));
+    coinsOut.replaceChildren(String(state.coins), h("span", { class: "dock-unit" }, state.coins === 1 ? " coin" : " coins"));
+    for (const [b, can] of steps) b.setAttribute("aria-disabled", String(!can()));
+  };
+  // Starting over asks twice: a slip of the thumb would lose the evening.
+  let armed = null;
+  const reset = h("button", { type: "button", class: "dock-reset", "data-key": `dock-reset-${c.name}`,
+    "aria-label": "New scenario: full hit points, no XP or coins",
+    onclick: () => {
+      if (!armed) {
+        reset.classList.add("armed");
+        reset.replaceChildren("Reset?");
+        armed = setTimeout(disarm, 3000);
+        return;
+      }
+      disarm();
+      Object.assign(state, { hp: null, xp: 0, coins: 0 });
+      saveTable(c.name, state);
+      paint();
+    } }, icon("replay"));
+  const disarm = () => { clearTimeout(armed); armed = null; reset.classList.remove("armed"); reset.replaceChildren(icon("replay")); };
+
+  dock.append(
+    max ? h("div", { class: "dock-row dock-hp-row" },
+      step("hp-down", "minus", "Lose 1 hit point", () => hp() > 0, () => { state.hp = hp() - 1; }),
+      h("div", { class: "dock-hp-box" },
+        h("span", { class: "dock-hp-line" }, hpLabel, hpOut),
+        h("span", { class: "dock-bar", "aria-hidden": "true" }, bar)),
+      step("hp-up", "plus", "Heal 1 hit point", () => hp() < max, () => { state.hp = hp() + 1 === max ? null : hp() + 1; }),
+      reset) : null,
+    h("div", { class: "dock-row dock-pair" },
+      h("div", { class: "dock-count" },
+        step("xp-down", "minus", "1 less XP", () => state.xp > 0, () => { state.xp -= 1; }),
+        xpOut,
+        step("xp-up", "plus", "1 more XP", () => true, () => { state.xp += 1; })),
+      h("div", { class: "dock-count" },
+        step("coins-down", "minus", "1 less coin", () => state.coins > 0, () => { state.coins -= 1; }),
+        coinsOut,
+        step("coins-up", "plus", "1 more coin", () => true, () => { state.coins += 1; })),
+      max ? null : reset));
+  paint();
+  return dock;
 }
 
 // --- Shop -----------------------------------------------------------------------
@@ -3942,6 +4042,10 @@ function renderRecorder(data) {
     return `= ${g.xp} XP, ${g.gold} gold`;
   };
   const reward = n => scenarioRef?.scenarios?.[String(n)]?.rewards;
+  const tracked = name => {
+    const t = tableState(name);
+    return t.xp || t.coins ? `${t.xp} XP, ${plural(t.coins, "coin")}` : null;
+  };
   const scenarioBlock = (s, i) => {
     const n = num(s.number);
     s.level ??= String(draftLevel(s, data));
@@ -3986,6 +4090,12 @@ function renderRecorder(data) {
               ? field("Gold", text(`sc-${i}-${c.name}-gold`, r, "gold", { type: "number", min: 0, inputmode: "numeric", "aria-label": `${c.name}: gold` }), "short")
               : field(["Coins", h("b", { class: "field-op" }, ` ×${st.gold}`)],
                   text(`sc-${i}-${c.name}-coins`, r, "coins", { type: "number", min: 0, inputmode: "numeric", "aria-label": `${c.name}: coins, ${st.gold} gold each` }), "short"),
+            // What this phone tracked at the table, to fill in with a tap.
+            tracked(c.name) && !filled(r.xp) && !filled(r.coins) && !filled(r.gold)
+              ? h("button", { type: "button", class: "chip rec-tracked", "data-key": `sc-${i}-${c.name}-tracked`,
+                  onclick: () => { const t = tableState(c.name); r.xp = String(t.xp); r.coins = String(t.coins); rerender(); focusOn(`sc-${i}-${c.name}-xp`); } },
+                  `From this phone: ${tracked(c.name)}`)
+              : null,
             s.result === "success"
               ? field("Checkmarks", text(`sc-${i}-${c.name}-cm`, r, "checkmarks", { type: "number", min: 0, max: 3, inputmode: "numeric", "aria-label": `${c.name}: battle goal checkmarks` }), "short")
               : null,

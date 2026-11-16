@@ -567,6 +567,8 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 }
 /* Not playing for now: dashed, as an away character is in the party picker. */
 .char-card.inactive { border-style: dashed; border-color: var(--line-strong); }
+/* The table tracker is for a phone in hand: wide screens show the campaign. */
+.table-dock { display: none; }
 .char-head { display: flex; align-items: center; gap: 14px; }
 .char-level { flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .char-level .hex { --w: 52px; }
@@ -962,6 +964,9 @@ dialog.who > .btn { width: 100%; justify-content: center; }
   background: var(--surface); color: var(--fg); font-weight: 600; cursor: pointer; }
 .rec-picks .chip:hover { border-color: var(--fg-3); }
 .rec-picks .hex { --w: 24px; }
+/* What the player's phone tracked at the table, to fill their boxes. */
+.chip.rec-tracked { align-self: center; min-height: 44px; padding: 4px 14px; background: var(--surface); color: var(--fg); font-family: inherit; font-weight: 600; cursor: pointer; }
+.chip.rec-tracked:hover { border-color: var(--fg-3); }
 /* "Record it" under a scenario you can play. */
 .scenario-record { align-self: flex-start; }
 .rec-block > .btn, .rec-results > .btn { align-self: flex-start; }
@@ -1248,6 +1253,57 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .perk-nudge { padding: 12px 14px; border-radius: var(--r-md); }
   .char-notes .notes { font-size: var(--t-md); color: var(--fg-2); }
 
+  /* At the table: hit points, XP and coins, docked just above the tabs while
+     the sheet scrolls under it, and settling at the sheet's end. */
+  .table-dock {
+    position: sticky;
+    bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+    z-index: 5;
+    display: grid;
+    gap: 8px;
+    padding: 10px;
+    background: var(--bar);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--r-lg);
+    box-shadow: 0 10px 28px rgb(0 0 0 / 0.55);
+  }
+  .table-dock > * { min-width: 0; }
+  .dock-row { display: flex; align-items: center; gap: 8px; }
+  .dock-step, .dock-reset {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--r-md);
+    background: var(--surface);
+    color: var(--fg);
+    font: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .dock-step .icon { width: 20px; height: 20px; }
+  .dock-step[aria-disabled="true"] { color: var(--line-strong); cursor: default; }
+  .dock-reset { border-color: transparent; background: none; color: var(--muted); }
+  .dock-reset .icon { width: 18px; height: 18px; }
+  .dock-reset.armed { width: auto; padding: 0 12px; border-color: var(--ember-line); background: var(--ember-bg); color: var(--ember); font-size: var(--t-sm); font-weight: 600; }
+  .dock-hp-box { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .dock-hp-line { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; column-gap: 8px; }
+  .dock-hp-line .label { font-size: var(--t-xs); }
+  .dock-value { font-size: 26px; font-weight: 700; line-height: 1; }
+  .dock-value .of { font-size: var(--t-md); font-weight: 600; color: var(--muted); }
+  .dock-bar { display: flex; height: 6px; border-radius: var(--r-pill); background: var(--line); overflow: hidden; }
+  .dock-bar > span { border-radius: var(--r-pill); background: var(--verdigris); }
+  .table-dock.hurt .dock-bar > span { background: var(--brass); }
+  .table-dock.exhausted { border-color: var(--ember-line); }
+  .table-dock.exhausted .dock-hp-line > * { color: var(--ember); }
+  .dock-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding-top: 8px; border-top: 1px solid var(--line-soft); }
+  .dock-count { display: flex; align-items: center; gap: 4px; min-width: 0; }
+  .dock-count .dock-value { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: var(--t-xl); }
+  .dock-unit { font-size: var(--t-xs); font-weight: 600; color: var(--muted); }
+
   /* Scenarios */
   .filters { flex-wrap: nowrap; overflow-x: auto; margin: 0 -20px; padding: 0 20px; scrollbar-width: none; }
   .filters::-webkit-scrollbar { display: none; }
@@ -1275,4 +1331,9 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
 /* Small phones: the overview tiles get a row each. */
 @media (max-width: 359px) {
   .tiles { grid-template-columns: minmax(0, 1fr); }
+  /* The dock's two counters side by side: narrower buttons, still 44px tall. */
+  .table-dock { padding: 8px; }
+  .dock-row, .dock-pair { gap: 4px; }
+  .dock-count { gap: 2px; }
+  .dock-step { width: 38px; }
 }
