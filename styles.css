@@ -627,8 +627,8 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .perks > li.open { color: var(--fg-3); }
 .item-list > li { gap: 10px; }
 .item-list .gicon, .slot-blank { flex: none; width: 1.15em; height: 1.15em; margin: 0; color: var(--fg-3); }
-/* Items to mark as used at the table: phones only. */
-.item-track { display: none; }
+/* Items to mark as used and conditions to toggle at the table: phones only. */
+.item-track, .cond-block { display: none; }
 .perks .perk-text { flex: 1; }
 .perks .icon { font-size: var(--t-md); color: var(--verdigris); stroke-width: 2.8; }
 .perks .unsure .icon { color: var(--brass); stroke-width: 2.2; }
@@ -1232,7 +1232,7 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .block-head .xp-next { font-size: var(--t-md); }
   .char-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   /* Every part of the sheet below the XP sits in a card of its own. */
-  .char-stats > div, .quest-detail, .goal-block, .perk-block, .deck-block, .item-block, .char-notes { --under: var(--surface); padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+  .char-stats > div, .quest-detail, .goal-block, .perk-block, .deck-block, .cond-block, .item-block, .char-notes { --under: var(--surface); padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
   .gold { font-size: var(--d-lg); line-height: 1.1; }
   .quest { font-size: var(--t-xl); line-height: 1.25; }
   .quest-meter { margin-top: 8px; }
@@ -1277,6 +1277,39 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .use-dots i { width: 10px; height: 10px; border: 1.5px solid var(--box); border-radius: 50%; }
   .use-dots i.on { border-color: var(--fg-2); background: var(--fg-2); }
   .item-rest { align-self: flex-start; min-height: 44px; }
+
+  /* Conditions: tokens to toggle, on in their colour, off greyed out; Bless
+     and Curse counted, as cards in the deck. */
+  .cond-block { display: flex; flex-direction: column; gap: 12px; }
+  .cond-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .cond {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    min-height: 64px; padding: 6px 2px;
+    border: 1px solid var(--line); border-radius: var(--r-md); background: none;
+    color: var(--muted); font: inherit; font-size: var(--t-xs); font-weight: 600;
+    cursor: pointer; touch-action: manipulation;
+  }
+  .cond span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .cond-icon { display: block; width: 28px; height: 28px; }
+  .cond[aria-pressed="false"] .cond-icon, .cond-count:not(.on) .cond-icon { filter: grayscale(1); opacity: 0.45; }
+  .cond[aria-pressed="true"] { color: var(--fg); }
+  .cond.bad[aria-pressed="true"] { border-color: var(--ember-line); background: var(--ember-bg); }
+  .cond.good[aria-pressed="true"] { border-color: var(--verdigris); background: rgb(124 192 173 / 0.12); }
+  .cond-cards { display: flex; flex-direction: column; gap: 6px; }
+  .cond-count { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .cond-count .cond-icon { width: 26px; height: 26px; }
+  .cond-count-name { flex: 1; min-width: 0; font-size: var(--t-base); font-weight: 600; color: var(--muted); }
+  .cond-count.on .cond-count-name { color: var(--fg); }
+  .cond-count output { width: 1.6em; text-align: center; font-weight: 700; }
+  .cond-notes { display: flex; flex-direction: column; gap: 6px; padding-top: 10px; border-top: 1px solid var(--line-soft); font-size: var(--t-sm); color: var(--fg-2); }
+  .cond-notes strong { color: var(--fg); }
+
+  /* The dock's reminder of what's on, a tap from the toggles. */
+  .dock-conds { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 32px; padding: 0 2px 8px; border: 0; border-bottom: 1px solid var(--line-soft); background: none; cursor: pointer; }
+  .dock-conds[hidden] { display: none; }
+  .dock-cond { position: relative; display: block; }
+  .dock-cond .cond-icon { width: 24px; height: 24px; }
+  .dock-cond b { position: absolute; right: -5px; bottom: -4px; min-width: 15px; padding: 0 3px; border-radius: var(--r-pill); background: var(--fg); color: var(--bg); font-size: 10px; line-height: 15px; text-align: center; }
   .item-rest .icon { width: 16px; height: 16px; }
   .perks .icon { font-size: var(--t-lg); }
   .perk-nudge { padding: 12px 14px; border-radius: var(--r-md); }
@@ -1365,4 +1398,6 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .dock-row, .dock-pair { gap: 4px; }
   .dock-count { gap: 2px; }
   .dock-step { width: 38px; }
+  /* Three conditions to a row, so "Immobilize" and "Strengthen" fit. */
+  .cond-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }

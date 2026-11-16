@@ -43,6 +43,7 @@ ICONS = {
     "light": ("Element Icons.pdf", 5),
     "dark": ("Element Icons.pdf", 6),
     # Conditions and effects
+    "bless": ("Status Effect Icons.pdf", 1),
     "curse": ("Status Effect Icons.pdf", 2),
     "disarm": ("Status Effect Icons.pdf", 3),
     "immobilize": ("Status Effect Icons.pdf", 4),
@@ -51,6 +52,7 @@ ICONS = {
     "stun": ("Status Effect Icons.pdf", 7),
     "poison": ("Status Effect Icons.pdf", 8),
     "invisible": ("Status Effect Icons.pdf", 9),
+    "strengthen": ("Status Effect Icons.pdf", 10),
     "push": ("Status Effect Icons.pdf", 11),
     "pierce": ("Status Effect Icons.pdf", 12),
     "target": ("Status Effect Icons.pdf", 13),

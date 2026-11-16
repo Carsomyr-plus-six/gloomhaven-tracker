@@ -2802,6 +2802,8 @@ function renderCharacters(data) {
               : `None yet: the first comes at level 2, or with ${plural(3 - c.checkmarks % 3, "more battle-goal checkmark")}.`)),
       // The attack modifier deck those perks make, to build at the table.
       attackDeckBlock(c, check.rows),
+      // Phones: the conditions on them in the scenario being played.
+      c.retired ? null : condBlock(c),
       // Items as a plain list, each with its slot: they aren't buttons.
       c.items.length ? h("div", { class: `block item-block${c.retired ? "" : " tracking"}` },
         h("div", { class: "block-head" }, h("h4", { class: "label" }, "Items"), slotStrip(c, st.level)),
@@ -2881,7 +2883,7 @@ function tableState(name) {
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(tableKey(name))); } catch {}
   // hp null: at full health, whatever the maximum is by then.
-  return { hp: null, xp: 0, coins: 0, items: {}, ...(saved && typeof saved === "object" ? saved : {}) };
+  return { hp: null, xp: 0, coins: 0, items: {}, conds: {}, ...(saved && typeof saved === "object" ? saved : {}) };
 }
 // The tracker and the items each save their own part over what's stored.
 function saveTable(name, part) {
@@ -2939,6 +2941,77 @@ function itemTrack(c) {
   return box;
 }
 
+// Conditions at the table (phones), as the tokens on the character's mat:
+// each one a toggle, with what it does while it's on (rulebook pp. 22-23).
+// Bless and Curse are cards shuffled into the attack modifier deck, so
+// they're counted. The tracker's reset clears them all for a new scenario;
+// the rest is left to the players, as when a condition ends depends on
+// whose turn it was gained in.
+const CONDITIONS = [
+  ["poison", "Poison", "bad", "Attacks on you gain +1. A heal removes it and does nothing else."],
+  ["wound", "Wound", "bad", "1 damage at the start of each of your turns. A heal removes it and still heals."],
+  ["immobilize", "Immobilize", "bad", "No move abilities. Removed at the end of your next turn."],
+  ["disarm", "Disarm", "bad", "No attack abilities. Removed at the end of your next turn."],
+  ["stun", "Stun", "bad", "No abilities or items except a long rest; two cards played are discarded unused. Removed at the end of your next turn."],
+  ["muddle", "Muddle", "bad", "Disadvantage on your attacks. Removed at the end of your next turn."],
+  ["invisible", "Invisible", "good", "Enemies can't focus on or target you. Removed at the end of your next turn."],
+  ["strengthen", "Strengthen", "good", "Advantage on your attacks. Removed at the end of your next turn."],
+];
+const DECK_CONDITIONS = [
+  ["bless", "Bless", "good", "Each Bless card in your deck is removed once it's drawn."],
+  ["curse", "Curse", "bad", "Each Curse card in your deck is removed once it's drawn."],
+];
+const condIcon = (id, alt = "") => h("img", { class: "cond-icon", src: `icons/${id}.svg`, alt, width: 28, height: 28 });
+
+function condBlock(c) {
+  const conds = tableState(c.name).conds || {};
+  const change = (key, fn) => () => {
+    fn();
+    saveTable(c.name, { conds });
+    const next = condBlock(c);
+    block.replaceWith(next);
+    next.querySelector(`[data-key="${CSS.escape(key)}"]`)?.focus({ preventScroll: true });
+    // The dock shows what's on, too.
+    document.querySelector(`.char-card[data-char="${CSS.escape(c.name)}"] .dock-conds`)?.replaceWith(condStrip(c));
+  };
+  const on = [...CONDITIONS, ...DECK_CONDITIONS].filter(([id]) => conds[id]);
+  const block = h("div", { class: "block cond-block", id: `conds-${c.name}` },
+    h("div", { class: "block-head" }, h("h4", { class: "label" }, "Conditions"),
+      on.length ? h("span", { class: "small muted" }, `${on.length} on`) : null),
+    h("div", { class: "cond-grid", role: "group", "aria-label": "Conditions" }, CONDITIONS.map(([id, name, kind]) =>
+      h("button", { type: "button", class: `cond ${kind}`, "data-key": `cond-${id}-${c.name}`, "aria-pressed": String(Boolean(conds[id])),
+        onclick: change(`cond-${id}-${c.name}`, () => { if (conds[id]) delete conds[id]; else conds[id] = true; }) },
+        condIcon(id), h("span", {}, name)))),
+    h("div", { class: "cond-cards" }, DECK_CONDITIONS.map(([id, name, kind]) => {
+      const n = conds[id] || 0;
+      return h("div", { class: `cond-count ${kind}${n ? " on" : ""}` },
+        condIcon(id),
+        h("span", { class: "cond-count-name" }, name),
+        h("button", { type: "button", class: "dock-step", "data-key": `cond-${id}-down-${c.name}`, "aria-label": `1 less ${name} card`,
+          "aria-disabled": String(!n), onclick: change(`cond-${id}-down-${c.name}`, () => { if (n > 1) conds[id] = n - 1; else delete conds[id]; }) }, icon("minus")),
+        h("output", { class: "num", "aria-live": "polite" }, String(n), h("span", { class: "sr-only" }, ` ${name} ${n === 1 ? "card" : "cards"}`)),
+        h("button", { type: "button", class: "dock-step", "data-key": `cond-${id}-up-${c.name}`, "aria-label": `1 more ${name} card`,
+          "aria-disabled": String(n >= 10), onclick: change(`cond-${id}-up-${c.name}`, () => { if (n < 10) conds[id] = n + 1; }) }, icon("plus")));
+    })),
+    // What each one on does, to read at the table.
+    on.length ? h("ul", { class: "cond-notes" }, on.map(([id, name, kind, does]) =>
+      h("li", { class: kind }, h("strong", {}, name), " ", does))) : null);
+  return block;
+}
+
+// In the dock: the conditions that are on, as their icons, a tap from the
+// toggles. An empty span keeps its place when none are.
+function condStrip(c) {
+  const conds = tableState(c.name).conds || {};
+  const on = [...CONDITIONS, ...DECK_CONDITIONS].filter(([id]) => conds[id]);
+  if (!on.length) return h("span", { class: "dock-conds", hidden: true });
+  const said = on.map(([id, name]) => typeof conds[id] === "number" ? `${conds[id]} ${name}` : name).join(", ");
+  return h("button", { type: "button", class: "dock-conds", "aria-label": `Conditions: ${said}. Go to them`,
+    onclick: () => document.getElementById(`conds-${c.name}`)?.scrollIntoView({ block: "center", behavior: "instant" }) },
+    on.map(([id]) => h("span", { class: "dock-cond" }, condIcon(id),
+      typeof conds[id] === "number" && conds[id] > 1 ? h("b", {}, String(conds[id])) : null)));
+}
+
 // Docked at the foot of the screen, above the tabs, while the sheet scrolls
 // under it: the counters stay under the thumb. Phones only (styles.css).
 // Each tap changes the numbers in place, so the sheet doesn't redraw and a
@@ -2976,7 +3049,7 @@ function tableDock(c) {
   // Starting over asks twice: a slip of the thumb would lose the evening.
   let armed = null;
   const reset = h("button", { type: "button", class: "dock-reset", "data-key": `dock-reset-${c.name}`,
-    "aria-label": "New scenario: full hit points, no XP or coins, every item ready",
+    "aria-label": "New scenario: full hit points, no XP, coins or conditions, every item ready",
     onclick: () => {
       if (!armed) {
         reset.classList.add("armed");
@@ -2986,15 +3059,18 @@ function tableDock(c) {
       }
       disarm();
       Object.assign(state, { hp: null, xp: 0, coins: 0 });
-      saveTable(c.name, { hp: null, xp: 0, coins: 0, items: {} });
+      saveTable(c.name, { hp: null, xp: 0, coins: 0, items: {}, conds: {} });
       paint();
       // Every item ready again, on the sheet above.
       const items = document.querySelector(`.char-card[data-char="${CSS.escape(c.name)}"] .item-track`);
       items?.replaceWith(itemTrack(c));
+      document.getElementById(`conds-${c.name}`)?.replaceWith(condBlock(c));
+      dock.querySelector(".dock-conds")?.replaceWith(condStrip(c));
     } }, icon("replay"));
   const disarm = () => { clearTimeout(armed); armed = null; reset.classList.remove("armed"); reset.replaceChildren(icon("replay")); };
 
   dock.append(
+    condStrip(c),
     max ? h("div", { class: "dock-row dock-hp-row" },
       step("hp-down", "minus", "Lose 1 hit point", () => hp() > 0, () => { state.hp = hp() - 1; }),
       h("div", { class: "dock-hp-box" },
