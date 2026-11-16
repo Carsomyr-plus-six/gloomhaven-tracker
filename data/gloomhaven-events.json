@@ -1,7 +1,7 @@
 {
  "source": "https://github.com/Lurkars/gloomhavensecretariat",
  "license": "AGPL-3.0",
- "retrieved": "2026-11-15",
+ "retrieved": "2026-11-16",
  "startingDecks": {
   "city": [
    1,
@@ -136,7 +136,19 @@
      "text": "Ignore negative item effects and add one +1 card",
      "count": 1
     }
-   ]
+   ],
+   "health": [
+    10,
+    12,
+    14,
+    16,
+    18,
+    20,
+    22,
+    24,
+    26
+   ],
+   "handSize": 10
   },
   "cragheart": {
    "starting": true,
@@ -182,7 +194,19 @@
      "text": "Ignore negative scenario effects",
      "count": 1
     }
-   ]
+   ],
+   "health": [
+    10,
+    12,
+    14,
+    16,
+    18,
+    20,
+    22,
+    24,
+    26
+   ],
+   "handSize": 11
   },
   "mindthief": {
    "starting": true,
@@ -236,7 +260,19 @@
      "text": "Ignore negative scenario effects",
      "count": 1
     }
-   ]
+   ],
+   "health": [
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+   ],
+   "handSize": 10
   },
   "scoundrel": {
    "starting": true,
@@ -286,7 +322,19 @@
      "text": "Ignore negative scenario effects",
      "count": 1
     }
-   ]
+   ],
+   "health": [
+    8,
+    9,
+    11,
+    12,
+    14,
+    15,
+    17,
+    18,
+    20
+   ],
+   "handSize": 9
   },
   "spellweaver": {
    "starting": true,
@@ -336,7 +384,19 @@
      "text": "Add one rolling LIGHT card and one rolling DARK card",
      "count": 1
     }
-   ]
+   ],
+   "health": [
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+   ],
+   "handSize": 8
   },
   "tinkerer": {
    "starting": true,
@@ -386,7 +446,19 @@
      "text": "Ignore negative scenario effects",
      "count": 1
     }
-   ]
+   ],
+   "health": [
+    8,
+    9,
+    11,
+    12,
+    14,
+    15,
+    17,
+    18,
+    20
+   ],
+   "handSize": 12
   },
   "angry-face": {
    "starting": false,
@@ -433,7 +505,19 @@
      "text": "Ignore negative scenario effects",
      "count": 1
     }
-   ]
+   ],
+   "health": [
+    8,
+    9,
+    11,
+    12,
+    14,
+    15,
+    17,
+    18,
+    20
+   ],
+   "handSize": 12
   },
   "circles": {
    "starting": false,
@@ -480,7 +564,19 @@
      "text": "Ignore negative scenario effects and add two +1 cards",
      "count": 1
     }
-   ]
+   ],
+   "health": [
+    8,
+    9,
+    11,
+    12,
+    14,
+    15,
+    17,
+    18,
+    20
+   ],
+   "handSize": 9
   },
   "eclipse": {
    "starting": false,
@@ -527,7 +623,19 @@
      "text": "Ignore negative scenario effects and add two +1 cards",
      "count": 1
     }
-   ]
+   ],
+   "health": [
+    8,
+    9,
+    11,
+    12,
+    14,
+    15,
+    17,
+    18,
+    20
+   ],
+   "handSize": 9
   },
   "lightning": {
    "starting": false,
@@ -574,7 +682,19 @@
      "text": "Ignore negative item effects",
      "count": 1
     }
-   ]
+   ],
+   "health": [
+    10,
+    12,
+    14,
+    16,
+    18,
+    20,
+    22,
+    24,
+    26
+   ],
+   "handSize": 10
   },
   "music-note": {
    "starting": false,
@@ -629,7 +749,19 @@
      "text": "Add two rolling CURSE cards",
      "count": 2
     }
-   ]
+   ],
+   "health": [
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+   ],
+   "handSize": 9
   },
   "saw": {
    "starting": false,
@@ -672,7 +804,19 @@
      "text": "Add one +0 REFRESH AN ITEM card",
      "count": 1
     }
-   ]
+   ],
+   "health": [
+    8,
+    9,
+    11,
+    12,
+    14,
+    15,
+    17,
+    18,
+    20
+   ],
+   "handSize": 10
   },
   "squidface": {
    "starting": false,
@@ -719,7 +863,19 @@
      "text": "Ignore negative scenario effects and add one +1 card",
      "count": 1
     }
-   ]
+   ],
+   "health": [
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+   ],
+   "handSize": 11
   },
   "sun": {
    "starting": false,
@@ -770,7 +926,19 @@
      "text": "Ignore negative scenario effects",
      "count": 1
     }
-   ]
+   ],
+   "health": [
+    10,
+    12,
+    14,
+    16,
+    18,
+    20,
+    22,
+    24,
+    26
+   ],
+   "handSize": 11
   },
   "three-spears": {
    "starting": false,
@@ -817,7 +985,19 @@
      "text": "Ignore negative item effects and add two +1 cards",
      "count": 1
     }
-   ]
+   ],
+   "health": [
+    10,
+    12,
+    14,
+    16,
+    18,
+    20,
+    22,
+    24,
+    26
+   ],
+   "handSize": 9
   },
   "triangles": {
    "starting": false,
@@ -876,7 +1056,19 @@
      "text": "Add one +0 ADD TARGET card",
      "count": 1
     }
-   ]
+   ],
+   "health": [
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+   ],
+   "handSize": 10
   },
   "two-mini": {
    "starting": false,
@@ -915,7 +1107,19 @@
      "text": "Ignore negative scenario effects",
      "count": 1
     }
-   ]
+   ],
+   "health": [
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+   ],
+   "handSize": 10
   }
  },
  "events": {

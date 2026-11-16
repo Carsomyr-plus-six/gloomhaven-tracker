@@ -8,9 +8,9 @@ Keeps only what the tracker needs and writes three files:
   the condition, whether the card is removed or returned, and the effects
   (reputation, prosperity, gold, XP, achievements, cards added, scenarios
   unlocked). No event text is copied. Also each class: its name, whether
-  it is a starting class, the events unlocking or retiring it adds, and its
+  it is a starting class, the events unlocking or retiring it adds, its
   perks (written out as on the character sheet, with how many boxes each
-  has).
+  has), its hit points at each level and its hand size.
 - data/gloomhaven-items.json: each item's name, cost, number of copies,
   slot and the prosperity level that puts it in the shop. No item text.
 - data/gloomhaven-quests.json: each personal quest card: its name, its steps
@@ -244,7 +244,8 @@ def perk_text(perk):
 
 def class_events(class_ids):
     """Class id -> whether it is a starting class, the city and road event
-    number its unlocking and retiring add, and its perks."""
+    number its unlocking and retiring add, its perks, its hit points at each
+    level and its hand size."""
     result = {}
     for class_id in class_ids:
         data = fetch(f"{RAW}/character/{class_id}.json")
@@ -253,6 +254,12 @@ def class_events(class_ids):
             if data.get(key):
                 info[name] = int(data[key])
         info["perks"] = [{"text": perk_text(p), "count": p.get("count", 1)} for p in data.get("perks", [])]
+        # Hit points at levels 1 to 9 and the hand size, for the table tracker.
+        stats = sorted(data.get("stats", []), key=lambda x: x["level"])
+        if stats:
+            info["health"] = [int(x["health"]) for x in stats]
+        if data.get("handSize"):
+            info["handSize"] = int(data["handSize"])
         result[class_id] = info
     return result
 
