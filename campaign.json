@@ -211,15 +211,15 @@
     }
   ],
   "events": [
-    { "deck": "city", "number": 1, "unknown": true, "notes": "Option and timing not recorded." },
-    { "deck": "city", "number": 23, "unknown": true, "notes": "Option and timing not recorded." },
+    { "deck": "city", "number": 1, "unknown": true },
+    { "deck": "city", "number": 23, "unknown": true },
     { "deck": "city", "number": 29, "option": "A", "characters": ["Craig"], "notes": "Convinced the Savvas to go back to work. Craig was there; the rest of the party and the timing weren't recorded." },
-    { "deck": "road", "number": 9, "unknown": true, "notes": "Option and timing not recorded." },
-    { "deck": "road", "number": 28, "notes": "Option and timing not recorded." },
+    { "deck": "road", "number": 9, "unknown": true },
+    { "deck": "road", "number": 28 },
     { "deck": "city", "number": 21, "option": "B", "scenario": 8 },
-    { "deck": "road", "number": 15, "scenario": 14, "notes": "On the way to #14. Option not recorded." },
-    { "deck": "city", "number": 13, "scenario": 13, "notes": "Back in town after #14. Option not recorded." },
-    { "deck": "road", "number": 1, "scenario": 13, "notes": "On the way to #13. Option not recorded." }
+    { "deck": "road", "number": 15, "scenario": 14 },
+    { "deck": "city", "number": 13, "scenario": 13, "notes": "Back in town after #14." },
+    { "deck": "road", "number": 1, "scenario": 13 }
   ],
   "eventDecks": {
     "added": [],
