@@ -64,12 +64,39 @@ async function runTests(load, loadText) {
   same("evening: written twice, the same file", written(toFile(apply().out)), written(file));
   same("evening: the written file reads back unchanged", written(toFile(fromFile(copy(file)))), written(file));
   same("evening: asks only what must be settled by hand", fileQuestions(file), []);
-  // Each character whose sheet changed has one entry for the evening, and
-  // nothing else changed in the logs. (The amounts are checked above: the
-  // sheets worked out from the logs match the golden file.)
-  same("evening: one log entry an evening, for those whose sheet changed",
-    file.characters.map(c => [c.name, c.log.map(e => e.date)]),
-    [["Azorica", ["2026-11-20"]], ["Craig", ["2026-11-20"]], ["Flik Flak", ["2026-11-20"]], ["Kaktus", ["2026-11-20"]], ["Newbie", []]]);
+  // Each change to XP, gold or checkmarks is a line in the log saying what
+  // it was for, dated with the evening; what the scenarios gave isn't there
+  // (the plays say it); items and perks are an entry an evening. (The
+  // amounts are checked above: the sheets match the golden file.)
+  const said = e => e.for || (["xp", "gold", "checkmarks"].some(k => k in e) ? "unexplained" : "items and perks");
+  same("evening: each change in the logs says what it was for",
+    file.characters.map(c => [c.name, c.log.map(e => `${e.date} ${said(e)}`)]),
+    [["Azorica", ["2026-11-20 event", "2026-11-20 event", "2026-11-20 sell", "2026-11-20 items and perks"]],
+     ["Craig", ["2026-11-20 event", "2026-11-20 event", "2026-11-20 treasure", "2026-11-20 buy", "2026-11-20 items and perks"]],
+     ["Flik Flak", ["2026-11-20 event", "2026-11-20 event", "2026-11-20 donation", "2026-11-20 enhancement"]],
+     ["Kaktus", ["2026-11-20 items and perks"]], ["Newbie", []]]);
+  // A play keeps what was played (the dial, the coins); what it gave is
+  // worked out from its level.
+  const won = file.sessions.at(-1).scenarios[0];
+  same("evening: a play keeps the dial and coins, and gives the bonus and a coin's worth at its level",
+    [won.results[0], plays(buildData(copy(file))).find(p => p.number === 5).results[0]],
+    [{ character: "Azorica", xp: 8, coins: 2, checkmarks: 1 },
+     { character: "Azorica", xp: 8 + scenarioStats(2).xp, coins: 2, checkmarks: 1, played: { xp: 8, coins: 2 }, gold: 2 * scenarioStats(2).gold }]);
+
+  // A schemaVersion 2 file (each evening one sum on the sheet, a play's XP
+  // with its bonus) moves over with the same totals: the sums go into the
+  // start, less what the plays gave, and the log keeps its items.
+  const v2 = { schemaVersion: 2, party: {}, city: {}, scenarios: [],
+    sessions: [{ date: "2026-01-01", scenarios: [{ number: 1, level: 1, result: "success", results: [{ character: "Old", xp: 11, gold: 6 }] }], characters: ["Old"] }],
+    characters: [{ name: "Old", class: "Brute", start: { xp: 10, gold: 20, checkmarks: 0, items: [], perks: [] },
+      log: [{ date: "2026-01-01", xp: 13, gold: 9, donated: 10, gained: ["Hide Armor"] }] }] };
+  const v2Sheet = buildData(copy(v2)).characters[0];
+  const v2File = migrate(copy(v2));
+  same("file: a schemaVersion 2 file moves over with the same totals",
+    [[v2Sheet.xp, v2Sheet.gold, v2Sheet.donated, v2Sheet.items], v2File.characters[0].start, v2File.characters[0].log,
+     v2File.sessions[0].scenarios[0].results, (({ xp, gold, donated }) => [xp, gold, donated])(buildData(copy(v2File)).characters[0])],
+    [[23, 29, 10, ["Hide Armor"]], { xp: 12, gold: 23, checkmarks: 0, items: [], perks: [], donated: 10 }, [{ date: "2026-01-01", gained: ["Hide Armor"] }],
+     [{ character: "Old", xp: 11 - scenarioStats(1).xp, gold: 6 }], [23, 29, 10]]);
   same("evening: the scenario completed is in the session, with its results",
     file.sessions.at(-1).scenarios.map(p => [p.number, p.result, (p.results || []).map(r => r.character)]),
     [[5, "success", ["Azorica", "Craig", "Flik Flak"]], [6, "failure", ["Azorica", "Craig", "Flik Flak"]]]);
