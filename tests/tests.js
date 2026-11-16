@@ -147,16 +147,50 @@ async function runTests(load, loadText) {
     donations: [], enhancements: [], claims: {}, quests: {}, newCharacters: [], retirements: [], ...extra }, buildData(copy(raw))).warnings;
   const scenario6 = [{ number: "6", level: "2", result: "failure", treasures: [], results: { Azorica: { xp: "1" }, Craig: { xp: "1" }, "Flik Flak": { xp: "1" } } }];
   const says = (warns, text) => warns.some(w => w.includes(text));
-  const prosperity = stepFor(buildData(copy(raw)).city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
-  const enhance = n => Array.from({ length: n }, () => ({ character: "Azorica", what: "Move", cost: "0" }));
-  same("town: donating once per visit, a retiree's blessings, the enhancement limit",
+  const party = ["Azorica", "Craig", "Flik Flak"];
+  const twice = [scenario6[0], { ...scenario6[0] }];
+  same("town: donating once per visit, and a visit after each scenario",
     [says(warnsOf({ donations: [{ character: "Azorica" }, { character: "Azorica" }] }), "twice in one visit"),
      says(warnsOf({ scenarios: scenario6, donations: [{ character: "Azorica" }, { character: "Azorica", when: "after" }] }), "twice in one visit"),
-     says(warnsOf({ donations: [{ character: "Azorica" }], retirements: [{ character: "Azorica", unlocks: "envelope-x" }] }), "go unused"),
-     says(warnsOf({ scenarios: scenario6, donations: [{ character: "Azorica" }], retirements: [{ character: "Azorica", unlocks: "envelope-x" }] }), "go unused"),
-     says(warnsOf({ enhancements: enhance(prosperity) }), "can be enhanced"),
-     says(warnsOf({ enhancements: enhance(prosperity + 1) }), "can be enhanced")],
-    [true, false, true, false, false, true]);
+     says(warnsOf({ party, scenarios: twice, donations: [{ character: "Azorica", when: "after-1" }, { character: "Azorica", when: "after" }] }), "twice in one visit"),
+     // A "when" left from a scenario since taken out isn't another visit.
+     says(warnsOf({ donations: [{ character: "Azorica" }, { character: "Azorica", when: "after" }] }), "twice in one visit")],
+    [true, false, false, true]);
+  // Between two scenarios: the Bless cards go into the second, so none wait.
+  const between = evening(raw, { party, scenarios: twice, donations: [{ character: "Azorica", when: "after-1" }] });
+  const afterBoth = evening(raw, { party, scenarios: twice, donations: [{ character: "Azorica", when: "after" }] });
+  same("bless: a donation between two scenarios is used in the second",
+    [between.characters.find(c => c.name === "Azorica").log.find(e => e.for === "donation").after, blessOf(between, "Azorica"),
+     afterBoth.characters.find(c => c.name === "Azorica").log.find(e => e.for === "donation").after, blessOf(afterBoth, "Azorica")],
+    [1, false, true, true]);
+  // A retiree may do their town business first (p. 48): a donation comes off
+  // their gold before retiring takes the rest. Their Bless cards are theirs
+  // (errata), so with no scenario after, they go unused.
+  const retires = { retirements: [{ character: "Azorica", unlocks: "envelope-x" }] };
+  const gaveFirst = evening(raw, { donations: [{ character: "Azorica" }], ...retires });
+  same("retiring: town business first, and the Bless cards stay with the retiree",
+    [says(warnsOf({ donations: [{ character: "Azorica" }], ...retires }), "go unused"),
+     says(warnsOf({ party, scenarios: scenario6, donations: [{ character: "Azorica" }], ...retires }), "go unused"),
+     warnsOf({ donations: [{ character: "Azorica" }], ...retires }).filter(w => w.includes("would have")),
+     gaveFirst.characters.find(c => c.name === "Azorica").log.slice(-2).map(e => e.for),
+     buildData(copy(gaveFirst)).characters.find(c => c.name === "Azorica").gold],
+    [true, false, [], ["donation", "retirement"], 0]);
+  // The enhancement limit: the class's stickers, every character of it,
+  // against the prosperity level after the evening (a scenario's reward can
+  // raise it before the party goes to the Enhancer).
+  const before = buildData(copy(raw));
+  const cls = before.characters.find(c => c.name === "Azorica").class;
+  const stickers = before.characters.filter(c => c.class === cls).reduce((n, c) => n + (c.enhanced || 0), 0);
+  const prosperity = stepFor(before.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
+  const raised = stepFor(before.city.prosperityCheckmarks + 5, CHECKMARKS_FOR_PROSPERITY);   // #51's reward: +5
+  const enhance = n => Array.from({ length: n }, () => ({ character: "Azorica", what: "Move", cost: "0" }));
+  const won51 = [{ number: "51", level: "2", result: "success", treasures: [], results: { Azorica: { xp: "1" }, Craig: { xp: "1" }, "Flik Flak": { xp: "1" } } }];
+  same("enhancements: no more enhanced cards than the prosperity level, after the evening",
+    [raised > prosperity,
+     says(warnsOf({ enhancements: enhance(prosperity - stickers) }), "can be enhanced"),
+     says(warnsOf({ enhancements: enhance(prosperity - stickers + 1) }), "can be enhanced"),
+     says(warnsOf({ party, scenarios: won51, enhancements: enhance(raised - stickers) }), "can be enhanced")],
+    [true, false, true, false]);
   // Who passed a level at a session is worked out from XP over time, as the
   // evening's summary says it; the file stores none. A list written in on a
   // session whose plays have no level (the record can't tell) stands; one

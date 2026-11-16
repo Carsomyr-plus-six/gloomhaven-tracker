@@ -3241,8 +3241,9 @@ function renderRecorder(data) {
       remove(d.scenarios, i, "scenario", "add-scenario"));
   };
 
-  const firstPlayed = num(d.scenarios.find(s => num(s.number))?.number);
-  const lastPlayed = num(d.scenarios.filter(s => num(s.number)).at(-1)?.number);
+  const playedTonight = d.scenarios.filter(s => num(s.number));
+  const firstPlayed = num(playedTonight[0]?.number);
+  const lastPlayed = num(playedTonight.at(-1)?.number);
   // Paying for an event isn't a choice: the party pays if it has the gold.
   const payDefault = e => {
     const { could } = eventPayment(data, e.deck, num(e.number), e.option, party);
@@ -3523,7 +3524,13 @@ function renderRecorder(data) {
             d.donations.map((x, i) => h("div", { class: "rec-row" },
               field(`Donates ${goldText(DONATION)}, for 2 Bless next scenario`, select(`don-${i}-c`, x, "character", partyOptions)),
               // Before tonight's scenario the Bless is used in it; after, it waits.
-              firstPlayed ? field("When", select(`don-${i}-w`, x, "when", [["", `In town, before ${scenarioLabel(data, firstPlayed)}`], ["after", "Back in town, after it"]])) : null,
+              // A visit follows each scenario: before the first, between two, after the last.
+              firstPlayed ? field("When", select(`don-${i}-w`, x, "when", [["", `In town, before ${scenarioLabel(data, firstPlayed)}`],
+                ...playedTonight.map((s, k) => [k === playedTonight.length - 1 ? "after" : `after-${k + 1}`,
+                  playedTonight.length === 1 ? "Back in town, after it" : `Back in town, after ${scenarioLabel(data, num(s.number))}${
+                    // A scenario played again (a retry) is told apart by which time.
+                    playedTonight.filter(t => num(t.number) === num(s.number)).length > 1
+                      ? ` (the ${["first", "second", "third", "fourth"][playedTonight.filter((t, j) => j < k && num(t.number) === num(s.number)).length] || "next"} time)` : ""}`])])) : null,
               remove(d.donations, i, "donation", "add-donation"))),
             // Enhancements, from the calculator's Record it.
             d.enhancements.map((x, i) => h("div", { class: "rec-row" },
