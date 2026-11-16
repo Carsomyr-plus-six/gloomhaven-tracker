@@ -171,7 +171,8 @@
    "steps": [
     {
      "text": "Completed scenarios in Dagger Forest",
-     "count": 3
+     "count": 3,
+     "track": "scenarioIn:3,28,29,38,43,44,48,55,56,59,81,91"
     },
     {
      "text": "Follow \"Foggy Thicket\" (Scenario 55) to a conclusion",
@@ -298,7 +299,8 @@
    "steps": [
     {
      "text": "Completed scenarios in Lingering Swamp",
-     "count": 2
+     "count": 2,
+     "track": "scenarioIn:19,32,45,49,61,62,68,79"
     },
     {
      "text": "Follow \"Fading Lighthouse\" (Scenario 61) to a conclusion",
