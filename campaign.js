@@ -1049,9 +1049,11 @@ function deriveShop(data, items, ledger) {
         questions.push(`${c.name} carries ${name}, which isn't in the item list. ${spelledAs(name, all.map(i => i.name)) || "Check the spelling against the card."}`);
         continue;
       }
-      // An item found (treasure or reward) or bought back is carried legitimately.
+      // An item found (treasure or reward), back in the supply, or bought
+      // (from it) is carried legitimately.
       const found = (data.foundItems || []).some(f => sameItem(f.item, item.name))
-                 || (data.city.returnedItems || []).some(n => sameItem(n, item.name));
+                 || (data.city.returnedItems || []).some(n => sameItem(n, item.name))
+                 || (c.log || []).some(e => e.for === "buy" && (e.gained || []).some(n => sameItem(n, item.name)));
       if (!inShop(item) && !found) {
         const why = item.prosperity ? `the shop only has it from prosperity ${item.prosperity}` : "it only comes from a design";
         questions.push(`${c.name} carries ${item.name}, but ${why}. Check the item, or list its design in itemDesigns if the party found one.`);
@@ -1080,15 +1082,13 @@ function deriveShop(data, items, ledger) {
              left: back ? Math.min(returned.get(item.id), Math.max(0, item.count - held.length)) : Math.max(0, item.count - held.length),
              design: !back && !(item.prosperity && item.prosperity <= level), back };
   }).sort((a, b) => a.id - b.id);
-  // Names the shop sells anyway, so a sale or retirement needn't put them back.
-  const normal = new Set(all.filter(inShop).map(item => item.name));
 
   // Reputation that isn't settled may mean other prices.
   const range = ledger?.reputation?.range;
   const modifiers = range ? new Set([shopModifier(range.lo), shopModifier(range.hi), modifier]) : new Set([modifier]);
   const coming = all.filter(item => item.prosperity === level + 1).length;
 
-  return { level, modifier, stock, questions, coming, pricesUnsure: modifiers.size > 1, range, normal };
+  return { level, modifier, stock, questions, coming, pricesUnsure: modifiers.size > 1, range };
 }
 
 let scenarioRef = null;   // data/gloomhaven-scenarios.json
@@ -1185,20 +1185,6 @@ function applyDraft(raw, d, data) {
   const noCopyLeft = item => {
     const copies = Object.values(itemsRef?.items || {}).find(x => sameItem(x.name, item))?.count;
     return Boolean(copies) && out.characters.filter(c => !c.retired && (c.items || []).some(i => sameItem(i, item))).length >= copies;
-  };
-  // A copy of an item the shop doesn't otherwise sell goes back into its
-  // supply when sold or when its owner retires; buying it takes it out.
-  const normal = name => data.shop?.normal?.has(String(name)) ?? true;
-  const returnItem = name => {
-    if (normal(name)) return;
-    out.city ||= {};
-    // Spelled as the item list does, however the sheet had it.
-    (out.city.returnedItems ||= []).push(Object.values(itemsRef?.items || {}).find(x => sameItem(x.name, name))?.name || name);
-  };
-  const takeReturned = name => {
-    const list = out.city?.returnedItems || [];
-    const i = list.findIndex(n => sameItem(n, name));
-    if (i >= 0) list.splice(i, 1);
   };
   const gainFor = new Map();   // name -> { xp, gold, checkmarks }
   const gain = (name, key, amount) => {
@@ -1483,8 +1469,9 @@ function applyDraft(raw, d, data) {
             // supply (p. 27).
             if (who(t.character)?.items.some(i => sameItem(i, item))) {
               const value = Math.floor((Object.values(itemsRef?.items || {}).find(x => sameItem(x.name, item))?.cost || 0) / 2);
+              // Gained and sold at once: the copy goes back to the shop (returnedItems).
               tr.gain(t.character, { gold: value });
-              returnItem(item);
+              tr.add(t.character, { gained: [item], lost: [item] });
               log.push(`${t.character} already has ${item}, so the one from treasure ${t.number} is sold at once for ${goldText(value)}`);
             } else if (noCopyLeft(item)) {
               // Every copy is someone's: the looter gains its sell value instead (FAQ).
@@ -1616,7 +1603,8 @@ function applyDraft(raw, d, data) {
     if (k < 0) continue;
     const t = sc.treasures[k];
     sc.treasures[k] = { ...(typeof t === "object" ? t : { number: t }), character: x.character };
-    if (x.kept === false) returnItem(c.item);
+    // Looted, and since sold (gained and lost: back to the shop), or kept.
+    if (x.kept === false) line(x.character, { gained: [c.item], lost: [c.item] }, { for: "treasure", treasure: c.treasure });
     else if (giveItem(x.character, c.item)) line(x.character, { gained: [c.item] }, { for: "treasure", treasure: c.treasure });
     log.push(`Treasure ${c.treasure} in ${c.where}: ${x.character} looted ${c.item}${x.kept !== false ? "" : ", and has since sold it"}`);
   }
@@ -1631,7 +1619,6 @@ function applyDraft(raw, d, data) {
     if (String(x.player || "").trim()) c.player = String(x.player).trim();
     // All money the character owned is gone (p. 48): below, with tonight's.
     delete c.inactive;
-    for (const item of c.items || []) returnItem(item);
     joinLog.push(`${c.name} retires: a prosperity checkmark, the ${c.class} retirement events go into the decks, and their items go back to the shop, and their gold is gone`);
     // What their quest opens comes from their quest card, in the form.
     if (!x.unlocks) {
@@ -1693,12 +1680,14 @@ function applyDraft(raw, d, data) {
   if (levelUps.length || newLevels.length) session.levelUps = [...newLevels, ...levelUps];
   // Bless cards kept from an earlier donation are used in tonight's scenario.
   if (playedTonight) for (const name of party) if (who(name)?.blessNext && !(d.donations || []).some(x => x.character === name && x.when === "after")) delete who(name).blessNext;
-  // Who retired tonight leaves with nothing: their gold is gone (p. 48).
+  // Who retired tonight leaves with nothing: their gold is gone (p. 48),
+  // and their items go back to the shop.
   for (const name of retiring) {
     const c = who(name);
     if (!c?.retired) continue;
-    line(name, { gold: -(c.gold || 0) }, { for: "retirement" });
+    line(name, { gold: -(c.gold || 0), lost: c.items }, { for: "retirement" });
     c.gold = 0;
+    c.items = [];
   }
 
   log.push(...joinLog);
@@ -1710,7 +1699,6 @@ function applyDraft(raw, d, data) {
     const price = priceOf(b.item) ?? 0;
     c.gold = (c.gold || 0) - price;
     if (giveItem(b.character, b.item)) line(b.character, { gold: -price, gained: [b.item] }, { for: "buy" });
-    takeReturned(b.item);
     log.push(`${b.character} buys ${b.item} for ${goldText(price)}`);
   }
   // No more copies bought than the shop has, counting any sold back tonight.
@@ -1729,7 +1717,6 @@ function applyDraft(raw, d, data) {
     if (i < 0) { warnings.push(`${sale.character} doesn't carry ${sale.item}.`); continue; }
     const [sold] = c.items.splice(i, 1);
     changed.add(sale.character);
-    returnItem(sale.item);
     const item = Object.values(itemsRef?.items || {}).find(x => sameItem(x.name, sale.item));
     const value = item ? Math.floor(item.cost / 2) : 0;
     c.gold = (c.gold || 0) + value;
@@ -2263,9 +2250,10 @@ function milestoneStates(data) {
 // older file is moved over as it's read, every sheet's totals as they were,
 // and written in the new layout next time: schemaVersion 1 kept totals and
 // statuses; 2 kept each evening's change to a sheet as one sum, what the
-// scenarios gave included, and a play's XP with its bonus.
+// scenarios gave included, and a play's XP with its bonus; 3 kept the
+// shop's returned items as a list of their own.
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 const SHEET_SUMS = ["xp", "gold", "checkmarks"];
 const copyJson = value => JSON.parse(JSON.stringify(value));
 
@@ -2307,8 +2295,9 @@ function sheetTotals(c) {
     for (const k of SHEET_SUMS) t[k] += e[k] || 0;
     if (e.for === "donation") t.donated -= e.gold || 0;
     if (e.for === "enhancement") t.enhanced += 1;
-    for (const x of e.lost || []) drop(t.items, x);
+    // Gained, then lost: a line can be both (looted, and sold at once).
     t.items.push(...(e.gained || []));
+    for (const x of e.lost || []) drop(t.items, x);
     for (const x of e.perksDropped || []) drop(t.perks, x);
     t.perks.push(...(e.perks || []));
   }
@@ -2381,7 +2370,37 @@ function fromFile(json) {
     return m;
   });
   out.city = { ...out.city, donations: (out.city?.start?.donations || 0) + out.characters.reduce((sum, c) => sum + (c.donated || 0), 0) };
+  // An older file kept the shop's returned items as a list (by hand, or
+  // the form wrote it): what the logs don't account for was returned before
+  // they began, and joins the city's start. (In a current file such a list
+  // is worked out, and fileQuestions asks about it.)
+  if (version < 4 && out.city.returnedItems) {
+    const before = [...(out.city.start?.returnedItems || []), ...minusItems(out.city.returnedItems, logReturns(out))];
+    out.city.start = { ...out.city.start, returnedItems: before };
+    if (!before.length) delete out.city.start.returnedItems;
+    if (!Object.keys(out.city.start).length) delete out.city.start;
+  }
+  out.city.returnedItems = [...(out.city.start?.returnedItems || []), ...logReturns(out)];
   return out;
+}
+
+// Copies the logs put back in the shop's supply, less those bought back:
+// every item lost on a line saying what it was for (sold, looted and sold
+// at once, retired with) goes back (rulebook p. 43); a correction by hand,
+// with no "for", isn't a hand-off. The shop counts only those it doesn't
+// otherwise sell. With the city's start, the supply.
+function logReturns(m) {
+  const lines = (m.characters || []).flatMap(c => c.log || []).filter(e => e.for);
+  return minusItems(lines.flatMap(e => e.lost || []), lines.filter(e => e.for === "buy").flatMap(e => e.gained || []));
+}
+// A list of item names less another, copy for copy.
+function minusItems(list, less) {
+  const rest = [...list];
+  for (const name of less) {
+    const i = rest.findIndex(n => sameItem(n, name));
+    if (i >= 0) rest.splice(i, 1);
+  }
+  return rest;
 }
 
 // The page's shape -> the file. A character's sheet that changed in a way
@@ -2423,7 +2442,7 @@ function toFile(m, when = m.updated || today()) {
     return { name, class: cls, start, log, ...rest };
   });
   if (out.city) {
-    const { donations, ...city } = out.city;
+    const { donations, returnedItems, ...city } = out.city;
     out.city = city;
   }
   return out;
@@ -2527,6 +2546,7 @@ function fileQuestions(json) {
     const totals = ["xp", "gold", "checkmarks", "items", "perks", "donated", "enhanced"].filter(k => k in c);
     if (totals.length) q.push(`${c.name}'s ${totals.map(k => `"${k}"`).join(", ")} ${totals.length === 1 ? "is" : "are"} worked out from "start", "log" and the sessions. Remove ${totals.length === 1 ? "it" : "them"}, and put any change in the log.`);
   }
+  if (json.city && "returnedItems" in json.city && (json.schemaVersion || 1) >= 4) q.push(`The city's "returnedItems" are worked out from the characters' logs (what was sold or retired with, less what was bought back). Remove it, putting any returned before the logs began in the city's "start".`);
   if (json.city && "donations" in json.city) q.push(`The city's "donations" are worked out from the characters' logs. Remove it, putting any made before the log in the city's "start".`);
 
   // Names are the reference data's, letter for letter.
@@ -2540,7 +2560,7 @@ function fileQuestions(json) {
     if (classRef && !classNames.includes(n)) q.push(unknown("The unlocked class", n, classNames));
   }
   if (itemsRef) {
-    const named = [...(json.city?.itemDesigns || []).map(x => typeof x === "string" ? x : x.name), ...(json.city?.returnedItems || []),
+    const named = [...(json.city?.itemDesigns || []).map(x => typeof x === "string" ? x : x.name), ...(json.city?.returnedItems || []), ...(json.city?.start?.returnedItems || []),
       ...(json.scenarios || []).flatMap(s => (s.treasures || []).map(t => typeof t === "object" && typeof t.drew === "string" ? t.drew : null)),
       ...(json.events || []).map(e => typeof e.drew === "string" ? e.drew : null),
       ...(json.characters || []).flatMap(c => [...(c.log || []).flatMap(e => [...(e.gained || []), ...(e.lost || [])])])].filter(Boolean);
