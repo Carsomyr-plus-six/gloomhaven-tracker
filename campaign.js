@@ -804,12 +804,17 @@ function deriveCampaign(data, ref, evRef) {
 
   // What a scenario's treasures gave. Looted on a success, a failure or a
   // casual replay alike: a treasure is gained the moment it's looted (p. 27).
+  // Who looted it: the character whose log has its line, else as the
+  // scenario's treasure names them (loot from before the logs, or a tile
+  // that changed no sheet).
+  const looters = treasureLooters(data.characters);
   const doTreasures = (s, where) => {
     // Treasures: "07", or { "number": "07", "character": "Craig", "drew": 52 }.
     const found = [];
     for (const t of s.treasures || []) {
       // "drawn": false says a random draw was never made, and won't be.
-      const { number, character, drew, drawn: never } = typeof t === "object" ? { ...t, drawn: t.drawn === false } : { number: t };
+      const { number, character: named, drew, drawn: never } = typeof t === "object" ? { ...t, drawn: t.drawn === false } : { number: t };
+      const character = looters.get(String(Number(number))) || named;
       const from = `treasure ${number}`;
       const parts = treasureParts(ref, number);
       for (const part of parts) {
@@ -1850,6 +1855,15 @@ function readPlays(data) {
 }
 const tookFrom = (play, results) => (results || []).map(r => ({ ...r, ...playGain(play, r) }));
 
+// Who looted each treasure tile, by the line for it in their log: tile -> name.
+function treasureLooters(characters) {
+  const by = new Map();
+  for (const c of characters || []) {
+    for (const e of c.log || []) if (e.for === "treasure" && e.treasure != null) by.set(String(Number(e.treasure)), c.name);
+  }
+  return by;
+}
+
 // What each character took from the play that completed scenario n.
 const completionResults = (data, n) => plays(data).find(p => p.number === n && p.result === "success" && !p.casual)?.results || [];
 
@@ -2413,8 +2427,15 @@ function toFile(m, when = m.updated || today()) {
   out.sessions ||= [];
   const completing = completions(out.sessions);
   const revealed = revealedByReference(scenarioRef, out.scenarios.filter(s => s.status === "completed").map(s => s.number));
+  const looters = treasureLooters(out.characters);
   out.scenarios = (out.scenarios || []).map(s => {
     const e = { ...s };
+    // Who looted a treasure, where their log already says so, is left to the log.
+    if (Array.isArray(e.treasures)) e.treasures = e.treasures.map(t => {
+      if (typeof t !== "object" || !t.character || looters.get(String(Number(t.number))) !== t.character) return t;
+      const { character, ...rest } = t;
+      return Object.keys(rest).length === 1 ? rest.number : rest;
+    });
     const play = completing.get(e.number)?.play;
     if (e.status === "completed" && play) {
       if (e.results?.length) play.results = e.results;
@@ -2580,11 +2601,17 @@ function fileQuestions(json) {
     const other = players.find(x => x !== p && x.toLowerCase() === p.toLowerCase());
     if (other && p < other) q.push(`The player "${p}" is also written "${other}": write them one way, as their retired characters are counted by it.`);
   }
-  // Treasure numbers as printed on the tile: digits only.
+  // Treasure numbers as printed on the tile: digits only. Who looted one is
+  // said once: by the log's line for it, or on the scenario if it has none.
+  const looters = treasureLooters(json.characters);
   for (const s of json.scenarios || []) {
     for (const t of s.treasures || []) {
       const n = typeof t === "object" ? t.number : t;
       if (!/^\d+$/.test(String(n))) q.push(`#${s.number}'s treasure "${n}" isn't a tile number: write it as printed on the tile, like "07".`);
+      const logged = looters.get(String(Number(n)));
+      if (typeof t === "object" && t.character && logged && logged !== t.character) {
+        q.push(`#${s.number}'s treasure ${n} says ${t.character} looted it, but the line for it is in ${logged}'s log. Correct whichever is wrong.`);
+      }
     }
   }
   // Quest progress as counts, so it can be counted.

@@ -89,9 +89,21 @@ async function runTests(load, loadText) {
     [buildData(copy(open38)).claims.map(c => `${c.item}: treasure ${c.treasure} in ${c.where}`),
      kept.characters.find(c => c.name === "Kaktus").log, kept.scenarios.find(s => s.number === 4).treasures[0],
      sold.characters.find(c => c.name === "Kaktus").log, buildData(copy(sold)).city.returnedItems, buildData(copy(kept)).claims.length],
-    [["Ring of Skulls: treasure 38 in #4"], [{ date: "2026-11-20", for: "treasure", treasure: "38", gained: ["Ring of Skulls"] }], { number: "38", character: "Kaktus" },
+    [["Ring of Skulls: treasure 38 in #4"], [{ date: "2026-11-20", for: "treasure", treasure: "38", gained: ["Ring of Skulls"] }], "38",
      [{ date: "2026-11-20", for: "treasure", treasure: "38", gained: ["Ring of Skulls"], lost: ["Ring of Skulls"] }],
      ["Minor Power Potion", "Ring of Skulls"], 0]);   // (and the evening's potion sold; the shop counts only what it doesn't otherwise sell)
+
+  // Who looted a treasure is said once: by the line for it in their log, or,
+  // with no line (looted before the logs, or a tile that changed no sheet),
+  // on the scenario's treasure. Said both ways and differently, it's asked about.
+  const treasureSays = file => buildData(copy(file)).treasureInfo.get(4);
+  const disagree = copy(kept);
+  disagree.scenarios.find(s => s.number === 4).treasures[0] = { number: "38", character: "Craig" };
+  same("treasure: who looted it is said once, by the log or else the scenario",
+    [treasureSays(kept)[0], treasureSays(raw)[0], raw.scenarios.find(s => s.number === 4).treasures[0],
+     fileQuestions(disagree).filter(q => q.includes("treasure 38"))],
+    ["38: Ring of Skulls, to Kaktus", "38: Ring of Skulls, to Azorica", { number: "38", character: "Azorica" },
+     ["#4's treasure 38 says Craig looted it, but the line for it is in Kaktus's log. Correct whichever is wrong."]]);
 
   // The shop's supply of items it doesn't otherwise sell is worked out from
   // the logs: a sale puts a copy back, buying it takes it out, retiring
