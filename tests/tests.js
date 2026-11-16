@@ -298,6 +298,22 @@ async function runTests(load, loadText) {
       [5, 6, 7, 9].map(n => [...by.get(n)]), [["Azorica"], ["Craig", "Kaktus"], ["Azorica", "Craig", "Flik Flak", "Kaktus"], ["Flik Flak", "Kaktus"]]);
   }
 
+  // What a quest card opens decides a retirement's unlock: a class box by its
+  // id, or Envelope X; a retirement with nothing to open is pointed out. A
+  // made-up character retires, so nothing here ties a real one to a card.
+  {
+    const json = copy(raw);
+    json.characters.push({ name: "Test", class: "Brute", start: { xp: 0, gold: 0, checkmarks: 0, items: [], perks: [] }, log: [], personalQuest: "" });
+    const retire = unlocks => applyDraft(fromFile(copy(json)), { ...copy(draft), retirements: [{ character: "Test", unlocks }] }, buildData(copy(json)));
+    const none = retire("");
+    const sun = retire(questUnlocks("515"));
+    same("quests: a card opens what its data says, and a retirement opens it",
+      [questUnlocks("515"), questUnlocks("513"), questUnlocks("999"),
+       none.warnings.filter(w => w.includes("nothing says what their personal quest opens")).length,
+       (sun.out.city.unlockedClasses || []).map(u => u.name ?? u).includes(className(classRef, "sun"))],
+      ["sun", "envelope-x", "", 1, true]);
+  }
+
   // The form records only progress it can read.
   {
     const res = applyDraft(fromFile(copy(raw)), { ...copy(draft), quests: { Craig: "3/4?", "Flik Flak": "1/3 + 1/1" } }, buildData(copy(raw)));

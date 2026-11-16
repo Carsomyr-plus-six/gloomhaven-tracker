@@ -905,15 +905,29 @@ let showReplays = false;
 // fulfilled quest is no secret: the character retires.
 const questShown = new Set();
 
+// What each retirement in a draft opens: what the retiring character's
+// quest card opens, on a device that knows the card (fromCard says it came
+// from one). Once the card is forgotten, or someone else is picked, it goes;
+// a box picked by hand in an older draft stays until the card is picked.
+// Run before anything reads the draft's retirements.
+function syncRetirements(d) {
+  let changed = false;
+  for (const x of d.retirements || []) {
+    const opens = x.character ? questUnlocks(questCard(x.character)) : "";
+    if (opens && (x.unlocks !== opens || !x.fromCard)) { x.unlocks = opens; x.fromCard = true; changed = true; }
+    else if (!opens && x.fromCard) { x.unlocks = ""; delete x.fromCard; changed = true; }
+  }
+  if (changed) saveDraft();
+}
+
 // "Record it" for a fulfilled personal quest: a retirement row in the form,
-// with what the quest opens filled in on the phone that knows the card.
+// which their quest card fills in (on a device that knows it).
 function recordRetire(data, name) {
   if (!draft) draft = newDraft(data);
-  const quest = questRef?.quests?.[questCard(name)];
-  const unlocks = quest?.unlockClass || (quest?.openEnvelope ? `envelope-${quest.openEnvelope.toLowerCase()}` : "");
   let i = draft.retirements.findIndex(x => x.character === name);
-  if (i < 0) { draft.retirements.push({ character: name, unlocks }); i = draft.retirements.length - 1; }
-  showInRecorder(data, `ret-${i}-u`);
+  if (i < 0) { draft.retirements.push({ character: name, unlocks: "" }); i = draft.retirements.length - 1; }
+  syncRetirements(draft);
+  showInRecorder(data, `ret-${i}-c`);
 }
 
 // "Record it" for a scenario a personal quest opens.
@@ -2982,6 +2996,8 @@ function renderRecorder(data) {
   d.claims ||= {};
   d.retirements ||= [];
   d.newCharacters ||= [];
+  // What each retirement opens, before anything below reads the draft.
+  syncRetirements(d);
   // A change to the form's rows redraws it, and the Overview and sheets too:
   // they leave out what the draft already covers (a perk picked, say).
   const rerender = () => {
@@ -3243,23 +3259,39 @@ function renderRecorder(data) {
     field("Item", select(`sell-${i}-i`, b, "item", [["", "Pick an item"],
       ...(data.characters.find(c => c.name === b.character)?.items || []).map(x => [x, x])], false)),
     remove(d.sells, i, "sale", "add-sell"));
-  // Retiring: who, and the class their personal quest unlocks, picked by its
-  // icon (the box's name would be a spoiler until it's opened).
+  // Retiring: who, and what their personal quest opens, which their quest
+  // card decides (syncRetirements, above): a class box (shown by its icon, as
+  // the box's name would be a spoiler until it's opened) or Envelope X. A
+  // quest done is no secret, so a device that doesn't know the card asks for
+  // it here. A box already open, or opened by a retirement above, gives a
+  // random item design and a random side scenario instead (rulebook p. 48).
   const unlocked = new Set(data.city.unlockedClasses.map(u => u.id));
-  // Every class box, the still-closed ones first. A quest can point at a box
-  // that's already open: that gives a random item design and a random side
-  // scenario instead (rulebook p. 48).
-  const boxes = Object.keys(classRef?.classes || {}).filter(id => !classRef.classEvents?.[id]?.starting);
-  const locked = [...boxes.filter(id => !unlocked.has(id)), ...boxes.filter(id => unlocked.has(id))];
+  const boxLabel = opens => opens === "envelope-x" ? "Envelope X"
+    : [gameIcon(`class-${opens}`, `${classIconName(opens)} icon`), `The box with the ${classIconName(opens)} icon`];
+  const questOpens = (x, i) => {
+    const c = data.characters.find(c => c.name === x.character);
+    if (!c) return null;
+    const pick = label => field(label, questCardPick(data, c), "wide");
+    // An older draft's box, picked by hand: kept until the card is picked.
+    if (!x.fromCard) {
+      return x.unlocks ? [h("div", { class: "field wide" }, h("span", {}, "Their personal quest opens"),
+          h("span", { class: "rec-opens", "data-key": `ret-${i}-u`, tabindex: "-1" }, boxLabel(x.unlocks), h("span", { class: "muted" }, " (picked by hand)"))),
+          pick("Their quest card, to be sure")]
+        : pick("Their quest card, for what it opens");
+    }
+    const before = d.retirements.slice(0, i).some(r => r.character && r.unlocks === x.unlocks);
+    const open = before || (x.unlocks === "envelope-x" ? data.city.envelopeX : unlocked.has(x.unlocks));
+    // The card stays to hand, to put right a wrong pick.
+    return [pick("Their quest card"), h("div", { class: "field wide" }, h("span", {}, "Their personal quest opens"),
+      h("span", { class: "rec-opens", "data-key": `ret-${i}-u`, tabindex: "-1" }, boxLabel(x.unlocks),
+        open ? h("span", { class: "muted" }, ` (${before ? "opened by a retirement above" : "already open"}: a random item design and a random side scenario instead)`) : null))];
+  };
   const retireBlock = (x, i) => h("div", { class: "rec-row" },
     field("Who retires", select(`ret-${i}-c`, x, "character", activeOptions)),
     // Who played them: their next characters get a perk for each retirement (p. 48).
     field("Player (optional)", text(`ret-${i}-p`, x, "player", { autocomplete: "off", "aria-label": "Who played the retiring character",
       placeholder: data.characters.find(c => c.name === x.character)?.player || "" })),
-    field("Their personal quest unlocks", select(`ret-${i}-u`, x, "unlocks",
-      [["", "No class, or not yet"], ...locked.map(id => [id, `The class with the ${classIconName(id)} icon${unlocked.has(id) ? " (already open)" : ""}`]),
-       ["envelope-x", `Envelope X${data.city.envelopeX ? " (already open)" : ""}`]]), "wide"),
-    x.unlocks && x.unlocks !== "envelope-x" ? h("span", { class: "rec-note rec-icon" }, gameIcon(`class-${x.unlocks}`, `${classIconName(x.unlocks)} icon`)) : null,
+    questOpens(x, i),
     remove(d.retirements, i, "retirement", "add-retire"));
   // A newcomer: any unlocked class (or one unlocked tonight), at any level up
   // to the prosperity level, counting a checkmark for each retirement tonight

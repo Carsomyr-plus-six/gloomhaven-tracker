@@ -387,6 +387,12 @@ TRACK_OVERRIDES = {
 }
 
 
+# Card names the source misspells, as printed on the card.
+QUEST_NAME_FIXES = {
+    "527": "Zealot of the Blood God",
+}
+
+
 def build_quests(labels, spoiler_labels, item_names):
     cards = {}
     for quest in fetch(f"{RAW}/personal-quests.json"):
@@ -401,7 +407,7 @@ def build_quests(labels, spoiler_labels, item_names):
                 step["after"] = req["requires"]
             steps.append(step)
         cards[card] = {
-            "name": label(f"personalQuest.gh.{card}.", spoiler_labels, labels) or card,
+            "name": QUEST_NAME_FIXES.get(card) or label(f"personalQuest.gh.{card}.", spoiler_labels, labels) or card,
             "steps": steps,
             **({"unlockClass": quest["unlockCharacter"]} if quest.get("unlockCharacter") else {}),
             **({"openEnvelope": quest["openEnvelope"]} if quest.get("openEnvelope") else {}),

@@ -498,7 +498,7 @@
     "text": null
    }
   },
-  "527 Zealot of the Blood Good": {
+  "527 Zealot of the Blood God": {
    "Azorica": {
     "steps": [
      "?/12, by hand"
@@ -980,7 +980,7 @@
     "text": null
    }
   },
-  "527 Zealot of the Blood Good": {
+  "527 Zealot of the Blood God": {
    "Grunt": {
     "steps": [
      "?/12, by hand"
@@ -1342,7 +1342,7 @@
    ],
    "inputsWrite": "1/4, then 0/1"
   },
-  "527 Zealot of the Blood Good": {
+  "527 Zealot of the Blood God": {
    "written": "1/12",
    "steps": [
     "1/12, by hand"

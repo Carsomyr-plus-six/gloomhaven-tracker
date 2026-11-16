@@ -1558,7 +1558,11 @@ function applyDraft(raw, d, data) {
     delete c.inactive;
     for (const item of c.items || []) returnItem(item);
     joinLog.push(`${c.name} retires: a prosperity checkmark, the ${c.class} retirement events go into the decks, and their items go back to the shop, and their gold is gone`);
-    if (!x.unlocks) continue;
+    // What their quest opens comes from their quest card, in the form.
+    if (!x.unlocks) {
+      warnings.push(`${c.name} retires, but nothing says what their personal quest opens: pick their quest card in the form (Retiring and joining).`);
+      continue;
+    }
     // Two quests open Envelope X instead of a class box.
     if (x.unlocks === "envelope-x") {
       if (data.city.envelopeX || out.city?.envelopeX) {
@@ -1884,6 +1888,13 @@ function questProgress(data, c, card) {
   };
   const known = steps.every(x => x.n != null);
   return { name: quest.name, card, steps, text, known, fits, unlockClass: quest.unlockClass, openEnvelope: quest.openEnvelope };
+}
+
+// What a personal quest card opens once fulfilled: a class box (its id), or
+// "envelope-x"; "" for a card the data doesn't know.
+function questUnlocks(card) {
+  const quest = questRef?.quests?.[card];
+  return quest?.unlockClass || (quest?.openEnvelope ? `envelope-${quest.openEnvelope.toLowerCase()}` : "");
 }
 
 // A personal quest's progress as the page takes it in: one input per step,
