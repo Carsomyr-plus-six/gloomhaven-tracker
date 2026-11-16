@@ -2042,7 +2042,7 @@ function renderCharacters(data) {
           h("p", {}, classIcon(c.class), [c.class, c.retired ? "retired" : c.inactive ? "inactive" : null].filter(Boolean).join(" · ")))),
       h("div", { class: "block" },
         h("div", { class: "block-head" },
-          h("span", { class: "xp-now num" }, `${c.xp} XP`),
+          h("span", { class: "xp-now num" }, xpText(c.xp)),
           h("span", { class: `xp-next${st.close && !c.retired ? " close" : ""}` }, c.retired ? "Retired" : st.nextText)),
         meter(st.toNext ? st.toNext.fraction : 1, st.close),
       ),
@@ -2635,7 +2635,7 @@ function scenarioSummary(data) {
               "aria-disabled": String((st.goal || 0) >= 3), onclick: (st.goal || 0) < 3 ? setGoal((st.goal || 0) + 1) : null }, icon("plus"))))
           : h("p", { class: "small muted" }, "A failure gives no bonus XP and no battle goal checkmarks."),
         h("p", { class: "sum-after" },
-          `Then ${c.xp + xp} XP`,
+          `Then ${xpText(c.xp + xp)}`,
           after.level === before.level && after.toNext ? ` · ${after.toNext.remaining} to level ${after.level + 1}` : "",
           gold != null ? ` · ${goldText(c.gold + gold - draftSpend(data, c.name))}${draftSpend(data, c.name) ? " after the draft" : ""}` : "",
           gains ? h("strong", { class: "sum-gains" }, capitalize(gains)) : null));
@@ -3130,12 +3130,12 @@ function renderRecorder(data) {
   // What a character's row adds up to, kept current as the boxes are typed in.
   const gainText = (s, r) => {
     const g = scenarioGain(s, r, data);
-    return `= ${g.xp} XP, ${goldText(g.gold)}`;
+    return `= ${xpText(g.xp)}, ${goldText(g.gold)}`;
   };
   const reward = n => scenarioRef?.scenarios?.[String(n)]?.rewards;
   const tracked = name => {
     const t = tableState(name);
-    return t.xp || t.coins || t.goal ? [`${t.xp} XP`, plural(t.coins, "coin"), t.goal ? plural(t.goal, "checkmark") : null].filter(Boolean).join(", ") : null;
+    return t.xp || t.coins || t.goal ? [xpText(t.xp), plural(t.coins, "coin"), t.goal ? plural(t.goal, "checkmark") : null].filter(Boolean).join(", ") : null;
   };
   const scenarioBlock = (s, i) => {
     const n = num(s.number);
@@ -3348,7 +3348,7 @@ function renderRecorder(data) {
       field("Perks from retirements", text(`new-${i}-b`, x, "bonusPerks", { type: "number", min: 0, inputmode: "numeric",
         placeholder: String(retiredByPlayer(x.player)),
         "aria-label": "Extra perks: one for each character this player has retired" }), "short"),
-      h("span", { class: "small muted rec-note" }, `Starts at level ${level} with ${XP_FOR_LEVEL[level - 1]} XP and ${goldText(startingGold(level))}`),
+      h("span", { class: "small muted rec-note" }, `Starts at level ${level} with ${xpText(XP_FOR_LEVEL[level - 1])} and ${goldText(startingGold(level))}`),
       remove(d.newCharacters, i, "new character", "add-new"));
   };
 

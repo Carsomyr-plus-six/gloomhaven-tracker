@@ -135,6 +135,9 @@ function signed(n) { return n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : "0";
 // "25g", and a change as "+5g" or "−5g". Words for screen readers say "gold".
 const goldText = n => n < 0 ? `−${Math.abs(n)}g` : `${n}g`;
 const goldChange = n => `${signed(n)}g`;
+// XP the same way, as the rulebook writes it: "15 XP", "+5 XP".
+const xpText = n => `${n} XP`;
+const xpChange = n => `${signed(n)} XP`;
 
 function plural(n, word) { return `${n} ${word}${n === 1 ? "" : "s"}`; }
 
@@ -160,7 +163,7 @@ function characterStats(c) {
     unspent: Math.max(0, earned - c.perks.length),
     // About to level up: worth a glance before the next scenario.
     close: Boolean(toNext) && toNext.remaining <= 5,
-    nextText: toNext ? `${toNext.remaining} XP to level ${level + 1}` : "Maximum level",
+    nextText: toNext ? `${xpText(toNext.remaining)} to level ${level + 1}` : "Maximum level",
   };
 }
 
@@ -265,7 +268,7 @@ function treasureParts(ref, number) {
 function describeTreasurePart({ type, value }) {
   switch (type) {
     case "gold": return goldText(value);
-    case "experience": return `${value} XP`;
+    case "experience": return xpText(value);
     case "item": return itemName(value);
     case "itemDesign": return `${itemName(value)} design`;
     case "randomItemDesign": return "a random item design";
@@ -320,7 +323,7 @@ function describeRewards(ref, rewards, evRef) {
   const r = rewards;
   if (r.gold) parts.push(`${goldText(r.gold)} each`);
   if (r.collectiveGold) parts.push(`${goldText(r.collectiveGold)} to share`);
-  if (r.experience) parts.push(`${r.experience} XP each`);
+  if (r.experience) parts.push(`${xpText(r.experience)} each`);
   if (r.battleGoals) parts.push(`${plural(r.battleGoals, "battle goal checkmark")} each`);
   if (r.prosperity) parts.push(`${signed(r.prosperity)} prosperity`);
   if (r.reputation) parts.push(`${signed(r.reputation)} reputation`);
@@ -557,7 +560,7 @@ function tally(effects, ctx, ref, evRef) {
         break;
       case "gold": say(`${goldChange(e.amount)} each`); break;
       case "collectiveGold": say(`${goldChange(e.amount)} to share`); break;
-      case "experience": say(`${signed(e.amount)} XP each`); break;
+      case "experience": say(`${xpChange(e.amount)} each`); break;
       case "checkmarks": say(`${signed(e.amount)} battle goal ${Math.abs(e.amount) === 1 ? "checkmark" : "checkmarks"} each`); break;
       case "partyAchievement":
       case "globalAchievement": {
@@ -1279,7 +1282,7 @@ function applyDraft(raw, d, data) {
                           log: [], personalQuest: "", retired: false, ...(bonus ? { perkBonus: bonus } : {}),
                           ...(String(x.player || "").trim() ? { player: String(x.player).trim() } : {}), joined: d.date || today(), notes: "" });
     const perks = level - 1 + bonus;
-    log.push(`${name} the ${x.class} joins at level ${level}, with ${XP_FOR_LEVEL[level - 1]} XP and ${goldText(startingGold(level))}${perks ? `, and ${plural(perks, "perk")} to choose` : ""}${level > 1 ? `; and ${plural(level - 1, "ability card")} to add, one for each level from 2 to ${level} (each of that level or lower)` : ""}`);
+    log.push(`${name} the ${x.class} joins at level ${level}, with ${xpText(XP_FOR_LEVEL[level - 1])} and ${goldText(startingGold(level))}${perks ? `, and ${plural(perks, "perk")} to choose` : ""}${level > 1 ? `; and ${plural(level - 1, "ability card")} to add, one for each level from 2 to ${level} (each of that level or lower)` : ""}`);
     if (x.playing !== false) joined.push(name);
   }
 
@@ -1363,7 +1366,7 @@ function applyDraft(raw, d, data) {
     for (const fx of outcome.effects) {
       if (fx.type === "gold" || fx.type === "experience") {
         for (const name of party) eventGain(ev, name, fx.type === "gold" ? "gold" : "xp", fx.amount);
-        log.push(`${label}: ${fx.type === "gold" ? goldChange(fx.amount) : `${signed(fx.amount)} XP`} each, for ${party.join(", ")}`);
+        log.push(`${label}: ${fx.type === "gold" ? goldChange(fx.amount) : xpChange(fx.amount)} each, for ${party.join(", ")}`);
       } else if (fx.type === "collectiveGold") {
         const shares = e.shares || {};
         const total = party.reduce((sum, name) => sum + Math.max(0, num(shares[name])), 0);
@@ -1384,7 +1387,7 @@ function applyDraft(raw, d, data) {
         }
         log.push(`${label}: ${signed(fx.amount)} battle goal ${Math.abs(fx.amount) === 1 ? "checkmark" : "checkmarks"} each, for ${party.join(", ")}${fx.amount < 0 ? " (never one that would cost a perk)" : ""}`);
       } else if (fx.type === "choose" && fx.of.some(x => x.type === "gold" || x.type === "experience")) {
-        warnings.push(`${label}: a choice (${fx.of.map(x => x.amount != null ? `${signed(x.amount)} ${x.type === "experience" ? "XP" : x.type}` : x.type).join(" or ")}); add any gold or XP by hand.`);
+        warnings.push(`${label}: a choice (${fx.of.map(x => x.amount != null ? (x.type === "experience" ? xpChange(x.amount) : `${signed(x.amount)} ${x.type}`) : x.type).join(" or ")}); add any gold or XP by hand.`);
       } else if (fx.type === "item") {
         warnings.push(`${label} gives ${itemName(fx.item)}: add it to one character's items.`);
       } else if (fx.type === "payItem") {
@@ -1461,7 +1464,7 @@ function applyDraft(raw, d, data) {
           }
           if (part.type === "experience") {
             tr.gain(t.character, { xp: num(part.value) });
-            log.push(`${t.character} gains ${num(part.value)} XP from treasure ${t.number}`);
+            log.push(`${t.character} gains ${xpText(num(part.value))} from treasure ${t.number}`);
           }
           // A battle-goal checkmark, which counts towards a perk as any other.
           if (part.type === "battleGoal") {
@@ -1529,7 +1532,7 @@ function applyDraft(raw, d, data) {
     const rw = happening({ for: "reward", scenario: n });
     for (const name of party) rw.gain(name, { gold: r.gold, xp: r.experience, checkmarks: r.battleGoals });
     if (r.battleGoals) log.push(`${label} reward: ${plural(r.battleGoals, "battle goal checkmark")} each`);
-    if (r.gold || r.experience) log.push(`${label} reward: ${[r.gold ? goldText(r.gold) : null, r.experience ? `${r.experience} XP` : null].filter(Boolean).join(" and ")} each`);
+    if (r.gold || r.experience) log.push(`${label} reward: ${[r.gold ? goldText(r.gold) : null, r.experience ? xpText(r.experience) : null].filter(Boolean).join(" and ")} each`);
     if (r.collectiveGold) {
       // Shared as the party split it in the form.
       const shares = s.rewardShares || {};
@@ -1673,7 +1676,7 @@ function applyDraft(raw, d, data) {
     c.xp = (c.xp || 0) + g.xp;
     c.gold = (c.gold || 0) + g.gold;
     c.checkmarks = (c.checkmarks || 0) + g.checkmarks;
-    log.push(`${name}: ${[g.xp ? `${signed(g.xp)} XP` : null, g.gold ? goldChange(g.gold) : null,
+    log.push(`${name}: ${[g.xp ? xpChange(g.xp) : null, g.gold ? goldChange(g.gold) : null,
                           g.checkmarks ? `${signed(g.checkmarks)} ${g.checkmarks === 1 ? "checkmark" : "checkmarks"}` : null].filter(Boolean).join(", ")}`);
     const now = c.retired ? was : stepFor(c.xp, XP_FOR_LEVEL);
     for (let level = was + 1; level <= now; level++) {
