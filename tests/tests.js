@@ -119,6 +119,24 @@ async function runTests(load, loadText) {
      buildData(copy(ringBought)).characters.find(c => c.name === "Craig").items.includes("Ring of Skulls"),
      ["returnedItems" in ringSold.city, "returnedItems" in ringBought.city]],
     [0, 1, 0, 1, true, [false, false]]);
+  // Retiring is said once: the retirement line in the log, which the page
+  // reads retired and retiredOn from, written even with nothing to hand
+  // back; on the character only for one who retired before the logs. Both,
+  // and differing, is asked about.
+  const broke = copy(raw);
+  Object.assign(broke.characters.find(c => c.name === "Kaktus").start, { gold: 0, items: [] });
+  const kaktusRetires = evening(broke, { retirements: [{ character: "Kaktus", unlocks: "envelope-x" }] });
+  const kaktusFile = kaktusRetires.characters.find(c => c.name === "Kaktus");
+  const kaktusSheet = buildData(copy(kaktusRetires)).characters.find(c => c.name === "Kaktus");
+  const preLog = copy(raw);
+  Object.assign(preLog.characters.find(c => c.name === "Kaktus"), { retired: true, retiredOn: "2026-09-01" });
+  const contradicts = copy(kaktusRetires);
+  Object.assign(contradicts.characters.find(c => c.name === "Kaktus"), { retired: false, retiredOn: "2026-11-01" });
+  same("retiring: said once, by the retirement line, read from the log",
+    [kaktusFile.log, ["retired" in kaktusFile, "retiredOn" in kaktusFile], [kaktusSheet.retired, kaktusSheet.retiredOn],
+     (({ retired, retiredOn }) => [retired, retiredOn])(toFile(fromFile(copy(preLog))).characters.find(c => c.name === "Kaktus")),
+     fileQuestions(contradicts).filter(q => q.startsWith("Kaktus")).length],
+    [[{ date: "2026-11-20", for: "retirement" }], [false, false], [true, "2026-11-20"], [true, "2026-09-01"], 2]);
   // A list in an older file (schemaVersion 3 and before, kept by hand or
   // written by the form): what the logs account for is left to them, the
   // rest joins the city's start. In a current file the list is worked out,

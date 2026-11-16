@@ -1205,11 +1205,13 @@ function applyDraft(raw, d, data) {
   // checkmarks, gained, lost, perks }; why: { for, ... }.
   const when = d.date || today();
   const LISTS = ["gained", "lost", "perks"];
-  const line = (name, what, why) => {
+  // always: written even if it changed nothing, as the record of what
+  // happened (retiring with no gold and no items).
+  const line = (name, what, why, always = false) => {
     const c = who(name);
     const amounts = Object.fromEntries([...SHEET_SUMS.filter(k => what[k]).map(k => [k, what[k]]),
       ...LISTS.filter(k => what[k]?.length).map(k => [k, [...what[k]]])]);
-    if (c && Object.keys(amounts).length) (c.log ||= []).push({ date: when, ...why, ...amounts });
+    if (c && (always || Object.keys(amounts).length)) (c.log ||= []).push({ date: when, ...why, ...amounts });
   };
   // One thing that happened, in parts (an event's gold and checkmark, a
   // treasure's gold and item, a scenario's reward and reward item): each
@@ -1690,7 +1692,8 @@ function applyDraft(raw, d, data) {
   for (const name of retiring) {
     const c = who(name);
     if (!c?.retired) continue;
-    line(name, { gold: -(c.gold || 0), lost: c.items }, { for: "retirement" });
+    // The record of retiring: the page reads retired and retiredOn from it.
+    line(name, { gold: -(c.gold || 0), lost: c.items }, { for: "retirement" }, true);
     c.gold = 0;
     c.items = [];
   }
@@ -1854,6 +1857,9 @@ function readPlays(data) {
   return out;
 }
 const tookFrom = (play, results) => (results || []).map(r => ({ ...r, ...playGain(play, r) }));
+
+// A character's retirement line, if their log has one.
+const retirementOf = c => (c.log || []).find(e => e.for === "retirement") || null;
 
 // Who looted each treasure tile, by the line for it in their log: tile -> name.
 function treasureLooters(characters) {
@@ -2379,6 +2385,10 @@ function fromFile(json) {
     else if (version === 2) c = fromSums(c, took);
     const t = withTook(sheetTotals(c), took);
     const m = { ...c, xp: t.xp, gold: t.gold, checkmarks: t.checkmarks, items: t.items, perks: t.perks };
+    // Retired, and when: by the retirement line in the log, or (retired
+    // before the logs began) as written on the character.
+    const retiring = retirementOf(c);
+    if (retiring) Object.assign(m, { retired: true, retiredOn: retiring.date });
     if (t.donated) m.donated = t.donated;
     if (t.enhanced) m.enhanced = t.enhanced;
     return m;
@@ -2460,6 +2470,10 @@ function toFile(m, when = m.updated || today()) {
     const change = sheetChange(withTook(sheetTotals({ start, log }), took), after);
     if (Object.keys(change).length) log.push({ date: when, ...change });
     const { name, class: cls, xp, gold, checkmarks, items, perks, donated, enhanced, start: _s, log: _l, ...rest } = c;
+    // Retired, and when, as the retirement line says: left to the log.
+    const retiring = retirementOf({ log });
+    if (retiring && rest.retired === true) delete rest.retired;
+    if (retiring && rest.retiredOn === retiring.date) delete rest.retiredOn;
     return { name, class: cls, start, log, ...rest };
   });
   if (out.city) {
@@ -2600,6 +2614,14 @@ function fileQuestions(json) {
   for (const p of players) {
     const other = players.find(x => x !== p && x.toLowerCase() === p.toLowerCase());
     if (other && p < other) q.push(`The player "${p}" is also written "${other}": write them one way, as their retired characters are counted by it.`);
+  }
+  // Retiring is said once: by the retirement line, or on the character if
+  // they retired before the logs began.
+  for (const c of json.characters || []) {
+    const retiring = retirementOf(c);
+    if (!retiring) continue;
+    if (c.retired === false) q.push(`${c.name} has a retirement line in their log (${retiring.date}) but says "retired": false. Correct whichever is wrong.`);
+    if (c.retiredOn && c.retiredOn !== retiring.date) q.push(`${c.name} says they retired on ${c.retiredOn}, but their retirement line is dated ${retiring.date}. Correct whichever is wrong.`);
   }
   // Treasure numbers as printed on the tile: digits only. Who looted one is
   // said once: by the log's line for it, or on the scenario if it has none.
