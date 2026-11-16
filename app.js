@@ -596,6 +596,8 @@ try { tonightPick = Number(localStorage.getItem(PICK_KEY)) || null; } catch {}
 function pickTonight(data, number) {
   tonightPick = number;
   try { if (number) localStorage.setItem(PICK_KEY, String(number)); else localStorage.removeItem(PICK_KEY); } catch {}
+  // The Play tab names it too, over the cards.
+  render(data, "characters");
   render(data, "overview");
   const card = document.querySelector(".scen-ref");
   if (card) { card.scrollIntoView({ block: "start", behavior: "instant" }); card.focus({ preventScroll: true }); }
@@ -660,7 +662,11 @@ function scenarioCard(data) {
         h("strong", {}, c.name),
         h("span", {}, [handSize(c) ? plural(handSize(c), "card") : null, maxHealth(c) ? `${maxHealth(c)} HP` : null].filter(Boolean).join(" · "))))),
       h("p", { class: "small muted" }, "Deal each player two battle goals; each keeps one.")) : null,
-    h("a", { class: "ref-more", href: "#scenarios", onclick: () => openScenario(data, s.number) }, "Its details under Scenarios"));
+    h("div", { class: "ref-actions" },
+      // The recorder's phone (the one with a draft) records it from here.
+      rawCampaign && draft ? h("button", { type: "button", class: "btn", "data-key": "scen-ref-record", onclick: () => recordScenario(data, s.number) },
+        draft.scenarios?.some(x => num(x.number) === s.number) ? "Go to it in the draft" : "Record it") : null,
+      h("a", { class: "ref-more", href: "#scenarios", onclick: () => openScenario(data, s.number) }, "Its details under Scenarios")));
 }
 
 // Going straight on from the last scenario played to one linked to it needs
@@ -722,22 +728,26 @@ function tonightStrip(data) {
   ].filter(([n]) => n).map(([n, what]) => plural(n, what)).join(", ") + blessings() : "";
   const played = (draft?.scenarios || []).filter(s => num(s.number));
   const firstPlayed = (draft?.scenarios || []).findIndex(s => num(s.number));
+  // One phone records the evening: the one holding a draft. On the others,
+  // the event steps open the decks to read, not the form. Wide screens are
+  // for keeping the campaign, so they always record.
+  const recorder = !phone.matches || Boolean(draft);
   // Anyone to play: a new campaign has no one until characters are added.
   const anyone = data.characters.some(c => !c.retired) || Boolean(draft?.newCharacters?.some(x => x.name));
   return h("nav", { class: "tonight", "data-tab": "tonight", "aria-label": "Tonight, step by step" },
     step(1, "City event", drawn("city") || (decks ? `${decks.city.size} in the deck` : "Draw one"), "#events",
-      () => recordEvent(data, "city"), Boolean(drawn("city"))),
+      recorder ? () => recordEvent(data, "city") : null, Boolean(drawn("city"))),
     step(2, "In town", town || (shop ? (shop.modifier === 0 ? "Normal prices" : `Prices ${signed(shop.modifier)} gold`) : "Shop, perks, Sanctuary"),
       "#shop", null, Boolean(town)),
     step(3, "Road event", drawn("road") || (decks ? `${decks.road.size} in the deck` : "Draw one") + straightOn(data), "#events",
-      () => recordEvent(data, "road"), Boolean(drawn("road"))),
+      recorder ? () => recordEvent(data, "road") : null, Boolean(drawn("road"))),
     step(4, "Scenario", (played.length ? played.map(s => scenarioLabel(data, num(s.number))).join(", ")
       : t ? (tonightScenario(data) ? `${scenarioLabel(data, tonightScenario(data).number)} · level ${t.level}` : `Level ${t.level} · deal battle goals`)
       : anyone ? "Pick who is playing" : "Add characters first"), anyone ? "#scenarios" : "#sessions",
       played.length ? () => showInRecorder(data, `sc-${firstPlayed}-n`) : anyone ? null : () => addNewcomer(data), played.length > 0),
-    rawCampaign ? h("button", { type: "button", class: `btn${recording ? "" : " primary"} tonight-record`, "data-key": "tonight-record",
+    rawCampaign ? h("button", { type: "button", class: `btn${recording || !recorder ? "" : " primary"} tonight-record`, "data-key": "tonight-record",
       onclick: () => { if (!draft) draft = newDraft(data); showInRecorder(data, "rec-date"); } },
-      recording ? "Go on recording" : "Record the evening") : null);
+      recording ? "Go on recording" : recorder ? "Record the evening" : "Record the evening on this phone") : null);
 }
 
 // Everything waiting on the party before the next scenario, gathered from
@@ -2585,28 +2595,38 @@ function attackDeckBlock(c, rows) {
   const sheet = classPerks(c.class);
   const inOrder = [...rows].sort((a, b) => (a.match ? sheet.indexOf(a.match) : sheet.length) - (b.match ? sheet.indexOf(b.match) : sheet.length));
   const { cards, total, unread } = attackDeck(inOrder.flatMap(r => Array(r.count).fill(r.match ? r.match.text : r.written)));
-  // Sanctuary blessings in the session being recorded: for the next scenario.
-  const blessed = c.blessNext || (draft?.donations || []).some(x => x.character === c.name);
+  // Bless and Curse cards in the deck now, as counted under Conditions; with
+  // none counted, Sanctuary blessings in the session being recorded, for the
+  // next scenario.
+  const live = tableState(c.name).conds || {};
+  const curses = live.curse || 0;
+  const donated = !live.bless && (c.blessNext || (draft?.donations || []).some(x => x.character === c.name));
+  const blesses = live.bless || (donated ? 2 : 0);
+  const blessed = blesses > 0;
   // Worst to best, a segment per card, so a deck's quality reads at a glance
   // and decks compare side by side. The chips under it are its legend.
-  const KINDS = ["null", "bad", "zero", "good", "crit", "bless"];
-  const segments = [...cards.flatMap(([label, n]) => Array(n).fill(cardKind(label))), ...(blessed ? ["bless", "bless"] : [])]
+  const KINDS = ["curse", "null", "bad", "zero", "good", "crit", "bless"];
+  const segments = [...cards.flatMap(([label, n]) => Array(n).fill(cardKind(label))), ...Array(blesses).fill("bless"), ...Array(curses).fill("curse")]
     .sort((a, b) => KINDS.indexOf(a) - KINDS.indexOf(b));
   const tally = k => segments.filter(x => k.includes(x)).length;
   return h("div", { class: "block deck-block" },
     h("div", { class: "block-head" }, h("h4", { class: "label" }, "Attack modifier deck"),
-      h("span", {}, `${total} cards${blessed ? " + 2 Bless" : ""}`)),
+      h("span", {}, `${total} cards${blesses ? ` + ${blesses} Bless` : ""}${curses ? ` + ${curses} Curse` : ""}`)),
     h("div", { class: "deck-bar", role: "img",
-               "aria-label": `${tally(["null", "bad"])} below +0, ${tally(["zero"])} at +0, ${tally(["good", "crit", "bless"])} above` },
+               "aria-label": `${tally(["curse", "null", "bad"])} below +0, ${tally(["zero"])} at +0, ${tally(["good", "crit", "bless"])} above` },
       segments.map(k => h("i", { class: `k-${k}` }))),
     // Worst to best, the bad cards quieter; each count in a badge of its own,
     // so the 2× card doesn't read "2× ×1".
     h("ul", { class: "deck-cards" }, cards.map(([label, n]) => h("li", { class: { null: "bad", bad: "bad", good: "good", crit: "good" }[cardKind(label)] || null },
         h("i", { class: `swatch k-${cardKind(label)}`, "aria-hidden": "true" }),
         h("span", {}, perkText(label)), h("span", { class: "sr-only" }, ", "), h("b", { role: "img", "aria-label": plural(n, "card") }, String(n)))),
-      blessed ? h("li", { class: "bless", title: "From a Sanctuary donation, for the next scenario only" },
+      blessed ? h("li", { class: "bless", title: donated ? "From a Sanctuary donation, for the next scenario only" : "In the deck now, as counted under Conditions" },
         h("i", { class: "swatch k-bless", "aria-hidden": "true" }),
-        h("span", {}, "Bless"), h("span", { class: "sr-only" }, ", "), h("b", { role: "img", "aria-label": "2 cards, next scenario only" }, "2")) : null),
+        h("span", {}, "Bless"), h("span", { class: "sr-only" }, ", "),
+        h("b", { role: "img", "aria-label": donated ? "2 cards, next scenario only" : plural(blesses, "card") }, String(blesses))) : null,
+      curses ? h("li", { class: "bad", title: "In the deck now, as counted under Conditions" },
+        h("i", { class: "swatch k-curse", "aria-hidden": "true" }),
+        h("span", {}, "Curse"), h("span", { class: "sr-only" }, ", "), h("b", { role: "img", "aria-label": plural(curses, "card") }, String(curses))) : null),
     unread.length ? h("p", { class: "small muted" }, `Not counted, as written: ${unread.join("; ")}`) : null);
 }
 
@@ -2657,6 +2677,8 @@ function battleGoalCard(data) {
   const goals = Object.entries(questRef?.battleGoals || {});
   if (!c || !goals.length) return null;
   const kept = battleGoal(c.name);
+  // Dealt as the scenario is set up: shown once one is picked, or kept.
+  if (!kept && !tonightScenario(data)) return null;
   const shown = goalShown.has(c.name);
   const redraw = key => { render(data, "overview"); document.querySelector(`[data-key="${key}"]`)?.focus(); };
   const choose = id => { saveTable(c.name, { battleGoal: id || null, goalMet: null }); goalShown.delete(c.name); redraw(id ? "goal-show" : "goal-pick"); };
@@ -2868,7 +2890,7 @@ function renderCharacters(data) {
         }), ...check.rows.filter(r => !r.match).map(taken)]
       : check.rows.map(taken);
     const itemProblems = itemCheck(c, st.level);
-    return h("article", { class: `char-card${order.indexOf(c) === characterIndex ? " current" : ""}${c.inactive && !c.retired ? " inactive" : ""}`, "data-char": c.name },
+    const article = h("article", { class: `char-card${order.indexOf(c) === characterIndex ? " current" : ""}${c.inactive && !c.retired ? " inactive" : ""}`, "data-char": c.name },
       h("header", { class: "char-head" },
         h("div", { class: "char-level" }, hex(st.level, "level"), h("span", { class: "label" }, "Level")),
         h("div", {},
@@ -2950,6 +2972,14 @@ function renderCharacters(data) {
       c.notes ? h("div", { class: "block char-notes" }, h("h4", { class: "label" }, "Notes"), notes(c.notes)) : null,
       // Last, so it docks at the foot of the screen from the top of the sheet.
       c.retired ? null : tableDock(c));
+    // A phone at the table: what's played with comes first, under the name,
+    // with tonight's numbers; what's kept between scenarios follows.
+    if (phone.matches && !c.retired) {
+      const play = [playLine(data), ...["card-block", "cond-block", "item-block", "deck-block"]
+        .map(k => article.querySelector(`:scope > .${k}`))].filter(Boolean);
+      article.querySelector(":scope > .char-head").after(...play, h("h4", { class: "label sheet-divider" }, "Between scenarios"));
+    }
+    return article;
   };
 
   const active = order.filter(playable);
@@ -3012,6 +3042,12 @@ function maxHealth(c) {
 }
 
 const tableKey = name => storeKey(`table:${name}`);
+// A scenario under way on this phone: anything tracked since the last reset.
+function tableActive(name) {
+  const st = tableState(name);
+  return Boolean(st.hp != null || st.xp || st.coins || st.goal || st.cards
+    || Object.keys(st.items || {}).length || Object.keys(st.conds || {}).length);
+}
 function tableState(name) {
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(tableKey(name))); } catch {}
@@ -3119,6 +3155,7 @@ function cardBlock(c) {
       fn(next);
       saveTable(c.name, { cards: next });
       also?.();
+      card()?.querySelector(".dock-conds")?.replaceWith(condStrip(c));
       redraw(`${key}-${c.name}`);
     } }, ...label);
   const redraw = key => {
@@ -3201,8 +3238,10 @@ function condBlock(c) {
     const next = condBlock(c);
     block.replaceWith(next);
     next.querySelector(`[data-key="${CSS.escape(key)}"]`)?.focus({ preventScroll: true });
-    // The dock shows what's on, too.
-    document.querySelector(`.char-card[data-char="${CSS.escape(c.name)}"] .dock-conds`)?.replaceWith(condStrip(c));
+    // The dock shows what's on, too, and the deck its Bless and Curse cards.
+    const sheet = document.querySelector(`.char-card[data-char="${CSS.escape(c.name)}"]`);
+    sheet?.querySelector(".dock-conds")?.replaceWith(condStrip(c));
+    if (/^cond-(bless|curse)-/.test(key)) sheet?.querySelector(".deck-block")?.replaceWith(attackDeckBlock(c, perkCheck(c).rows));
   };
   const on = [...CONDITIONS, ...DECK_CONDITIONS].filter(([id]) => conds[id]);
   const block = h("div", { class: "block cond-block", id: `conds-${c.name}` },
@@ -3229,17 +3268,33 @@ function condBlock(c) {
   return block;
 }
 
-// In the dock: the conditions that are on, as their icons, a tap from the
-// toggles. An empty span keeps its place when none are.
+// The top of the dock: the conditions that are on, as their icons, and the
+// cards in hand, each a tap from its block on the sheet.
 function condStrip(c) {
   const conds = tableState(c.name).conds || {};
   const on = [...CONDITIONS, ...DECK_CONDITIONS].filter(([id]) => conds[id]);
-  if (!on.length) return h("span", { class: "dock-conds", hidden: true });
   const said = on.map(([id, name]) => typeof conds[id] === "number" ? `${conds[id]} ${name}` : name).join(", ");
-  return h("button", { type: "button", class: "dock-conds", "aria-label": `Conditions: ${said}. Go to them`,
-    onclick: () => document.getElementById(`conds-${c.name}`)?.scrollIntoView({ block: "center", behavior: "instant" }) },
-    on.map(([id]) => h("span", { class: "dock-cond" }, condIcon(id),
-      typeof conds[id] === "number" && conds[id] > 1 ? h("b", {}, String(conds[id])) : null)));
+  const go = id => () => document.getElementById(id)?.scrollIntoView({ block: "center", behavior: "instant" });
+  const piles = cardPiles(c);
+  const state = piles.hand < 2 ? (piles.discard >= 2 ? "rest" : "exhausted") : null;
+  return h("div", { class: "dock-conds" },
+    on.length ? h("button", { type: "button", class: "dock-cond-list", "aria-label": `Conditions: ${said}. Go to them`, onclick: go(`conds-${c.name}`) },
+      on.map(([id]) => h("span", { class: "dock-cond" }, condIcon(id),
+        typeof conds[id] === "number" && conds[id] > 1 ? h("b", {}, String(conds[id])) : null))) : null,
+    handSize(c) ? h("button", { type: "button", class: `dock-hand${state ? ` ${state}` : ""}`,
+      "aria-label": `${plural(piles.hand, "card")} in hand${state ? `: ${state}` : ""}. Go to the cards`, onclick: go(`cards-${c.name}`) },
+      h("b", { class: "num" }, String(piles.hand)), " in hand", state ? ` · ${state}` : "") : null);
+}
+
+// Phones, at the top of the sheet: tonight's scenario and the numbers wanted
+// in the middle of a round.
+function playLine(data) {
+  const t = tonight(data);
+  if (!t) return null;
+  const s = tonightScenario(data);
+  return h("p", { class: "play-line" },
+    s ? h("strong", {}, scenarioLabel(data, s.number)) : null,
+    h("span", {}, `Level ${t.level} · monsters ${t.level} · traps ${t.trap} · hazards ${t.hazard}`));
 }
 
 // Docked at the foot of the screen, above the tabs, while the sheet scrolls
@@ -3296,6 +3351,7 @@ function tableDock(c) {
       const items = document.querySelector(`.char-card[data-char="${CSS.escape(c.name)}"] .item-track`);
       items?.replaceWith(itemTrack(c));
       document.getElementById(`conds-${c.name}`)?.replaceWith(condBlock(c));
+      document.querySelector(`.char-card[data-char="${CSS.escape(c.name)}"] .deck-block`)?.replaceWith(attackDeckBlock(c, perkCheck(c).rows));
       document.getElementById(`cards-${c.name}`)?.replaceWith(cardBlock(c));
       dock.querySelector(".dock-conds")?.replaceWith(condStrip(c));
     } }, icon("replay"));
@@ -3338,8 +3394,7 @@ try { tonightResult = localStorage.getItem(RESULT_KEY) || "success"; } catch {}
 function scenarioSummary(data) {
   const t = tonight(data);
   const shown = characterOrder(data).filter(c => !c.retired).filter(c => {
-    const st = tableState(c.name);
-    return c.name === me || st.xp || st.coins || st.goal;
+    return tableActive(c.name);
   });
   if (!shown.length) return null;
   const won = tonightResult === "success";
@@ -3358,7 +3413,10 @@ function scenarioSummary(data) {
     h("div", { class: "segmented", role: "group", "aria-label": "Result" },
       [["success", "Success"], ["failure", "Failure"]].map(([key, label]) =>
         h("button", { type: "button", "data-key": `result-${key}`, "aria-pressed": String(tonightResult === key), onclick: setResult(key) }, label))),
-    t ? null : h("p", { class: "small muted" }, "Pick who is playing under Scenario level, on Tonight, for the bonus XP and the gold a coin is worth."),
+    // Each phone works the level out from its own picks: said, so phones that
+    // disagree are noticed.
+    t ? h("p", { class: "small muted" }, `Level ${t.level}: ${characterOrder(data).filter(x => !x.retired && levelParty?.has(x.name)).map(x => x.name).join(", ")}, ${t.difficulty.toLowerCase()}, as picked on Tonight. The same on every phone?`)
+      : h("p", { class: "small muted" }, "Pick who is playing under Scenario level, on Tonight, for the bonus XP and the gold a coin is worth."),
     shown.map(c => {
       const st = tableState(c.name);
       const bonus = won && t ? t.xp : 0;
@@ -3398,6 +3456,41 @@ function scenarioSummary(data) {
           gains ? h("strong", { class: "sum-gains" }, capitalize(gains)) : null));
     }),
     h("p", { class: "small muted" }, "Read these to whoever records the evening; on the phone that records it, the form fills them in."));
+}
+
+// --- In town (phones) ----------------------------------------------------------
+// Above the Shop: what this phone's character has to see to in town, from
+// the sheet, the last session and the Sanctuary, so the town is one tab. On
+// the recorder's phone (the one with a draft) each can be recorded here.
+function townJobs(data) {
+  const c = data.characters.find(x => playable(x) && x.name === me);
+  if (!c) return null;
+  const recording = rawCampaign && draft;
+  const jobs = [];
+  for (const u of lastLevelUps(data).filter(u => u.character === c.name)) {
+    jobs.push([`Reached level ${u.level}: add an ability card of level ${u.level} or lower.`, null]);
+  }
+  const left = perksLeft(c);
+  if (left) jobs.push([`${plural(left, "perk")} to choose.`, recording
+    ? h("button", { type: "button", class: "todo-do", "data-key": "town-perk", onclick: () => recordPerk(data, c.name) }, "Record it")
+    : h("a", { class: "todo-go", href: "#characters" }, "Your sheet")]);
+  const donated = (draft?.donations || []).some(x => x.character === c.name);
+  jobs.push([donated ? "Donated at the Sanctuary: 2 Bless in your next scenario."
+      : "The Sanctuary: 10 gold for 2 Bless in your next scenario, once a visit.",
+    recording && !donated ? h("button", { type: "button", class: "todo-do", "data-key": "town-donate", onclick: () => recordDonation(data, c.name) }, "Record it") : null]);
+  jobs.push(["Enhance an ability card.", h("a", { class: "todo-go", href: "#enhancing" }, "Enhancing")]);
+  return h("div", { class: "card todo town-jobs" },
+    h("div", { class: "block-head" }, h("h2", { class: "label" }, `${c.name} in town`)),
+    h("ul", { class: "rows" }, jobs.map(([text, act]) => h("li", {}, h("span", {}, text), act ? h("span", { class: "todo-acts" }, act) : null))));
+}
+
+// "Record it" for a donation to the Sanctuary, on the recorder's phone.
+function recordDonation(data, name) {
+  if (!draft) draft = newDraft(data);
+  draft.donations ||= [];
+  let i = draft.donations.findIndex(x => x.character === name);
+  if (i < 0) { draft.donations.push({ character: name }); i = draft.donations.length - 1; }
+  showInRecorder(data, `don-${i}-c`);
 }
 
 // --- Shop -----------------------------------------------------------------------
@@ -3647,7 +3740,7 @@ function enhancer(data) {
   // The active party, lit if they can pay.
   const payers = characterOrder(data).filter(c => !c.retired && !c.inactive);
 
-  return h("div", { class: "enhancer-wrap" },
+  return h("div", { class: "enhancer-wrap", id: "enhancing" },
     h("h3", { class: "subtitle" }, "Enhancing a card"),
     h("div", { class: "card enhancer" },
       h("div", { class: "enhancer-form" },
@@ -3753,7 +3846,11 @@ function newDraft(data) {
   // Anyone inactive picked there plays too, which brings them back once saved.
   const active = new Set(data.characters.filter(c => !c.retired).map(c => c.name));
   const party = [...(levelParty || defaultLevelParty(data))].filter(n => active.has(n));
-  return { id: draftId(), date: today(), title: "", party, notes: "", ...draftParts() };
+  const d = { id: draftId(), date: today(), title: "", party, notes: "", ...draftParts() };
+  // Tonight's scenario, picked on this phone, starts the form.
+  const pick = tonightPick && data.scenarios.find(s => s.number === tonightPick && s.status === "available");
+  if (pick) d.scenarios.push({ ...newScenario(data, data.characters.filter(c => party.includes(c.name))), number: String(pick.number) });
+  return d;
 }
 // A scenario starts at the level for who is playing in the form (newcomers
 // included), at the Overview's difficulty; the form can change it.
@@ -5024,7 +5121,7 @@ function renderSessions(data) {
 const RENDERERS = {
   overview: renderOverview,
   characters: renderCharacters,
-  shop: data => [scenarioSummary(data), renderShop(data)],
+  shop: data => [scenarioSummary(data), townJobs(data), renderShop(data)],
   scenarios: renderScenarios,
   sessions: renderSessions,
   events: renderEvents,
@@ -5081,6 +5178,9 @@ function render(data, only) {
       else if (b.left < r.left) row.scrollLeft -= r.left - b.left + 8;
     }
   }
+  // What was drawn afresh is sorted onto its tab again: the Overview's parts
+  // belong to two (Tonight and Campaign).
+  showTab();
 }
 
 // Wide screens: pack the character sheets like bricks (see .char-grid.packed
@@ -5101,8 +5201,16 @@ function packGrids() {
 }
 
 // On a phone, show the current tab's sections and hide the rest.
+// Phones: each tab keeps its place, so leaving Play in the middle of a round
+// and coming back from the tab bar returns to where you were. A link into a
+// tab still starts it from the top, or at the section it names.
+const tabScroll = {};
+let shownTab = null;
+let viaTabBar = false;
+
 function showTab() {
   const tab = currentTab();
+  shownTab = tab;
   // A section can belong to more than one tab ("tonight campaign").
   for (const el of document.querySelectorAll("main [data-tab]")) el.classList.toggle("off", !el.dataset.tab.split(" ").includes(tab));
   for (const a of document.querySelectorAll(".tabs a[data-tab]")) {
@@ -5144,6 +5252,8 @@ function markSection() {
 function watchSections() {
   let queued = false;
   window.addEventListener("scroll", () => {
+    // Each phone tab's place, kept as it's scrolled.
+    if (phone.matches && shownTab) tabScroll[shownTab] = window.scrollY;
     if (queued) return;
     queued = true;
     requestAnimationFrame(() => { queued = false; markSection(); });
@@ -5165,7 +5275,9 @@ function onNavigate() {
   const id = location.hash.slice(1);
   // A section further down the tab is jumped to, not glided to: what's above
   // it has only just appeared.
-  if (TAB_TOPS.includes(id) || !id) window.scrollTo({ top: 0, behavior: "instant" });
+  const back = viaTabBar ? tabScroll[currentTab()] || 0 : 0;
+  viaTabBar = false;
+  if (TAB_TOPS.includes(id) || !id) window.scrollTo({ top: back, behavior: "instant" });
   else document.getElementById(id)?.scrollIntoView({ behavior: "instant" });
 }
 
@@ -5281,7 +5393,9 @@ async function start() {
     // A phone opens on its player's sheet, unless the link was to somewhere else.
     const mine = characterOrder(data).findIndex(c => !c.retired && c.name === me);
     if (mine >= 0) characterIndex = mine;
-    if (phone.matches && mine >= 0 && location.hash.length <= 1) history.replaceState(null, "", "#characters");
+    // At the start of an evening that's Tonight; with a scenario under way on
+    // this phone, the player's sheet.
+    if (phone.matches && mine >= 0 && location.hash.length <= 1) history.replaceState(null, "", tableActive(me) ? "#characters" : "#overview");
 
     if (draft && !draftChanges(draft, data)) dropDraft();
     render(data);
@@ -5296,17 +5410,20 @@ async function start() {
     document.querySelector('.tabs a[data-tab="play"]')?.addEventListener("click", () => {
       const i = characterOrder(data).findIndex(c => !c.retired && c.name === me);
       if (!phone.matches || i < 0) return;
-      if (characterIndex !== i) { characterIndex = i; render(data, "characters"); }
+      // Another character's sheet was showing: their place isn't this one's.
+      if (characterIndex !== i) { characterIndex = i; tabScroll.play = 0; render(data, "characters"); }
       if (location.hash === "#characters") window.scrollTo({ top: 0, behavior: "instant" });
     });
-    window.addEventListener("hashchange", onNavigate);
+    for (const a of document.querySelectorAll(".tabs a")) a.addEventListener("click", () => { viaTabBar = true; });
     // Town's summary and Tonight's battle goal read the tracker, which the
-    // Play tab changes (its reset clears them): drawn afresh on the way there.
+    // Play tab changes (its reset clears them): drawn afresh on the way
+    // there, before the tab's place is put back.
     window.addEventListener("hashchange", () => {
       if (!phone.matches) return;
       if (currentTab() === "town") render(data, "shop");
       if (currentTab() === "tonight") render(data, "overview");
     });
+    window.addEventListener("hashchange", onNavigate);
     // Skip to content: to the page itself, without changing the address (which
     // on a phone would change the tab).
     document.querySelector(".skip")?.addEventListener("click", e => {
@@ -5315,7 +5432,7 @@ async function start() {
       main.setAttribute("tabindex", "-1");
       main.focus();
     });
-    phone.addEventListener("change", showTab);
+    phone.addEventListener("change", () => render(data));
     // Arriving on a link to a section: go there now that it exists.
     if (location.hash.length > 1) document.getElementById(location.hash.slice(1))?.scrollIntoView();
   } catch (err) {

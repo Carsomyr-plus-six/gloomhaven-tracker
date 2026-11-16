@@ -629,7 +629,7 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .item-list .gicon, .slot-blank { flex: none; width: 1.15em; height: 1.15em; margin: 0; color: var(--fg-3); }
 /* Cards, items and conditions to track at the table, tonight's scenario and
    battle goal to set up by and what it gave: phones only. */
-.item-track, .cond-block, .card-block, .scen-ref, .goal-card, .summary { display: none; }
+.item-track, .cond-block, .card-block, .scen-ref, .goal-card, .summary, .town-jobs, .play-line, .sheet-divider { display: none; }
 .perks .perk-text { flex: 1; }
 .perks .icon { font-size: var(--t-md); color: var(--verdigris); stroke-width: 2.8; }
 .perks .unsure .icon { color: var(--brass); stroke-width: 2.2; }
@@ -675,6 +675,7 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .k-good { background: var(--verdigris); }
 .k-crit { background: var(--brass); }
 .k-bless { background: var(--brass-bg); box-shadow: inset 0 0 0 1px var(--brass); }
+.k-curse { background: var(--ember-bg); box-shadow: inset 0 0 0 1px var(--ember); }
 .deck-cards li { display: inline-flex; align-items: center; gap: 7px; padding: 3px 4px 3px 10px; border: 1px solid var(--line); border-radius: var(--r-pill); font-size: var(--t-sm); font-weight: 600; }
 /* The count, in a badge of its own. */
 .deck-cards b { min-width: 20px; height: 20px; padding: 0 5px; display: inline-grid; place-items: center; border-radius: var(--r-pill);
@@ -1133,9 +1134,9 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .hero-head { min-height: 0; padding-right: 0; }
   .hero-decor { display: none; }
   .hero-side { display: contents; }
-  .ready { align-self: stretch; order: 1; }
+  .ready { align-self: stretch; order: 4; }
   /* Tonight's scenario, picked from Ready to play below it. */
-  .scen-ref { order: 1; display: flex; flex-direction: column; gap: 14px; scroll-margin-top: 16px; }
+  .scen-ref { order: 2; display: flex; flex-direction: column; gap: 14px; scroll-margin-top: 16px; }
   .scen-ref:focus { outline: none; }
   .scen-ref-head { display: flex; align-items: center; gap: 12px; }
   .scen-ref-head .hex { --w: 48px; }
@@ -1149,10 +1150,12 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .ref-players ul { display: flex; flex-direction: column; }
   .ref-players li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line-soft); }
   .ref-players li span { color: var(--fg-2); }
+  .ref-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+  .ref-actions .btn { min-height: 44px; }
   .ref-more { display: inline-flex; align-items: center; min-height: 44px; align-self: flex-start; font-weight: 600; color: var(--fg-2); }
   .ready-card.picked { border-color: var(--brass); }
   /* The battle goal kept: hidden behind Show, as the personal quest is. */
-  .goal-card { order: 1; display: flex; flex-direction: column; gap: 10px; }
+  .goal-card { order: 3; display: flex; flex-direction: column; gap: 10px; }
   .goal-change { min-height: 44px; margin: -12px -8px -12px 0; }
   .goal-reveal { align-self: stretch; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 44px; }
   .goal-checks { font-size: var(--t-sm); color: var(--muted); }
@@ -1173,10 +1176,13 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .sum-goal b { width: 1.4em; text-align: center; font-size: var(--t-xl); }
   .sum-after { padding-top: 8px; font-size: var(--t-sm); color: var(--fg-2); }
   .sum-gains { display: block; margin-top: 4px; color: var(--brass); }
-  .tiles { order: 2; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .tiles { order: 5; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .level-tile { grid-area: auto; grid-column: 1 / -1; }
   .rep-tile, .prosp-tile { grid-area: auto; }
-  .todo { order: 3; }
+  .todo { order: 1; }
+  /* Town: this phone's character's jobs, under the summary, above the Shop. */
+  .town-jobs { order: 0; display: flex; flex-direction: column; gap: 4px; margin-bottom: 20px; }
+  #enhancing { scroll-margin-top: 16px; }
   .party-name { font-size: var(--d-xxl); line-height: 1; }
   .party-name.long { font-size: var(--d-lg); }
   .ready-head { margin-bottom: 4px; }
@@ -1361,8 +1367,18 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .cond-notes strong { color: var(--fg); }
 
   /* The dock's reminder of what's on, a tap from the toggles. */
-  .dock-conds { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 32px; padding: 0 2px 8px; border: 0; border-bottom: 1px solid var(--line-soft); background: none; cursor: pointer; }
-  .dock-conds[hidden] { display: none; }
+  .dock-conds { display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 0 2px 8px; border-bottom: 1px solid var(--line-soft); }
+  .dock-cond-list { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 32px; padding: 0; border: 0; background: none; cursor: pointer; }
+  .dock-hand { margin-left: auto; min-height: 32px; padding: 0 4px; border: 0; background: none; color: var(--fg-2); font: inherit; font-size: var(--t-sm); cursor: pointer; }
+  .dock-hand b { font-size: var(--t-lg); color: var(--fg); }
+  .dock-hand.rest { color: var(--brass); }
+  .dock-hand.exhausted { color: var(--ember); }
+
+  /* Play: tonight's numbers over the cards, and a line before what's kept
+     between scenarios. */
+  .play-line { display: flex; flex-wrap: wrap; gap: 2px 10px; padding: 10px 14px; border: 1px solid var(--line); border-radius: var(--r-md); font-size: var(--t-sm); color: var(--fg-2); }
+  .play-line strong { color: var(--fg); }
+  .sheet-divider { display: block; margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--line); }
   .dock-cond { position: relative; display: block; }
   .dock-cond .cond-icon { width: 24px; height: 24px; }
   .dock-cond b { position: absolute; right: -5px; bottom: -4px; min-width: 15px; padding: 0 3px; border-radius: var(--r-pill); background: var(--fg); color: var(--bg); font-size: 10px; line-height: 15px; text-align: center; }
