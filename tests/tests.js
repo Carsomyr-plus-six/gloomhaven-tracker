@@ -108,10 +108,10 @@ async function runTests(load, loadText) {
   // listed out of order are asked about.
   const dated = date => toFile(applyDraft(fromFile(copy(raw)), { ...draft, date }, buildData(copy(raw))).out);
   same("sessions: an evening recorded later goes in by its date", dated("2026-11-01").sessions.map(s => s.date),
-    [null, "2026-10-26", "2026-11-01", "2026-11-13"]);
+    [null, "2026-10-07", "2026-10-26", "2026-11-01", "2026-11-13"]);
   const undated = dated("");
   same("sessions: an evening with no date goes last, its scenario completed last",
-    [undated.sessions.map(s => s.date), [...completions(undated.sessions).keys()].at(-1)], [[null, "2026-10-26", "2026-11-13", null], 5]);
+    [undated.sessions.map(s => s.date), [...completions(undated.sessions).keys()].at(-1)], [[null, "2026-10-07", "2026-10-26", "2026-11-13", null], 5]);
   const swapped = copy(raw);
   swapped.sessions.push(swapped.sessions.splice(1, 1)[0]);
   same("sessions: listed out of date order, asked about", fileQuestions(swapped).length, 1);
@@ -124,7 +124,7 @@ async function runTests(load, loadText) {
   later.scenarios.push({ number: 7, status: "completed", completed: "2026-11-01" });
   const laterFile = migrate(later);
   same("old layout: a completion on a date with no session gets its own, in place",
-    [laterFile.sessions.map(s => s.date), laterFile.sessions[2].scenarios], [[null, "2026-10-26", "2026-11-01", "2026-11-13"], [{ number: 7, result: "success" }]]);
+    [laterFile.sessions.map(s => s.date), laterFile.sessions[3].scenarios], [[null, "2026-10-07", "2026-10-26", "2026-11-01", "2026-11-13"], [{ number: 7, result: "success" }]]);
   const uncounted = copy(v1);
   uncounted.sessions[1].scenarios.push({ number: 5, result: "success" });
   const uncountedFile = migrate(uncounted);

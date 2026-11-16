@@ -130,21 +130,15 @@
       "title": "Early sessions",
       "date": null,
       "scenarios": [
-        {
-          "number": 1,
-          "result": "success",
-          "players": ["Azorica", "Craig", "Flik Flak", "Kaktus"]
-        },
-        {
-          "number": 2,
-          "result": "success",
-          "players": ["Azorica", "Craig", "Flik Flak", "Kaktus"]
-        },
-        {
-          "number": 3,
-          "result": "success",
-          "players": ["Azorica", "Craig", "Flik Flak", "Kaktus"]
-        },
+        { "number": 1, "result": "success", "players": ["Azorica", "Craig", "Flik Flak", "Kaktus"] },
+        { "number": 2, "result": "success", "players": ["Azorica", "Craig", "Flik Flak", "Kaktus"] },
+        { "number": 3, "result": "success", "players": ["Azorica", "Craig", "Flik Flak", "Kaktus"] }
+      ],
+      "notes": "Some failed attempts before #4; details unknown.\nBoth Flik Flak's and Craig's sheets show more XP gains than completed scenarios before #4."
+    },
+    {
+      "date": "2026-10-07",
+      "scenarios": [
         {
           "number": 4,
           "result": "success",
@@ -155,7 +149,8 @@
           ]
         }
       ],
-      "notes": "Some failed attempts before #4; details unknown.\nBoth Flik Flak's and Craig's sheets show more XP gains than completed scenarios before #4."
+      "characters": ["Azorica", "Craig", "Flik Flak"],
+      "notes": ""
     },
     {
       "title": "Warehouse session",
