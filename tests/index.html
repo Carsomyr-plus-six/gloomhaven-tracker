@@ -12,16 +12,19 @@
   <script src="../campaign.js" defer></script>
   <script src="snapshot.js" defer></script>
   <script src="tests.js" defer></script>
+  <script src="smoke.js" defer></script>
 </head>
 <body>
   <h1>Tracker tests</h1>
   <p id="summary">Running…</p>
   <ul id="results"></ul>
   <script type="module">
-    // The same tests as node tests/run.mjs, against the files this site serves.
+    // The same tests as node tests/run.mjs, against the files this site
+    // serves; then the page itself, opened in frames (smoke.js).
     await new Promise(resolve => addEventListener("DOMContentLoaded", resolve, { once: true }));
     const loadText = async path => (await fetch(`../${path}`, { cache: "no-cache" })).text();
     const results = await runTests(async path => JSON.parse(await loadText(path)), loadText);
+    results.push(...await runSmoke());
     const list = document.getElementById("results");
     for (const r of results) {
       const li = document.createElement("li");

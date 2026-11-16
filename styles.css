@@ -109,6 +109,9 @@ button { font: inherit; color: inherit; }
 
 /* --- Hex tiles: scenario numbers and levels ------------------------------ */
 .hex {
+  /* Holds its hidden label (.sr-only, absolutely placed) inside it, so the
+     label can't stretch a scrolling row, or the page, beyond the screen. */
+  position: relative;
   --w: 40px;
   --ring: var(--brass);
   --fill: var(--brass);
@@ -1313,7 +1316,7 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .party-name { font-size: var(--d-xxl); line-height: 1; }
   .party-name.long { font-size: var(--d-lg); }
   .ready-head { margin-bottom: 4px; }
-  .ready-list { display: flex; gap: 12px; overflow-x: auto; margin: 0 -20px; padding: 0 20px; scrollbar-width: none; }
+  .ready-list { position: relative; display: flex; gap: 12px; overflow-x: auto; margin: 0 -20px; padding: 0 20px; scrollbar-width: none; }
   .ready-list::-webkit-scrollbar { display: none; }
   .ready-card { flex: none; width: 148px; min-height: 140px; flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px; background: var(--surface); border-color: var(--line); }
   .ready-card .hex { --w: 44px; }
@@ -1356,7 +1359,7 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   #characters .keep-head .section-head { display: flex; }
   /* Each character gets at least 72px, enough for most names; a bigger
      party scrolls sideways rather than cutting names short. */
-  .char-switch { display: flex; margin: -12px -8px 0; padding-bottom: 10px; border-bottom: 1px solid var(--line-soft); overflow-x: auto; scrollbar-width: none; }
+  .char-switch { position: relative; display: flex; margin: -12px -8px 0; padding-bottom: 10px; border-bottom: 1px solid var(--line-soft); overflow-x: auto; scrollbar-width: none; }
   .char-switch::-webkit-scrollbar { display: none; }
   .char-switch button {
     flex: 1 0 72px;
@@ -1573,7 +1576,7 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .dock-unit { font-size: var(--t-xs); font-weight: 600; color: var(--muted); }
 
   /* Scenarios */
-  .filters { flex-wrap: nowrap; overflow-x: auto; margin: 0 -20px; padding: 0 20px; scrollbar-width: none; }
+  .filters { position: relative; flex-wrap: nowrap; overflow-x: auto; margin: 0 -20px; padding: 0 20px; scrollbar-width: none; }
   .filters::-webkit-scrollbar { display: none; }
   /* Fade the right edge, so a cut-off filter reads as more to scroll to. */
   .filters { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }

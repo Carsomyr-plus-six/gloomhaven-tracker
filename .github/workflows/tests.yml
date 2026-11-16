@@ -1,6 +1,8 @@
-# The tests (tests/run.mjs) on every push and pull request: what the page
+# The tests on every push and pull request: tests/run.mjs (what the page
 # works out from campaign.json and the sample, the file layout, the session
-# writer, and the pinned reference data. No dependencies to install.
+# writer, the pinned reference data), then the same in headless Chrome with
+# the page itself opened in frames (tests/smoke.js). No dependencies to
+# install: the runner has Node, Python and Chrome.
 name: Tests
 on:
   push:
@@ -14,3 +16,12 @@ jobs:
         with:
           node-version: 22
       - run: node tests/run.mjs
+      - name: The page itself, in headless Chrome
+        run: |
+          python3 -m http.server 8000 --bind 127.0.0.1 >/dev/null 2>&1 &
+          sleep 2
+          google-chrome --headless=new --no-sandbox --disable-gpu --virtual-time-budget=60000 \
+            --dump-dom http://127.0.0.1:8000/tests/ > tests-page.html
+          grep -o 'id="summary">[^<]*' tests-page.html || echo "The test page didn't finish."
+          grep -o '<li class="fail">[^<]*' tests-page.html || true
+          grep -q 'data-failed="0"' tests-page.html

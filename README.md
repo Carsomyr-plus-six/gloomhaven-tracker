@@ -105,7 +105,8 @@ or, with the server above running, open http://127.0.0.1:8000/tests/. They check
 - each file is in the current layout: read and written back, it's unchanged byte for byte, and keeps nothing the page works out anyway;
 - the campaign in the old layout (`tests/fixtures/`) works out the same and moves over to exactly the current file;
 - recording an evening with every part of the form (`tests/drafts/evening.json`) writes the file it should, the same every time: one log entry per character whose sheet changed, the completed scenario's results in its session;
-- the milestones stand as they should.
+- the milestones stand as they should;
+- in a browser only (the test page, and on GitHub in headless Chrome), the page itself, opened in frames as a person would open it (`tests/smoke.js`): `campaign.json`, the sample and the old layout load without an error and draw every section and sheet, and at phone width every tab opens, none wider than the screen.
 
 When a change is meant to change what the page works out (a rule fixed, newer reference data), `node tests/run.mjs --update` rewrites the golden files from what it works out now; read their diff before committing it.
 
