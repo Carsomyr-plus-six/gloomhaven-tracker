@@ -1638,10 +1638,14 @@ function perkBoxes(ticked, empty) {
 // --- Characters -----------------------------------------------------------------
 
 let characterIndex = 0;   // which sheet a phone shows
+let switchOpen = false;   // the list of characters is open (phones), so drawn open again
 
 function pickCharacter(data, index) {
   characterIndex = index;
+  switchOpen = false;
   render(data, "characters");
+  window.scrollTo({ top: 0, behavior: "instant" });
+  document.querySelector(".char-card.current .char-pick")?.focus({ preventScroll: true });
 }
 
 // A phone at the table belongs to one player. The first time, it asks which
@@ -1681,7 +1685,7 @@ function askWho(data) {
   const answer = name => () => { dialog.close(); dialog.remove(); chooseMe(data, name); };
   const dialog = h("dialog", { class: "who", "aria-labelledby": "who-title", onclose: () => dialog.remove() },
     h("h2", { id: "who-title" }, "Who are you playing?"),
-    h("p", {}, "This phone will open on their sheet. You can change it at the bottom of the sheet."),
+    h("p", {}, "This phone will open on their sheet. To change it, tap the name at the top of the sheet."),
     h("div", { class: "who-list" }, active.map(c =>
       h("button", { type: "button", class: "who-row", "aria-label": `${c.name}, level ${characterStats(c).level} ${c.class}`, onclick: answer(c.name) },
         // The frame the Play tab will show once they're picked.
@@ -1692,8 +1696,8 @@ function askWho(data) {
   dialog.showModal();
 }
 
-// Under the sheet (phones): a way to change who this phone opens on. The
-// "You" in the row of characters already says who that is.
+// At the foot of the list of characters (phones): a way to change who this
+// phone opens on. The "You" in the list already says who that is.
 function meLine(data) {
   const mine = data.characters.find(c => !c.retired && c.name === me);
   return h("p", { class: "me-line" },
@@ -2030,7 +2034,9 @@ function renderCharacters(data) {
       h("header", { class: "char-head" },
         h("div", { class: "char-level" }, hex(st.level, "level"), h("span", { class: "label" }, "Level")),
         h("div", {},
-          h("h3", { class: Math.max(...c.name.split(/\s+/).map(w => w.length)) > 9 ? "long" : null }, c.name),
+          h("h3", { class: Math.max(...c.name.split(/\s+/).map(w => w.length)) > 9 ? "long" : null },
+            // Phones: the name opens the list of characters, to look at another.
+            phone.matches ? namePick(c) : c.name),
           h("p", {}, classIcon(c.class), [c.class, c.retired ? "retired" : c.inactive ? "inactive" : null].filter(Boolean).join(" · ")))),
       h("div", { class: "block" },
         h("div", { class: "block-head" },
@@ -2122,13 +2128,20 @@ function renderCharacters(data) {
   const inactive = order.filter(c => !c.retired && c.inactive);
   const retired = order.filter(c => c.retired);
 
-  // Phones show one sheet at a time, chosen from this row.
-  // With a big party it scrolls sideways rather than squeezing the names;
-  // inactive and then retired characters come last, each after a divider,
-  // dimmed.
+  // Phones show one sheet at a time. The name at its head opens this list,
+  // a sheet from the bottom, to pick another: inactive and then retired
+  // characters come last, each after a divider, dimmed. Anyone with a perk
+  // to choose or a quest done has a brass dot, and so does the name while
+  // someone else in the list has one.
+  const waiting = c => playable(c) && (perksLeft(c) || questDone(c.personalQuest));
+  const namePick = c => h("button", { type: "button", class: "char-pick", popovertarget: "char-switch", "data-key": `char-pick-${c.name}`,
+      "aria-label": `${c.name}: show another character` },
+    c.name, h("span", { class: "char-pick-mark" }, icon("chevron"),
+      order.some(x => x !== c && waiting(x)) ? h("span", { class: "dot", "aria-hidden": "true" }) : null));
   const group = c => c.retired ? 2 : c.inactive ? 1 : 0;
   const shownInactive = inactive.filter(c => !hiddenAway(c, order.indexOf(c) === characterIndex));
-  const switcher = h("div", { class: "char-switch", role: "group", "aria-label": "Choose a character" },
+  const switcher = h("div", { class: "char-switch", id: "char-switch", popover: "auto", role: "group", "aria-label": "Choose a character",
+      ontoggle: e => { switchOpen = e.newState === "open"; } },
     order.map((c, i) => {
       if (hiddenAway(c, i === characterIndex)) return null;
       const st = characterStats(c);
@@ -2143,13 +2156,14 @@ function renderCharacters(data) {
             playable(c) && questDone(c.personalQuest) ? "must retire" : playable(c) && perksLeft(c) ? "has a perk to choose" : null].filter(Boolean).join(", "),
           onclick: () => pickCharacter(data, i),
         },
-        h("span", {}, hex(st.level, "quiet"),
-          playable(c) && (perksLeft(c) || questDone(c.personalQuest))
-            ? h("span", { class: "dot", role: "img", "aria-label": questDone(c.personalQuest) ? "Must retire" : "Has a perk to choose" }) : null),
+        h("span", { class: "switch-hex" }, hex(st.level, "quiet"),
+          waiting(c) ? h("span", { class: "dot", "aria-hidden": "true" }) : null),
         h("span", { class: "switch-name" }, c.name),
         mine ? h("span", { class: "you", "aria-hidden": "true" }, "You") : null)];
     }),
-    inactiveToggle(data, inactive.length - shownInactive.length, "switch-inactive"));
+    inactiveToggle(data, inactive.length - shownInactive.length, "switch-inactive"),
+    // And which of them this phone opens on.
+    active.length || inactive.length ? meLine(data) : null);
 
   return [
     sectionHead("Characters", [[`${active.length} active`, retired.length ? `${retired.length} retired` : null].filter(Boolean).join(" · "),
@@ -2159,7 +2173,6 @@ function renderCharacters(data) {
     // (dashed, and "inactive" under the name), filling the gaps.
     active.length ? h("div", { class: "char-grid" }, [...active, ...shownInactive].map(card))
       : [empty("No active characters."), shownInactive.length ? h("div", { class: "char-grid" }, shownInactive.map(card)) : null],
-    active.length || inactive.length ? meLine(data) : null,
     retired.length ? [h("h3", { class: "subhead" }, "Retired"), h("div", { class: "char-grid" }, retired.map(card))] : null,
   ];
 }
@@ -3720,7 +3733,6 @@ function render(data, only) {
   const sheetScroll = document.querySelector(".sheet.open")?.scrollTop;
   const key = document.activeElement?.dataset?.key;
   const mapScroll = document.querySelector(".map-scroll")?.scrollLeft;
-  const switchScroll = document.querySelector(".char-switch")?.scrollLeft;
 
   for (const [id, fn] of Object.entries(RENDERERS)) {
     if (only && id !== only) continue;
@@ -3731,6 +3743,9 @@ function render(data, only) {
   }
 
   packGrids();
+  // The list of characters, open when it was redrawn (its "+ 1 inactive"),
+  // stays open.
+  if (switchOpen && phone.matches) document.getElementById("char-switch")?.showPopover?.();
   if (key) document.querySelector(`[data-key="${key}"]`)?.focus({ preventScroll: true });
   const map = document.querySelector(".map-scroll");
   if (map && mapScroll) map.scrollLeft = mapScroll;
@@ -3740,18 +3755,6 @@ function render(data, only) {
     const picked = map.querySelector('.node[aria-pressed="true"]');
     const over = picked ? picked.getBoundingClientRect().right - map.getBoundingClientRect().right : 0;
     if (over > 0) map.scrollLeft = over + 28;
-  }
-  // The phone's character row scrolls when the party is big: keep its place,
-  // and keep the picked character in view.
-  const row = document.querySelector(".char-switch");
-  if (row && row.scrollWidth > row.clientWidth) {
-    if (switchScroll) row.scrollLeft = switchScroll;
-    const picked = row.querySelector('[aria-pressed="true"]');
-    if (picked) {
-      const b = picked.getBoundingClientRect(), r = row.getBoundingClientRect();
-      if (b.right > r.right) row.scrollLeft += b.right - r.right + 8;
-      else if (b.left < r.left) row.scrollLeft -= r.left - b.left + 8;
-    }
   }
   // What was drawn afresh is sorted onto its tab again: the Overview's parts
   // belong to two (Tonight and Campaign).

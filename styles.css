@@ -448,7 +448,6 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 /* "+ 1 inactive": quiet, under what it adds to. */
 .inactive-toggle { align-self: flex-start; min-height: 32px; padding: 3px 12px; font-size: var(--t-xs); font-weight: 600; }
 .party-head .inactive-toggle, .section-head .inactive-toggle { min-height: 28px; margin-left: 8px; }
-.char-switch .inactive-toggle { flex: none; align-self: center; margin-left: 8px; }
 /* What the level means at the table, ruled like a reference card. */
 .level-stats {
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px;
@@ -1387,37 +1386,38 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .party-xp .meter { width: 84px; height: 4px; }
   .party-xp small { font-size: var(--t-xs); font-weight: 600; color: var(--brass); }
 
-  /* Characters: one sheet at a time, picked from the row of hexes. */
+  /* Characters: one sheet at a time; its name opens the others. */
   #characters .section-head, .subhead { display: none; }
-  /* With no characters there's no row of hexes to stand for the heading. */
+  /* With no characters there's no sheet whose name stands for the heading. */
   #characters .keep-head .section-head { display: flex; }
-  /* Each character gets at least 72px, enough for most names; a bigger
-     party scrolls sideways rather than cutting names short. */
-  .char-switch { position: relative; display: flex; margin: -12px -8px 0; padding-bottom: 10px; border-bottom: 1px solid var(--line-soft); overflow-x: auto; scrollbar-width: none; }
-  .char-switch::-webkit-scrollbar { display: none; }
-  .char-switch button {
-    flex: 1 0 72px;
-    min-width: 0;
-    min-height: 76px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    border: 0;
-    background: none;
-    color: var(--muted);
-    font-size: var(--t-xs);
-    font-weight: 600;
-    cursor: pointer;
+  /* The name, with a chevron saying it opens something. */
+  .char-pick { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 44px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+  .char-pick-mark { position: relative; flex: none; display: flex; color: var(--muted); }
+  .char-pick-mark .icon { width: 22px; height: 22px; }
+  .char-pick:hover .char-pick-mark, .char-pick[aria-expanded="true"] .char-pick-mark { color: var(--fg); }
+  .char-pick .dot { top: -6px; right: -6px; }
+  /* The list: a sheet from the bottom, as "Who are you playing?" is. */
+  .char-switch:popover-open {
+    position: fixed; inset: auto 0 0; display: flex; flex-direction: column;
+    width: min(100%, 520px); max-height: 85vh; margin: 0 auto; overflow-y: auto;
+    padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px));
+    border: 1px solid var(--line); border-bottom: 0; border-radius: var(--r-lg) var(--r-lg) 0 0;
+    background: var(--surface); color: var(--fg);
   }
-  .char-switch button > span:first-child { position: relative; display: flex; }
-  .char-switch .switch-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .char-switch::backdrop { background: rgb(0 0 0 / 0.6); }
+  .char-switch > button:not(.inactive-toggle) {
+    display: flex; align-items: center; gap: 14px; min-height: 60px; padding: 8px 4px;
+    border: 0; border-bottom: 1px solid var(--line-soft); background: none;
+    color: var(--fg-2); font-size: var(--t-lg); font-weight: 600; text-align: left; cursor: pointer;
+  }
+  .char-switch > button:not(.inactive-toggle):hover, .char-switch > button:not(.inactive-toggle):focus-visible { background: var(--surface-2); }
+  .char-switch .switch-hex { position: relative; display: flex; }
+  .char-switch .switch-hex .hex { --w: 36px; --fill: var(--surface); }
+  .char-switch .switch-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   /* This phone's own character. */
-  /* Hexes line up along the top, so a "You" under one name doesn't lift it. */
-  .char-switch button { justify-content: flex-start; padding-top: 6px; }
-  .char-switch .you { margin-top: -3px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-3); }
-  .char-switch button[aria-pressed="true"] .you { color: var(--fg-2); }
+  .char-switch .you { margin-left: auto; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-3); }
+  .char-switch .inactive-toggle { align-self: flex-start; margin: 10px 0 0; }
+  .char-switch .me-line { margin-top: 8px; border-top: 0; }
   /* The Characters tab shows this phone's character instead. */
   .tabs a.mine > svg, .tabs a.mine > span:not(.tab-me) { display: none; }
   .tabs a.mine .tab-me { display: contents; }
@@ -1426,10 +1426,13 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .char-switch button[aria-pressed="true"] { color: var(--fg); }
   .char-switch button[aria-pressed="true"] .hex { --ring: var(--fg); --fill: var(--fg); --ink: var(--bg); }
   .char-switch button:is(.retired, .inactive):not([aria-pressed="true"]) { opacity: 0.55; }
-  .switch-sep { flex: none; align-self: center; width: 1px; height: 44px; margin: 0 4px; background: var(--line); }
-  /* A perk to choose: a small brass hex, cut out of the page around it. */
-  .char-switch .dot { position: absolute; top: -1px; right: -5px; width: 14px; height: 16px; background: var(--bg); clip-path: var(--hexagon); }
-  .char-switch .dot::after { content: ""; position: absolute; inset: 2.3px 2px; background: var(--brass); clip-path: var(--hexagon); }
+  /* Between the active, inactive and retired: a gap under the row's rule. */
+  .switch-sep { flex: none; height: 14px; }
+  /* A perk to choose or a quest done: a small brass hex, cut out of what's
+     around it. */
+  .char-switch .dot, .char-pick .dot { position: absolute; width: 14px; height: 16px; background: var(--bg); clip-path: var(--hexagon); }
+  .char-switch .dot { top: -2px; right: -5px; background: var(--surface); }
+  :is(.char-switch, .char-pick) .dot::after { content: ""; position: absolute; inset: 2.3px 2px; background: var(--brass); clip-path: var(--hexagon); }
   .char-grid { display: block; }
   .char-card { --under: var(--bg); gap: 20px; padding: 6px 0 0; background: none; border: 0; border-radius: 0; }
   .char-card:not(.current) { display: none; }
