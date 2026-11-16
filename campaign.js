@@ -1262,7 +1262,6 @@ function applyDraft(raw, d, data) {
   const retiring = new Set((d.retirements || []).map(x => x.character).filter(name => who(name) && !who(name).retired));
   const prosperityTonight = stepFor(data.city.prosperityCheckmarks + retiring.size, CHECKMARKS_FOR_PROSPERITY);
   const joined = [];
-  const newLevels = [];
   for (const x of d.newCharacters || []) {
     const name = String(x.name || "").trim();
     if (!name && !x.class) continue;
@@ -1281,7 +1280,6 @@ function applyDraft(raw, d, data) {
                           ...(String(x.player || "").trim() ? { player: String(x.player).trim() } : {}), joined: d.date || today(), notes: "" });
     const perks = level - 1 + bonus;
     log.push(`${name} the ${x.class} joins at level ${level}, with ${XP_FOR_LEVEL[level - 1]} XP and ${goldText(startingGold(level))}${perks ? `, and ${plural(perks, "perk")} to choose` : ""}${level > 1 ? `; and ${plural(level - 1, "ability card")} to add, one for each level from 2 to ${level} (each of that level or lower)` : ""}`);
-    for (let l = 2; l <= level; l++) newLevels.push({ character: name, level: l });
     if (x.playing !== false) joined.push(name);
   }
 
@@ -1669,7 +1667,6 @@ function applyDraft(raw, d, data) {
 
   // XP, gold and checkmarks onto the character sheets. Passing a level means
   // a new ability card; the perk that comes with it the sheet counts.
-  const levelUps = [];
   for (const [name, g] of gainFor) {
     const c = who(name);
     const was = stepFor(c.xp || 0, XP_FOR_LEVEL);
@@ -1680,11 +1677,9 @@ function applyDraft(raw, d, data) {
                           g.checkmarks ? `${signed(g.checkmarks)} ${g.checkmarks === 1 ? "checkmark" : "checkmarks"}` : null].filter(Boolean).join(", ")}`);
     const now = c.retired ? was : stepFor(c.xp, XP_FOR_LEVEL);
     for (let level = was + 1; level <= now; level++) {
-      levelUps.push({ character: name, level });
       log.push(`${name} reaches level ${level}: add an ability card of level ${level} or lower, and take a perk`);
     }
   }
-  if (levelUps.length || newLevels.length) session.levelUps = [...newLevels, ...levelUps];
   // Bless cards kept from an earlier donation are used in tonight's scenario.
   if (playedTonight) for (const name of party) if (who(name)?.blessNext && !(d.donations || []).some(x => x.character === name && x.when === "after")) delete who(name).blessNext;
   // Who retired tonight leaves with nothing: their gold is gone (p. 48),
@@ -1867,6 +1862,44 @@ function partyOf(plays) {
   for (const p of plays) for (const r of p.results) if (!names.includes(r.character)) names.push(r.character);
   return names;
 }
+
+// Who passed a level at each session, from XP over time: a character
+// joining above level 1 (an ability card for each level from 2), then
+// anyone whose XP crossed a level there, by its plays and the log lines
+// dated with it (lines dated between sessions count before the next). One
+// retiring that evening gains none. An undated session counts its plays
+// only. session -> [{ character, level }].
+function levelUpsBy(m, plays) {
+  const xp = new Map((m.characters || []).map(c => [c.name, c.start?.xp || 0]));
+  const lines = (m.characters || []).flatMap(c => (c.log || []).filter(e => e.xp).map(e => ({ name: c.name, date: e.date || "", xp: e.xp })));
+  const applied = new Set();
+  const add = test => lines.forEach((l, i) => { if (!applied.has(i) && test(l)) { applied.add(i); xp.set(l.name, xp.get(l.name) + l.xp); } });
+  const level = name => stepFor(xp.get(name), XP_FOR_LEVEL);
+  const out = new Map();
+  for (const s of m.sessions || []) {
+    if (s.date) add(l => l.date < s.date);
+    const was = new Map([...xp.keys()].map(name => [name, level(name)]));
+    for (const p of plays.filter(p => p.session === s)) {
+      for (const r of p.results) if (xp.has(r.character)) xp.set(r.character, xp.get(r.character) + r.xp);
+    }
+    if (s.date) add(l => l.date === s.date);
+    // A play with no level was written in before plays kept one: its
+    // rewards and events are in the start, not dated, so its evening's
+    // levels can't be told (the XP still counts towards the next).
+    if (plays.some(p => p.session === s && p.level == null)) { out.set(s, []); continue; }
+    const ups = [];
+    for (const c of m.characters || []) {
+      if (s.date && c.joined === s.date) for (let l = 2; l <= stepFor(c.start?.xp || 0, XP_FOR_LEVEL); l++) ups.push({ character: c.name, level: l });
+    }
+    for (const c of m.characters || []) {
+      if (s.date && retirementOf(c)?.date === s.date) continue;
+      for (let l = was.get(c.name) + 1; l <= level(c.name); l++) ups.push({ character: c.name, level: l });
+    }
+    out.set(s, ups);
+  }
+  return out;
+}
+const sameUps = (a, b) => JSON.stringify((a || []).map(u => `${u.character}:${u.level}`).sort()) === JSON.stringify((b || []).map(u => `${u.character}:${u.level}`).sort());
 
 // A character's retirement line, if their log has one.
 const retirementOf = c => (c.log || []).find(e => e.for === "retirement") || null;
@@ -2412,6 +2445,11 @@ function fromFile(json) {
     return m;
   });
   out.city = { ...out.city, donations: (out.city?.start?.donations || 0) + out.characters.reduce((sum, c) => sum + (c.donated || 0), 0) };
+  // Who passed a level at each session, worked out from XP over time. A
+  // list in the file stands where the record can't say (an older file's
+  // evening sums went into the start), and is asked about if it differs.
+  const ups = levelUpsBy(out, byPlay);
+  for (const s of out.sessions) if (!s.levelUps && ups.get(s).length) s.levelUps = ups.get(s);
   // An older file kept the shop's returned items as a list (by hand, or
   // the form wrote it): what the logs don't account for was returned before
   // they began, and joins the city's start. (In a current file such a list
@@ -2480,6 +2518,9 @@ function toFile(m, when = m.updated || today()) {
     return e;
   }).filter(e => Object.keys(e).length > 1 || (!completing.has(e.number) && !revealed.has(e.number)))
     .sort((a, b) => a.number - b.number);
+  // Who passed a level, as the record says it, is left to it.
+  const ups = levelUpsBy(m, readPlays(m));
+  m.sessions.forEach((s, i) => { if (out.sessions[i]?.levelUps && sameUps(out.sessions[i].levelUps, ups.get(s))) delete out.sessions[i].levelUps; });
   // Who was at a session, as its results already say, is left to them.
   for (const s of out.sessions) {
     const named = partyOf(s.scenarios || []);
@@ -2584,6 +2625,15 @@ function fileQuestions(json) {
   const q = [];
   const completing = completions(json.sessions || []);
   const revealed = revealedByReference(scenarioRef, [...completing.keys()]);
+  // Who passed a level is worked out; a list the record contradicts is asked about.
+  if (json.sessions?.some(s => s.levelUps)) {
+    const model = fromFile(json);
+    const ups = levelUpsBy(model, readPlays(model));
+    for (const s of model.sessions) {
+      const said = (json.sessions || []).find(x => x.date === s.date && x.title === s.title)?.levelUps;
+      if (said && ups.get(s).length && !sameUps(said, ups.get(s))) q.push(`The session of ${s.date || s.title || "no date"} lists who passed a level, but its XP says otherwise (${ups.get(s).map(u => `${u.character} ${u.level}`).join(", ")}). Remove its "levelUps" to go by the XP.`);
+    }
+  }
   // Who was at a session is said once: by its results, or in "characters"
   // where they can't say. Both, naming different people, is asked about.
   for (const s of json.sessions || []) {
