@@ -196,8 +196,8 @@ button { font: inherit; color: inherit; }
 main:focus { outline: none; }
 @media (min-width: 900px) and (max-width: 1099px) { .tabs a { padding: 0 10px; } }
 .tabs svg { display: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-/* The links are in page order in index.html, so keyboard focus follows the
-   page; the phone tab bar reorders them for the thumb (see below). */
+/* Wide screens name the sections; phones name the tabs of an evening. */
+.tabs a.phone-only, .tabs .phone-label { display: none; }
 
 /* --- Page ----------------------------------------------------------------- */
 main {
@@ -546,7 +546,7 @@ dialog.who > p { margin-top: 6px; font-size: var(--t-md); color: var(--fg-3); }
 dialog.who > .btn { width: 100%; justify-content: center; }
 
 /* --- Characters ----------------------------------------------------------- */
-.char-switch, .switch-shop { display: none; }
+.char-switch { display: none; }
 /* The sheets read across in the party's order, as they do everywhere else.
    Once packGrids() in app.js has measured them (.packed), the rows are 1px
    tall and each card spans its own height plus the gap, so a sheet slots in
@@ -1090,10 +1090,9 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
     color: var(--muted);
   }
   .tabs a:hover { background: none; }
-  /* Scenarios before Characters, nearest the thumb after the Overview. */
-  .tabs a[data-tab="scenarios"] { order: 1; }
-  .tabs a[data-tab="characters"] { order: 2; }
-  .tabs a[data-tab="sessions"] { order: 3; }
+  .tabs a.phone-only { display: flex; }
+  .tabs .phone-label { display: inline; }
+  .tabs .wide-label { display: none; }
   .tabs a[aria-current="page"] { color: var(--fg); border-top-color: var(--fg); font-weight: 700; }
   .tabs svg { display: block; width: 24px; height: 24px; }
 
@@ -1117,7 +1116,8 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .rec-gain { min-height: 0; }
   .ledger summary, .deck summary { padding-block: 13px; margin-block: -9px; }
   .panel { gap: 16px; scroll-margin-top: 16px; }
-  .panel.off, .site-footer.off { display: none; }
+  /* Only the current tab's sections, and its parts of the Overview. */
+  main [data-tab].off { display: none; }
   .pair, .pair-side { display: contents; }
   .section-head h2 { font-size: var(--d-xl); }
   #events .section-head h2, #record .section-head h2 { font-size: var(--d-md); }
@@ -1181,16 +1181,6 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
      party scrolls sideways rather than cutting names short. */
   .char-switch { display: flex; margin: -12px -8px 0; padding-bottom: 10px; border-bottom: 1px solid var(--line-soft); overflow-x: auto; scrollbar-width: none; }
   .char-switch::-webkit-scrollbar { display: none; }
-  /* The Shop, further down, sitting on the line under the row; its tap
-     area reaches above and below the line. */
-  .switch-wrap { position: relative; }
-  .switch-shop {
-    position: absolute; right: 0; bottom: -9px; display: inline-flex; align-items: center; gap: 2px;
-    padding-left: 8px; background: var(--bg); line-height: 18px;
-    font-size: var(--t-xs); font-weight: 600; letter-spacing: 0.04em; color: var(--fg-3); text-decoration: none;
-  }
-  .switch-shop .icon { width: 14px; height: 14px; }
-  .switch-shop::after { content: ""; position: absolute; inset: -13px 0; }
   .char-switch button {
     flex: 1 0 72px;
     min-width: 0;
