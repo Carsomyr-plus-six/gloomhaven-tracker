@@ -119,6 +119,21 @@ async function runTests(load, loadText) {
      buildData(copy(ringBought)).characters.find(c => c.name === "Craig").items.includes("Ring of Skulls"),
      ["returnedItems" in ringSold.city, "returnedItems" in ringBought.city]],
     [0, 1, 0, 1, true, [false, false]]);
+  // Who passed a level at a session is worked out from XP over time, as the
+  // evening's summary says it; the file stores none. A list written in on a
+  // session whose plays have no level (the record can't tell) stands; one
+  // the XP contradicts is asked about.
+  const fileUps = copy(file);
+  fileUps.sessions.at(-1).levelUps = [{ character: "Craig", level: 5 }];
+  const handUps = copy(raw);
+  handUps.sessions.find(s => s.date === "2026-11-13").levelUps = [{ character: "Craig", level: 4 }];
+  same("sessions: who passed a level is worked out from XP, as the summary says",
+    [file.sessions.at(-1).levelUps ?? null, buildData(copy(file)).sessions.at(-1).levelUps, res.log.filter(l => l.includes("reaches level")),
+     fileQuestions(fileUps).filter(q => q.includes("passed a level")).length,
+     [buildData(copy(handUps)).sessions.find(s => s.date === "2026-11-13").levelUps, fileQuestions(handUps).filter(q => q.includes("passed a level")).length,
+      toFile(fromFile(copy(handUps))).sessions.find(s => s.date === "2026-11-13").levelUps]],
+    [null, [{ character: "Azorica", level: 4 }], ["Azorica reaches level 4: add an ability card of level 4 or lower, and take a perk"], 1,
+     [[{ character: "Craig", level: 4 }], 0, [{ character: "Craig", level: 4 }]]]);
   // Who was at a session is said once: by its plays' results, which name
   // everyone there; "characters" only where a play has none. Both, naming
   // different people, is asked about.
