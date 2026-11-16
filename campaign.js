@@ -68,6 +68,19 @@ function scenarioStats(level) {
 const DONATION = 10;
 const ENVELOPE_B_DONATIONS = 100;
 
+// Which visit to the city a donation in the form was made on, as the number
+// of the evening's scenarios played before it: 0 before the first, n after
+// the last (a visit follows each scenario, p. 42). x.when is "" (before),
+// "after-k" (back in town after the k-th) or "after" (after the last). One
+// the form no longer offers, as its scenario was taken out, means the
+// nearest visit there still is.
+function donationVisit(x, scenarios) {
+  const n = scenarios.length;
+  if (!n) return 0;
+  if (x.when === "after") return n;
+  return Math.min(n, Number(/^after-(\d+)$/.exec(x.when || "")?.[1] || 0));
+}
+
 // Once Envelope B is open, donations also count towards prosperity. Counted
 // as Gloomhaven Secretariat does, in donations of 10 gold: opening the
 // envelope gives a checkmark; past the first 10 donations, every 5 more give
@@ -1685,18 +1698,6 @@ function applyDraft(raw, d, data) {
       log.push(`${name} reaches level ${level}: add an ability card of level ${level} or lower, and take a perk`);
     }
   }
-  // Bless cards kept from an earlier donation are used in tonight's scenario.
-  // Who retired tonight leaves with nothing: their gold is gone (p. 48),
-  // and their items go back to the shop.
-  for (const name of retiring) {
-    const c = who(name);
-    if (!c?.retired) continue;
-    // The record of retiring: the page reads retired and retiredOn from it.
-    line(name, { gold: -(c.gold || 0), lost: c.items }, { for: "retirement" }, true);
-    c.gold = 0;
-    c.items = [];
-  }
-
   log.push(...joinLog);
 
   // Shopping and perks, after the scenarios.
@@ -1736,7 +1737,10 @@ function applyDraft(raw, d, data) {
   for (const x of donors) {
     const c = who(x.character);
     c.gold = (c.gold || 0) - DONATION;
-    line(x.character, { gold: -DONATION }, { for: "donation", ...(x.when === "after" ? { after: true } : {}) });
+    // After the evening's last scenario, "after: true"; between two, the
+    // number of scenarios before it.
+    const visit = donationVisit(x, played);
+    line(x.character, { gold: -DONATION }, { for: "donation", ...(visit ? { after: visit === played.length || visit } : {}) });
     out.city.donations = (out.city.donations || 0) + DONATION;
     c.donated = (c.donated || 0) + DONATION;
     // Two Bless cards for their next scenario (p. 45): tonight's, if they
@@ -1746,14 +1750,11 @@ function applyDraft(raw, d, data) {
   // Once per visit (p. 45): a visit follows each scenario (p. 42), so one
   // before tonight's scenarios and one back in town after are two visits.
   for (const name of new Set(donors.map(x => x.character))) {
-    for (const when of ["", "after"]) {
-      if (donors.filter(x => x.character === name && (x.when === "after" ? "after" : "") === when).length > 1) {
-        warnings.push(`${name} donates twice in one visit to the city: it's once per visit.`);
-      }
-    }
+    const visits = donors.filter(x => x.character === name).map(x => donationVisit(x, played));
+    if (new Set(visits).size < visits.length) warnings.push(`${name} donates twice in one visit to the city: it's once per visit.`);
     // Blessings are the donor's (errata): one who retires tonight with no
-    // scenario after the donation never uses them.
-    const used = played.length && party.includes(name) && donors.some(x => x.character === name && x.when !== "after");
+    // scenario of theirs after the donation never uses them.
+    const used = party.includes(name) && visits.some(v => v < played.length);
     if (retiring.has(name) && !used) warnings.push(`${name} donates, then retires: the two Bless cards are theirs, so they go unused (they don't pass to a next character).`);
   }
   if (before < ENVELOPE_B_DONATIONS && (out.city.donations || 0) >= ENVELOPE_B_DONATIONS && !d.envelopeB) {
@@ -1773,20 +1774,21 @@ function applyDraft(raw, d, data) {
     enhancedClasses.add(c.class);
     log.push(`${x.character} enhances a card (${x.what}) for ${goldText(num(x.cost))}`);
   }
-  // A class's deck can have no more enhanced cards than the prosperity level
-  // (p. 46), and its stickers stay on through every character of the class.
-  // The sheets count stickers, not cards (a card can carry several), so
-  // past the limit it can only ask.
-  for (const cls of enhancedClasses) {
-    const stickers = out.characters.filter(c => c.class === cls).reduce((n, c) => n + (c.enhanced || 0), 0);
-    if (stickers > prosperityTonight) {
-      warnings.push(`The ${cls} cards have ${plural(stickers, "enhancement")}: at prosperity ${prosperityTonight}, no more than ${prosperityTonight} of its cards can be enhanced. Check they're on that many cards or fewer.`);
-    }
-  }
   for (const p of d.perks.filter(p => p.character && p.perk)) {
     who(p.character).perks.push(p.perk);
     line(p.character, { perks: [p.perk] }, { for: "perk" });
     log.push(`${p.character} takes "${p.perk}"`);
+  }
+  // Who retired tonight leaves with nothing: their gold is gone (p. 48),
+  // and their items go back to the shop. After the town's business, which
+  // they may do first: a donation, a sale, a purchase.
+  for (const name of retiring) {
+    const c = who(name);
+    if (!c?.retired) continue;
+    // The record of retiring: the page reads retired and retiredOn from it.
+    line(name, { gold: -(c.gold || 0), lost: c.items }, { for: "retirement" }, true);
+    c.gold = 0;
+    c.items = [];
   }
   for (const c of out.characters) if (c.gold < 0) warnings.push(`${c.name} would have ${goldText(c.gold)}.`);
 
@@ -1796,6 +1798,21 @@ function applyDraft(raw, d, data) {
     if (k === "lastDraft") continue;
     marked[k] = v;
     if (k === "updated") marked.lastDraft = d.id;
+  }
+  // A class's deck can have no more enhanced cards than the prosperity level
+  // (p. 46), and its stickers stay on through every character of the class.
+  // The level is the city's after the evening (enhancing comes after the
+  // scenarios and events, which can raise it), worked out as the page does.
+  // The sheets count stickers, not cards (a card can carry several), so
+  // past the limit it can only ask.
+  if (enhancedClasses.size) {
+    const prosperity = stepFor(deriveCampaign(withDefaults(copyJson(marked)), scenarioRef, classRef).totals.prosperity.value, CHECKMARKS_FOR_PROSPERITY);
+    for (const cls of enhancedClasses) {
+      const stickers = out.characters.filter(c => c.class === cls).reduce((n, c) => n + (c.enhanced || 0), 0);
+      if (stickers > prosperity) {
+        warnings.push(`The ${cls} cards have ${plural(stickers, "enhancement")}: at prosperity ${prosperity}, no more than ${prosperity} of its cards can be enhanced. Check they're on that many cards or fewer.`);
+      }
+    }
   }
   return { out: marked, log, warnings, evening, party };
 }
@@ -1863,9 +1880,9 @@ function readPlays(data) {
   const entry = new Map(data.scenarios.map(s => [s.number, s]));
   const out = [];
   for (const session of data.sessions) {
-    for (const play of session.scenarios || []) {
+    for (const [i, play] of (session.scenarios || []).entries()) {
       const from = done.get(play.number)?.play === play ? entry.get(play.number) || play : play;
-      out.push({ number: play.number, level: play.level ?? null, result: play.result, casual: Boolean(play.casual), session,
+      out.push({ number: play.number, level: play.level ?? null, result: play.result, casual: Boolean(play.casual), session, order: i + 1,
                  results: tookFrom(play, from.results), players: from.players || [] });
     }
   }
@@ -1929,13 +1946,14 @@ const sameUps = (a, b) => JSON.stringify((a || []).map(u => `${u.character}:${u.
 // Two Bless cards waiting for a character's next scenario, from a donation
 // (p. 45): their last donation line, with no scenario of theirs after it.
 // One that evening counts, unless the donation was made back in town after
-// it ("after"). null when no donation line says (one before the logs began
+// it ("after": true after the last; a number, after that many of them). null when no donation line says (one before the logs began
 // is written on the character as "blessNext").
 function blessPending(c, plays) {
   const gift = [...(c.log || [])].reverse().find(e => e.for === "donation");
   if (!gift) return null;
-  return !plays.some(p => p.session?.date && (p.session.date > gift.date || (p.session.date === gift.date && !gift.after))
-    && playedBy(p).includes(c.name));
+  const later = p => p.session.date > gift.date
+    || (p.session.date === gift.date && gift.after !== true && p.order > (Number(gift.after) || 0));
+  return !plays.some(p => p.session?.date && later(p) && playedBy(p).includes(c.name));
 }
 
 // A character's retirement line, if their log has one.
