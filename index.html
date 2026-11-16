@@ -25,48 +25,54 @@
         <span class="brand-mark" aria-hidden="true"></span>
         <span id="title">Gloomhaven Campaign</span>
       </a>
+      <!-- Wide screens: the campaign's sections, one page. Phones: four tabs
+           for the table, in the order of an evening: setting up tonight,
+           playing (this phone's character), the town after, and the campaign
+           itself. -->
       <nav class="tabs" aria-label="Sections">
-        <a href="#overview" data-tab="overview">
-          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.500-3.200 7.800-8 9-4.800-1.200-8-4.500-8-9V6l8-3z"/></svg>
-          <span>Overview</span>
+        <a href="#overview" data-tab="tonight">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M19.500 14.500A8 8 0 1 1 9.500 4.500a6.500 6.500 0 0 0 10 10z"/></svg>
+          <span class="wide-label">Overview</span><span class="phone-label">Tonight</span>
         </a>
-        <a href="#characters" data-tab="characters">
+        <a href="#characters" data-tab="play">
           <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.200-3.600 4.300-5.500 8-5.500s6.800 1.900 8 5.500"/></svg>
-          <span>Characters</span>
+          <span class="wide-label">Characters</span><span class="phone-label">Play</span>
         </a>
-        <a href="#shop" class="wide-only"><span>Shop</span></a>
-        <a href="#scenarios" data-tab="scenarios">
-          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 4L3 6.500v13.500l6-2.500 6 2.500 6-2.500V4l-6 2.500L9 4z"/><path d="M9 4v13.500"/><path d="M15 6.500V20"/></svg>
-          <span>Scenarios</span>
+        <a href="#shop" data-tab="town">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3.500 11L12 4l8.500 7"/><path d="M6 9v11h12V9"/><path d="M10 20v-5.500h4V20"/></svg>
+          <span class="wide-label">Shop</span><span class="phone-label">Town</span>
         </a>
-        <a href="#sessions" data-tab="sessions">
-          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4z"/><path d="M5 17a3 3 0 0 1 3-3h11"/></svg>
-          <span>Sessions</span>
-        </a>
+        <a href="#scenarios" class="wide-only"><span>Scenarios</span></a>
+        <a href="#sessions" class="wide-only"><span>Sessions</span></a>
         <a href="#events" class="wide-only"><span>Event decks</span></a>
         <a href="#record" class="wide-only"><span>Campaign record</span></a>
+        <a href="#campaign" data-tab="campaign" class="phone-only">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 4L3 6.500v13.500l6-2.500 6 2.500 6-2.500V4l-6 2.500L9 4z"/><path d="M9 4v13.500"/><path d="M15 6.500V20"/></svg>
+          <span>Campaign</span>
+        </a>
       </nav>
     </div>
   </header>
 
   <!-- On phones only the panels of the current tab show; on wide screens all of
-       them do, as one page. data-tab says which tab a panel belongs to. -->
+       them do, as one page. data-tab says which tab a panel belongs to: the
+       Overview shows on two, its parts each saying which (app.js). -->
   <main>
     <p id="status" class="status">Loading campaign…</p>
-    <section id="overview" class="panel" data-tab="overview" hidden></section>
-    <section id="characters" class="panel" data-tab="characters" hidden></section>
-    <section id="shop" class="panel" data-tab="characters" hidden></section>
-    <section id="scenarios" class="panel" data-tab="scenarios" hidden></section>
+    <section id="overview" class="panel" data-tab="tonight campaign" hidden></section>
+    <section id="characters" class="panel" data-tab="play" hidden></section>
+    <section id="shop" class="panel" data-tab="town" hidden></section>
+    <section id="scenarios" class="panel" data-tab="campaign" hidden></section>
     <!-- Wide screens: Sessions beside Event decks and the Campaign record,
          which fill the column the timeline runs down. -->
     <div class="pair">
-      <section id="sessions" class="panel" data-tab="sessions" hidden></section>
+      <section id="sessions" class="panel" data-tab="campaign" hidden></section>
       <div class="pair-side">
-        <section id="events" class="panel" data-tab="overview" hidden></section>
-        <section id="record" class="panel" data-tab="overview" hidden></section>
+        <section id="events" class="panel" data-tab="campaign" hidden></section>
+        <section id="record" class="panel" data-tab="campaign" hidden></section>
       </div>
     </div>
-    <footer class="site-footer" id="footer" data-tab="overview"></footer>
+    <footer class="site-footer" id="footer" data-tab="campaign"></footer>
   </main>
 </body>
 </html>

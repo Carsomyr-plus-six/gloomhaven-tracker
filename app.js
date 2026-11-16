@@ -244,7 +244,7 @@ function scenarioLabel(data, number) {
   return `#${number}${name ? ` ${name}` : ""}`;
 }
 
-// A mention of a scenario that opens it on the Scenarios tab, as the Ready
+// A mention of a scenario that opens it under Scenarios, as the Ready
 // to play cards do.
 function scenarioLink(data, number, text = scenarioLabel(data, number)) {
   return h("a", { class: "scenario-link", href: "#scenarios", onclick: () => openScenario(data, number) }, text);
@@ -353,7 +353,7 @@ function reputationTile(party, ledger) {
     else zones.push({ from: r, to: r, modifier: shopModifier(r) });
   }
   const range = ledger?.reputation?.range;
-  return h("div", { class: "card tile rep-tile" },
+  return h("div", { class: "card tile rep-tile", "data-tab": "campaign" },
     h("div", { class: "tile-top" }, h("h2", { class: "label" }, "Reputation"), h("span", { class: "figure" }, signed(rep))),
     stepTrack({
       zones: zones.map(z => ({ from: edge(z.from), to: edge(z.to + 1),
@@ -398,7 +398,7 @@ function prosperityTile(city, ledger) {
     return (l - 1 + (m - lo) / (hi - lo)) / levels * 100;
   };
   const range = ledger?.prosperity?.range;
-  return h("div", { class: "card tile prosp-tile" },
+  return h("div", { class: "card tile prosp-tile", "data-tab": "campaign" },
     h("div", { class: "tile-top" }, h("h2", { class: "label" }, "Prosperity"), h("span", { class: "figure" }, level)),
     stepTrack({
       zones: Array.from({ length: levels }, (_, i) => ({ from: i / levels * 100, to: (i + 1) / levels * 100,
@@ -465,7 +465,7 @@ function levelTile(data) {
   // Tonight's level, the tile's figure, beside what it means at the table;
   // under it, how it was reached. The other levels worth seeing are the
   // ones a difficulty gives, so each difficulty says its own.
-  return h("div", { class: "card tile level-tile" },
+  return h("div", { class: "card tile level-tile", "data-tab": "tonight" },
     h("h2", { class: "label" }, "Scenario level"),
     playing.length
       ? [h("div", { class: "level-now" },
@@ -500,7 +500,7 @@ function levelTile(data) {
 
 // Phones: the sections that share a tab but sit far below, as links.
 function furtherDown(links) {
-  return h("nav", { class: "jump", "aria-label": "Further down this tab" },
+  return h("nav", { class: "jump", "data-tab": "campaign", "aria-label": "Further down this tab" },
     h("span", {}, "Further down:"), links.map(([href, label]) => h("a", { href }, label)));
 }
 
@@ -542,17 +542,19 @@ function renderOverview(data) {
         heroDecor(),
         locationText(party.location) ? h("div", { class: "eyebrow" }, locationText(party.location)) : null,
         h("h1", { class: (party.name || "").length > 22 ? "party-name long" : "party-name" }, party.name || "Unnamed party"),
-        furtherDown([["#events", "Event decks"], ["#record", "Campaign record"]])),
+        furtherDown([["#scenarios", "Scenarios"], ["#sessions", "Sessions"], ["#events", "Event decks"], ["#record", "Campaign record"]])),
       // The evening, step by step, with a way to record it at the end.
       tonightStrip(data),
       // Tiles first: the left column reads first on wide screens, the
       // scenario level leading, as the table is set up by it. The right
       // column puts what to sort out before playing above what to play.
       // Phones show Ready to play, then the tiles, then the list (styles.css).
+      // Phones split the Overview: setting up tonight on the Tonight tab,
+      // reputation, prosperity and the party on the Campaign tab (data-tab).
       h("div", { class: "tiles" }, levelTile(data), reputationTile(party, data.ledger), prosperityTile(city, data.ledger)),
       h("div", { class: "hero-side" },
         todoList(data),
-        h("div", { class: "ready" },
+        h("div", { class: "ready", "data-tab": "tonight" },
           h("div", { class: "ready-head" },
             h("h2", {}, "Ready to play"),
             h("a", { href: "#scenarios" }, data.scenarios.length > 1 ? `All ${data.scenarios.length} scenarios` : "Scenarios")),
@@ -633,7 +635,7 @@ function tonightStrip(data) {
   const firstPlayed = (draft?.scenarios || []).findIndex(s => num(s.number));
   // Anyone to play: a new campaign has no one until characters are added.
   const anyone = data.characters.some(c => !c.retired) || Boolean(draft?.newCharacters?.some(x => x.name));
-  return h("nav", { class: "tonight", "aria-label": "Tonight, step by step" },
+  return h("nav", { class: "tonight", "data-tab": "tonight", "aria-label": "Tonight, step by step" },
     step(1, "City event", drawn("city") || (decks ? `${decks.city.size} in the deck` : "Draw one"), "#events",
       () => recordEvent(data, "city"), Boolean(drawn("city"))),
     step(2, "In town", town || (shop ? (shop.modifier === 0 ? "Normal prices" : `Prices ${signed(shop.modifier)} gold`) : "Shop, perks, Sanctuary"),
@@ -987,7 +989,7 @@ function revealCharacter(name) {
 
 function todoList(data) {
   const items = todoItems(data);
-  return h("div", { class: "card todo" },
+  return h("div", { class: "card todo", "data-tab": "tonight" },
     h("div", { class: "block-head" },
       h("h2", { class: "label" }, "Before you play"),
       h("span", {}, items.length ? plural(items.length, "thing") + " to see to" : "All clear")),
@@ -1007,7 +1009,7 @@ function partyList(data) {
   if (!everyone.length) return null;
   const away = everyone.filter(c => c.inactive).length;
   const active = everyone.filter(c => !hiddenAway(c));
-  return h("div", { class: "party" },
+  return h("div", { class: "party", "data-tab": "campaign" },
     h("div", { class: "party-head" }, h("h2", {}, "The party"),
       h("span", { class: "small muted" }, plural(everyone.length - away, "character")),
       inactiveToggle(data, away, "party-inactive")),
@@ -2422,10 +2424,10 @@ function askWho(data) {
   const answer = name => () => { dialog.close(); dialog.remove(); chooseMe(data, name); };
   const dialog = h("dialog", { class: "who", "aria-labelledby": "who-title", onclose: () => dialog.remove() },
     h("h2", { id: "who-title" }, "Who are you playing?"),
-    h("p", {}, "This phone will open on their sheet. You can change it on the Characters tab."),
+    h("p", {}, "This phone will open on their sheet. You can change it at the bottom of the sheet."),
     h("div", { class: "who-list" }, active.map(c =>
       h("button", { type: "button", class: "who-row", "aria-label": `${c.name}, level ${characterStats(c).level} ${c.class}`, onclick: answer(c.name) },
-        // The frame the Characters tab will show once they're picked.
+        // The frame the Play tab will show once they're picked.
         classHex(c.class),
         h("span", { class: "party-who" }, h("strong", {}, c.name), h("span", {}, `Level ${characterStats(c).level} ${c.class}`))))),
     h("button", { type: "button", class: "btn quiet", onclick: answer("") }, "Just looking"));
@@ -2438,7 +2440,7 @@ function askWho(data) {
 function meLine(data) {
   const mine = data.characters.find(c => !c.retired && c.name === me);
   return h("p", { class: "me-line" },
-    h("span", {}, mine ? `Not ${mine.name}?` : "This phone opens on the Overview."),
+    h("span", {}, mine ? `Not ${mine.name}?` : "This phone opens on Tonight."),
     h("button", { type: "button", "data-key": "me-change", onclick: () => askWho(data) },
       mine ? "Change who this phone opens on" : "Pick your character"));
 }
@@ -2446,7 +2448,7 @@ function meLine(data) {
 // The bottom tab shows this phone's character, as it's their home. Phones
 // only (styles.css); the words "Characters" stay for wide screens.
 function myTab(data) {
-  const a = document.querySelector('.tabs a[data-tab="characters"]');
+  const a = document.querySelector('.tabs a[data-tab="play"]');
   if (!a) return;
   a.querySelector(".tab-me")?.remove();
   const mine = data.characters.find(c => !c.retired && c.name === me);
@@ -2848,10 +2850,7 @@ function renderCharacters(data) {
   return [
     sectionHead("Characters", [[`${active.length} active`, retired.length ? `${retired.length} retired` : null].filter(Boolean).join(" · "),
                                inactiveToggle(data, inactive.length, "chars-inactive")]),
-    // Phones: the Shop, further down this tab, as a small link on the line
-    // under the row, so the sheet starts with the characters.
-    h("div", { class: "switch-wrap" }, switcher,
-      h("a", { class: "switch-shop", href: "#shop", "aria-label": "Shop, further down" }, "Shop", icon("chevron"))),
+    switcher,
     // Inactive sheets, once shown, follow the active ones in the same grid
     // (dashed, and "inactive" under the name), filling the gaps.
     active.length ? h("div", { class: "char-grid" }, [...active, ...shownInactive].map(card))
@@ -3138,7 +3137,7 @@ function renderShop(data) {
 function pricesNote(shop, rep) {
   if (rep?.unsure.length || !rep?.unknown?.length) {
     return nudge("question", "Prices may be off",
-      `Reputation could be ${rangeText(shop.range)}, which would change prices. Settle the open events on the Overview.`);
+      `Reputation could be ${rangeText(shop.range)}, which would change prices. Settle the open events under Reputation.`);
   }
   // What can never be known needs no box: the Shop's heading carries a tag.
   return null;
@@ -3801,7 +3800,7 @@ function applyDraft(raw, d, data) {
   }
 
   // XP, gold and checkmarks onto the character sheets. Passing a level means
-  // a new ability card; the perk that comes with it the Characters tab counts.
+  // a new ability card; the perk that comes with it the sheet counts.
   const levelUps = [];
   for (const [name, g] of gainFor) {
     const c = who(name);
@@ -4561,7 +4560,7 @@ function renderSessions(data) {
     const replay = won && sc.casual;
     const meta = [sc.level != null ? `Level ${sc.level}` : null].filter(Boolean);
     const outcome = !won ? "Failed" : replay ? "Replayed casually" : null;
-    // The scenario opens on the Scenarios tab.
+    // The scenario opens under Scenarios.
     return h("li", {},
       h("a", { class: "played-link", href: "#scenarios", onclick: () => openScenario(data, sc.number) },
         hex(sc.number, !won ? "failed" : replay ? "replay" : "completed"),
@@ -4589,13 +4588,17 @@ const RENDERERS = {
   record: renderRecord,
 };
 
-// Which tab each section belongs to on a phone.
-const TAB_OF = { overview: "overview", events: "overview", record: "overview",
-                 scenarios: "scenarios", characters: "characters", shop: "characters", sessions: "sessions" };
+// Which tab each section belongs to on a phone: an evening at the table, in
+// order. Tonight sets up the scenario, Play is this phone's character, Town
+// is the Shop after, and Campaign is the rest of the record, to look up.
+const TAB_OF = { overview: "tonight", characters: "play", shop: "town",
+                 campaign: "campaign", scenarios: "campaign", sessions: "campaign", events: "campaign", record: "campaign" };
+// The addresses that open a tab at its top rather than at a section in it.
+const TAB_TOPS = ["overview", "characters", "shop", "campaign"];
 
 function currentTab() {
   const id = location.hash.slice(1);
-  return id.startsWith("scenario-") ? "scenarios" : TAB_OF[id] || "overview";
+  return id.startsWith("scenario-") ? "campaign" : TAB_OF[id] || "tonight";
 }
 
 function render(data, only) {
@@ -4657,7 +4660,8 @@ function packGrids() {
 // On a phone, show the current tab's sections and hide the rest.
 function showTab() {
   const tab = currentTab();
-  for (const el of document.querySelectorAll("main [data-tab]")) el.classList.toggle("off", el.dataset.tab !== tab);
+  // A section can belong to more than one tab ("tonight campaign").
+  for (const el of document.querySelectorAll("main [data-tab]")) el.classList.toggle("off", !el.dataset.tab.split(" ").includes(tab));
   for (const a of document.querySelectorAll(".tabs a[data-tab]")) {
     if (phone.matches && a.dataset.tab === tab) a.setAttribute("aria-current", "page");
     else if (a.getAttribute("aria-current") === "page") a.removeAttribute("aria-current");
@@ -4716,8 +4720,10 @@ function onNavigate() {
   // swapped what is on screen, so start the new tab from its top.
   if (!phone.matches) return;
   const id = location.hash.slice(1);
-  if (TAB_OF[id] === id || !id) window.scrollTo({ top: 0, behavior: "instant" });
-  else document.getElementById(id)?.scrollIntoView();
+  // A section further down the tab is jumped to, not glided to: what's above
+  // it has only just appeared.
+  if (TAB_TOPS.includes(id) || !id) window.scrollTo({ top: 0, behavior: "instant" });
+  else document.getElementById(id)?.scrollIntoView({ behavior: "instant" });
 }
 
 // Fill in anything missing, so older or partial files still display.
@@ -4842,9 +4848,9 @@ async function start() {
     // Not asked yet, or their character has since retired: ask.
     if (phone.matches && me !== "" && mine < 0) askWho(data);
     myTab(data);
-    // The Characters tab is this phone's home: from anywhere, even another
+    // The Play tab is this phone's home: from anywhere, even another
     // character's sheet, it goes back to its player's sheet.
-    document.querySelector('.tabs a[data-tab="characters"]')?.addEventListener("click", () => {
+    document.querySelector('.tabs a[data-tab="play"]')?.addEventListener("click", () => {
       const i = characterOrder(data).findIndex(c => !c.retired && c.name === me);
       if (!phone.matches || i < 0) return;
       if (characterIndex !== i) { characterIndex = i; render(data, "characters"); }
