@@ -1858,6 +1858,16 @@ function readPlays(data) {
 }
 const tookFrom = (play, results) => (results || []).map(r => ({ ...r, ...playGain(play, r) }));
 
+// Who was at a session, as its plays' results say: everyone they name, in
+// order; null when a play has no results (lost, or none kept), as they
+// can't say who else was there.
+function partyOf(plays) {
+  if (!plays.length || plays.some(p => !p.results?.length)) return null;
+  const names = [];
+  for (const p of plays) for (const r of p.results) if (!names.includes(r.character)) names.push(r.character);
+  return names;
+}
+
 // A character's retirement line, if their log has one.
 const retirementOf = c => (c.log || []).find(e => e.for === "retirement") || null;
 
@@ -2375,6 +2385,14 @@ function fromFile(json) {
   // Each named, from the scenario data unless the file names it itself.
   for (const e of out.scenarios) e.name ||= scenarioRef?.scenarios?.[String(e.number)]?.name;
   for (const e of out.scenarios) if (!e.name) delete e.name;
+  // Who was there, where a session doesn't say: everyone its plays'
+  // results name, when every play has them.
+  const byPlay = readPlays(out);
+  for (const s of out.sessions) {
+    if (s.characters) continue;
+    const named = partyOf(byPlay.filter(p => p.session === s));
+    if (named) s.characters = named;
+  }
   // Each sheet: its start, its log, and what its scenarios gave.
   const fromPlays = tookFromPlays(out);
   out.characters = (out.characters || []).map(c => {
@@ -2462,6 +2480,11 @@ function toFile(m, when = m.updated || today()) {
     return e;
   }).filter(e => Object.keys(e).length > 1 || (!completing.has(e.number) && !revealed.has(e.number)))
     .sort((a, b) => a.number - b.number);
+  // Who was at a session, as its results already say, is left to them.
+  for (const s of out.sessions) {
+    const named = partyOf(s.scenarios || []);
+    if (named && JSON.stringify(named) === JSON.stringify(s.characters)) delete s.characters;
+  }
   out.characters = (out.characters || []).map(c => {
     const after = sheetOf(c);
     const took = fromPlays.get(c.name);
@@ -2561,6 +2584,14 @@ function fileQuestions(json) {
   const q = [];
   const completing = completions(json.sessions || []);
   const revealed = revealedByReference(scenarioRef, [...completing.keys()]);
+  // Who was at a session is said once: by its results, or in "characters"
+  // where they can't say. Both, naming different people, is asked about.
+  for (const s of json.sessions || []) {
+    const named = partyOf(s.scenarios || []);
+    if (!named || !s.characters) continue;
+    const odd = [...named.filter(n => !s.characters.includes(n)), ...s.characters.filter(n => !named.includes(n))];
+    if (odd.length) q.push(`The session of ${s.date || s.title || "no date"} lists who was there, but its results name others (${odd.join(", ")} differ). Correct whichever is wrong, or remove its "characters" to go by the results.`);
+  }
   // History is the sessions' order: dates going backwards are a session in
   // the wrong place.
   let last = "";

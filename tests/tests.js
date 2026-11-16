@@ -119,6 +119,18 @@ async function runTests(load, loadText) {
      buildData(copy(ringBought)).characters.find(c => c.name === "Craig").items.includes("Ring of Skulls"),
      ["returnedItems" in ringSold.city, "returnedItems" in ringBought.city]],
     [0, 1, 0, 1, true, [false, false]]);
+  // Who was at a session is said once: by its plays' results, which name
+  // everyone there; "characters" only where a play has none. Both, naming
+  // different people, is asked about.
+  const nov13 = raw.sessions.find(s => s.date === "2026-11-13");
+  const odd = copy(raw);
+  odd.sessions.find(s => s.date === "2026-11-13").characters = ["Azorica", "Craig", "Kaktus"];
+  same("sessions: who was there is said once, by the results",
+    ["characters" in nov13, buildData(copy(raw)).sessions.find(s => s.date === "2026-11-13").characters,
+     raw.sessions.find(s => s.title === "Early sessions").characters ?? null,
+     fileQuestions(odd).filter(q => q.startsWith("The session of 2026-11-13")).length,
+     toFile(fromFile(copy(odd))).sessions.find(s => s.date === "2026-11-13").characters],
+    [false, ["Azorica", "Craig", "Flik Flak"], null, 1, ["Azorica", "Craig", "Kaktus"]]);
   // Retiring is said once: the retirement line in the log, which the page
   // reads retired and retiredOn from, written even with nothing to hand
   // back; on the character only for one who retired before the logs. Both,
