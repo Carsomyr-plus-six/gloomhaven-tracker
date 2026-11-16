@@ -1476,7 +1476,7 @@ function scenarioRow(data, s, depth = 0, lines = []) {
     open ? h("div", { class: "row-body" },
       scenarioFacts(data, s),
       scenarioAction(data, s),
-      s.results?.length ? resultsList(s.results) : null,
+      completionResults(data, s.number).length ? resultsList(completionResults(data, s.number)) : null,
       notes(s.notes)) : null);
   // An opened row's details start clear of the tree's lines.
   if (depth) row.style.setProperty("--indent", `${depth * TREE_STEP}px`);
@@ -1542,7 +1542,7 @@ function unlockMap(data, all, layout) {
               s.status === "available" ? " · ready to play" : null))),
         s.reasons.length ? h("div", { class: "reasons" }, s.reasons.map(r => h("span", {}, r))) : null,
         scenarioFacts(data, s), scenarioAction(data, s)),
-      s.results?.length ? h("div", {}, h("span", { class: "label" }, "What each character took home"), resultsList(s.results)) : null,
+      completionResults(data, s.number).length ? h("div", {}, h("span", { class: "label" }, "What each character took home"), resultsList(completionResults(data, s.number))) : null,
       s.notes ? h("div", {}, h("span", { class: "label" }, "Notes"), notes(s.notes)) : null) : null);
 }
 
@@ -3554,29 +3554,14 @@ function renderRecorder(data) {
 
 // --- Sessions -------------------------------------------------------------------
 
-// What each character gained over an evening: the results of the scenarios
-// completed in that session, added up.
+// What each character took from the scenarios played in an evening, added up.
 function sessionHaul(data, session) {
   const totals = new Map();
-  for (const played of session.scenarios) {
-    // A failure or casual replay keeps its results with the session.
-    if (played.results) {
-      for (const r of played.results) {
-        const total = totals.get(r.character) || { character: r.character, xp: 0, gold: 0 };
-        total.xp += r.xp || 0;
-        total.gold += r.gold || 0;
-        totals.set(r.character, total);
-      }
-      continue;
-    }
-    if (played.result !== "success") continue;
-    const entry = data.scenarios.find(s => s.number === played.number);
-    if (!entry?.results) continue;
-    if (entry.completed && session.date && entry.completed !== session.date) continue;
-    for (const r of entry.results) {
+  for (const p of plays(data).filter(p => p.session === session)) {
+    for (const r of p.results) {
       const total = totals.get(r.character) || { character: r.character, xp: 0, gold: 0 };
-      total.xp += r.xp || 0;
-      total.gold += r.gold || 0;
+      total.xp += r.xp;
+      total.gold += r.gold;
       totals.set(r.character, total);
     }
   }

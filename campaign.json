@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "edition": "Gloomhaven (1st edition)",
   "updated": null,
   "party": {
@@ -59,9 +59,9 @@
       "name": "Azorica",
       "class": "Spellweaver",
       "start": {
-        "xp": 149,
-        "gold": 44,
-        "checkmarks": 7,
+        "xp": 85,
+        "gold": 22,
+        "checkmarks": 6,
         "items": ["Cloak of Invisibility", "Minor Power Potion", "Minor Stamina Potion"],
         "perks": ["Remove four +0 cards", "Replace one -1 card with one +1 card", "Replace one -1 card with one +1 card"]
       },
@@ -74,9 +74,9 @@
       "name": "Craig",
       "class": "Cragheart",
       "start": {
-        "xp": 170,
-        "gold": 94,
-        "checkmarks": 9,
+        "xp": 98,
+        "gold": 51,
+        "checkmarks": 8,
         "items": ["Minor Power Potion", "Boots of Striding", "Minor Stamina Potion", "Horned Helm"],
         "perks": [
           "Remove four +0 cards",
@@ -96,9 +96,9 @@
       "name": "Flik Flak",
       "class": "Tinkerer",
       "start": {
-        "xp": 192,
-        "gold": 109,
-        "checkmarks": 11,
+        "xp": 117,
+        "gold": 70,
+        "checkmarks": 10,
         "items": ["Eagle-Eye Goggles", "Minor Stamina Potion"],
         "perks": [
           "Remove two -1 cards",

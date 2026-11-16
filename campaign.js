@@ -1124,19 +1124,26 @@ function draftLevel(s, data) {
   return Math.max(0, Math.min(7, filled(s.level) ? num(s.level) : fallback));
 }
 
-// What one character takes from a scenario: the XP on their dial, plus the
-// bonus XP for the scenario's level if it succeeded, and their coins in gold
-// at that level. Battle goals count only on a success. (A draft from before
-// coins were asked for has gold instead.)
-function scenarioGain(s, r, data) {
-  const st = scenarioStats(draftLevel(s, data));
-  const won = s.result === "success";
+// What one character takes from a scenario played: the XP on their dial,
+// plus the bonus XP for the scenario's level if it succeeded, and their
+// coins in gold at that level; battle goals count only on a success. The one
+// place these rules are applied: a play's results keep what was played (the
+// dial, the coins), and everything that shows or adds up what they gave
+// comes here. A result with gold instead of coins (an older draft) gives
+// that gold. A play with no level (recorded before plays kept one) can't
+// apply the rules, so its results are what each took, as written.
+function playGain(play, r) {
+  if (play.level == null) return { xp: num(r.xp), gold: num(r.gold), checkmarks: num(r.checkmarks) };
+  const st = scenarioStats(play.level);
+  const won = play.result === "success";
   return {
     xp: num(r.xp) + (won ? st.xp : 0),
     gold: filled(r.coins) ? num(r.coins) * st.gold : num(r.gold),
     checkmarks: won ? num(r.checkmarks) : 0,
   };
 }
+// The same for a scenario in the draft, at the level it's being recorded at.
+const scenarioGain = (s, r, data) => playGain({ level: draftLevel(s, data), result: s.result }, r);
 
 // The draft applied to a copy of campaign.json. Returns the new file, a list
 // of what changes, and anything that looks wrong.
@@ -1185,21 +1192,44 @@ function applyDraft(raw, d, data) {
     if (i >= 0) list.splice(i, 1);
   };
   const gainFor = new Map();   // name -> { xp, gold, checkmarks }
-  // An event's gold or XP. A gain counts with the evening's; a loss comes off
-  // at once, and can't take gold below 0 or XP below the start of the
-  // character's level (rulebook p. 42).
-  const eventGain = (name, key, amount) => {
-    if (amount >= 0) return gain(name, key, amount);
-    const c = who(name);
-    if (!c) return;
-    if (key === "gold") c.gold = Math.max(0, (c.gold || 0) + amount);
-    else c.xp = Math.max(XP_FOR_LEVEL[stepFor(c.xp || 0, XP_FOR_LEVEL) - 1], (c.xp || 0) + amount);
-  };
   const gain = (name, key, amount) => {
     if (!amount) return;
     const g = gainFor.get(name) || { xp: 0, gold: 0, checkmarks: 0 };
     g[key] += amount;
     gainFor.set(name, g);
+  };
+  // Every change to a sheet's XP, gold or checkmarks other than what a
+  // scenario's results give (those the play keeps) is a line in the
+  // character's log, dated with the evening, saying what it was for: the
+  // one record of it. what: { xp, gold, checkmarks }; why: { for, ... }.
+  const when = d.date || today();
+  // Two changes for the same thing (an event's gold and checkmark) are one line.
+  const line = (name, what, why) => {
+    const c = who(name);
+    const amounts = Object.fromEntries(SHEET_SUMS.filter(k => what[k]).map(k => [k, what[k]]));
+    if (!c || !Object.keys(amounts).length) return;
+    const last = (c.log ||= []).at(-1);
+    const cause = e => JSON.stringify(Object.entries(e).filter(([k]) => k !== "date" && !SHEET_SUMS.includes(k)));
+    if (last && last.date === when && last.for && cause(last) === cause(why)) {
+      for (const [k, v] of Object.entries(amounts)) { last[k] = (last[k] || 0) + v; if (!last[k]) delete last[k]; }
+    } else c.log.push({ date: when, ...why, ...amounts });
+  };
+  // A gain that counts with the evening's (for levels reached tonight).
+  const credit = (name, what, why) => {
+    for (const k of ["xp", "gold", "checkmarks"]) gain(name, k, what[k] || 0);
+    line(name, what, why);
+  };
+  // An event's gold or XP. A gain counts with the evening's; a loss comes off
+  // at once, and can't take gold below 0 or XP below the start of the
+  // character's level (rulebook p. 42).
+  const eventGain = (name, key, amount, why) => {
+    if (amount >= 0) return credit(name, { [key]: amount }, why);
+    const c = who(name);
+    if (!c) return;
+    const was = c[key] || 0;
+    if (key === "gold") c.gold = Math.max(0, was + amount);
+    else c.xp = Math.max(XP_FOR_LEVEL[stepFor(was, XP_FOR_LEVEL) - 1], was + amount);
+    line(name, { [key]: c[key] - was }, why);
   };
   // Newcomers before anything else: a newcomer can play tonight's scenarios
   // and go shopping. Retirements come after the scenarios (below). Each
@@ -1311,6 +1341,7 @@ function applyDraft(raw, d, data) {
     // as the party split it (rulebook p. 42).
     if (!e.option || !classRef?.events?.[e.deck]?.[String(entry.number)]) continue;
     const label = `${eventLabel(e.deck, entry.number)}, option ${e.option}`;
+    const because = { for: "event", deck: e.deck, card: entry.number, option: e.option };
     const outcome = chosenOutcome(data, classRef, e.deck, entry.number, e.option, party, entry.paid);
     const pays = JSON.stringify(classRef.events[e.deck][String(entry.number)][e.option] || []).includes('"type":"pay');
     if (!outcome && pays && entry.paid === undefined) { warnings.push(`${label}: say on its row whether the party paid (Paid?).`); continue; }
@@ -1318,21 +1349,25 @@ function applyDraft(raw, d, data) {
     if (outcome.unsure) warnings.push(`${label}: part of the outcome depends on something not recorded; check the card for gold or XP.`);
     for (const fx of outcome.effects) {
       if (fx.type === "gold" || fx.type === "experience") {
-        for (const name of party) eventGain(name, fx.type === "gold" ? "gold" : "xp", fx.amount);
+        for (const name of party) eventGain(name, fx.type === "gold" ? "gold" : "xp", fx.amount, because);
         log.push(`${label}: ${fx.type === "gold" ? goldChange(fx.amount) : `${signed(fx.amount)} XP`} each, for ${party.join(", ")}`);
       } else if (fx.type === "collectiveGold") {
         const shares = e.shares || {};
         const total = party.reduce((sum, name) => sum + Math.max(0, num(shares[name])), 0);
         const want = Math.abs(fx.amount);
         if (total !== want) warnings.push(`${label}: ${goldText(want)} to ${fx.amount > 0 ? "share" : "pay"}, but the shares come to ${total}.`);
-        for (const name of party) if (num(shares[name]) > 0) eventGain(name, "gold", Math.sign(fx.amount) * num(shares[name]));
+        for (const name of party) if (num(shares[name]) > 0) eventGain(name, "gold", Math.sign(fx.amount) * num(shares[name]), because);
         if (total) log.push(`${label}: ${goldText(total)} ${fx.amount > 0 ? "shared" : "paid"} (${party.filter(n => num(shares[n]) > 0).map(n => `${n} ${goldText(num(shares[n]))}`).join(", ")})`);
       } else if (fx.type === "checkmarks") {
         for (const name of party) {
           const c = who(name);
-          if (fx.amount > 0) gain(name, "checkmarks", fx.amount);
+          if (fx.amount > 0) credit(name, { checkmarks: fx.amount }, because);
           // A character can never lose a checkmark that would cost a perk (p. 42).
-          else if (c) c.checkmarks = Math.max(3 * Math.floor((c.checkmarks || 0) / 3), (c.checkmarks || 0) + fx.amount);
+          else if (c) {
+            const was = c.checkmarks || 0;
+            c.checkmarks = Math.max(3 * Math.floor(was / 3), was + fx.amount);
+            line(name, { checkmarks: c.checkmarks - was }, because);
+          }
         }
         log.push(`${label}: ${signed(fx.amount)} battle goal ${Math.abs(fx.amount) === 1 ? "checkmark" : "checkmarks"} each, for ${party.join(", ")}${fx.amount < 0 ? " (never one that would cost a perk)" : ""}`);
       } else if (fx.type === "choose" && fx.of.some(x => x.type === "gold" || x.type === "experience")) {
@@ -1383,8 +1418,17 @@ function applyDraft(raw, d, data) {
     const blank = party.filter(name => !["xp", "coins", "gold"].some(k => filled(s.results[name]?.[k])));
     if (info && blank.length) warnings.push(`${label}: no XP or coins entered for ${blank.join(", ")}.`);
     log.push(`${label} at level ${level}: ${goldText(st.gold)} a coin${s.result === "success" ? `, ${st.xp} bonus XP each` : ""}`);
-    const kept = results.filter(r => r.xp || r.gold || r.checkmarks)
-      .map(r => Object.fromEntries(Object.entries(r).filter(([k, v]) => k === "character" || v)));
+    // What the play keeps is what was played, for everyone there: the XP
+    // on their dial, their coins, a battle goal made (playGain works out
+    // the rest from the play's level).
+    const kept = party.map(name => {
+      const x = s.results[name] || {};
+      const r = { character: name };
+      if (num(x.xp)) r.xp = num(x.xp);
+      if (filled(x.coins)) { if (num(x.coins)) r.coins = num(x.coins); } else if (num(x.gold)) r.gold = num(x.gold);
+      if (s.result === "success" && num(x.checkmarks)) r.checkmarks = num(x.checkmarks);
+      return r;
+    });
     // What the treasures gave, looted on a success or a failure alike: a
     // treasure's contents are gained the moment it's looted (rulebook p. 27).
     const loot = () => {
@@ -1397,16 +1441,16 @@ function applyDraft(raw, d, data) {
         for (const part of treasureParts(scenarioRef, t.number)) {
           if (!t.character) { if (["gold", "experience", "item", "battleGoal"].includes(part.type)) warnings.push(`Treasure ${t.number}: who looted it?`); continue; }
           if (part.type === "gold") {
-            gain(t.character, "gold", num(part.value));
+            credit(t.character, { gold: num(part.value) }, { for: "treasure", treasure: t.number });
             log.push(`${t.character} gains ${goldText(num(part.value))} from treasure ${t.number}`);
           }
           if (part.type === "experience") {
-            gain(t.character, "xp", num(part.value));
+            credit(t.character, { xp: num(part.value) }, { for: "treasure", treasure: t.number });
             log.push(`${t.character} gains ${num(part.value)} XP from treasure ${t.number}`);
           }
           // A battle-goal checkmark, which counts towards a perk as any other.
           if (part.type === "battleGoal") {
-            gain(t.character, "checkmarks", num(part.value));
+            credit(t.character, { checkmarks: num(part.value) }, { for: "treasure", treasure: t.number });
             log.push(`${t.character} gains ${plural(num(part.value), "battle goal checkmark")} from treasure ${t.number}`);
           }
           if (part.type === "item") {
@@ -1415,13 +1459,13 @@ function applyDraft(raw, d, data) {
             // supply (p. 27).
             if (who(t.character)?.items.some(i => sameItem(i, item))) {
               const value = Math.floor((Object.values(itemsRef?.items || {}).find(x => sameItem(x.name, item))?.cost || 0) / 2);
-              gain(t.character, "gold", value);
+              credit(t.character, { gold: value }, { for: "treasure", treasure: t.number, item });
               returnItem(item);
               log.push(`${t.character} already has ${item}, so the one from treasure ${t.number} is sold at once for ${goldText(value)}`);
             } else if (noCopyLeft(item)) {
               // Every copy is someone's: the looter gains its sell value instead (FAQ).
               const value = Math.floor((Object.values(itemsRef?.items || {}).find(x => sameItem(x.name, item))?.cost || 0) / 2);
-              gain(t.character, "gold", value);
+              credit(t.character, { gold: value }, { for: "treasure", treasure: t.number, item });
               log.push(`No copy of ${item} is left, so ${t.character} gains its sell value from treasure ${t.number}: ${goldText(value)}`);
             } else {
               giveItem(t.character, item);
@@ -1465,14 +1509,14 @@ function applyDraft(raw, d, data) {
 
     // Rewards each character gets, and what treasures gave their looters.
     const r = info?.rewards || {};
-    for (const name of party) { gain(name, "gold", r.gold || 0); gain(name, "xp", r.experience || 0); gain(name, "checkmarks", r.battleGoals || 0); }
+    for (const name of party) credit(name, { gold: r.gold, xp: r.experience, checkmarks: r.battleGoals }, { for: "reward", scenario: n });
     if (r.battleGoals) log.push(`${label} reward: ${plural(r.battleGoals, "battle goal checkmark")} each`);
     if (r.gold || r.experience) log.push(`${label} reward: ${[r.gold ? goldText(r.gold) : null, r.experience ? `${r.experience} XP` : null].filter(Boolean).join(" and ")} each`);
     if (r.collectiveGold) {
       // Shared as the party split it in the form.
       const shares = s.rewardShares || {};
       const total = party.reduce((sum, name) => sum + Math.max(0, num(shares[name])), 0);
-      for (const name of party) if (num(shares[name]) > 0) gain(name, "gold", num(shares[name]));
+      for (const name of party) if (num(shares[name]) > 0) credit(name, { gold: num(shares[name]) }, { for: "reward", scenario: n });
       if (total !== r.collectiveGold) warnings.push(`${label} gives ${goldText(r.collectiveGold)} to share, but the shares come to ${total}.`);
       else log.push(`${label} reward: ${goldText(total)} shared (${party.filter(n => num(shares[n]) > 0).map(n => `${n} ${goldText(num(shares[n]))}`).join(", ")})`);
     }
@@ -1557,8 +1601,7 @@ function applyDraft(raw, d, data) {
     c.retired = true;
     c.retiredOn = d.date || today();
     if (String(x.player || "").trim()) c.player = String(x.player).trim();
-    // All money the character owned is gone (p. 48).
-    c.gold = 0;
+    // All money the character owned is gone (p. 48): below, with tonight's.
     delete c.inactive;
     for (const item of c.items || []) returnItem(item);
     joinLog.push(`${c.name} retires: a prosperity checkmark, the ${c.class} retirement events go into the decks, and their items go back to the shop, and their gold is gone`);
@@ -1598,7 +1641,7 @@ function applyDraft(raw, d, data) {
     if (!c || c.retired) continue;
     const short = XP_FOR_LEVEL[prosperityTonight - 1] - (c.xp || 0) - (gainFor.get(name)?.xp || 0);
     if (short <= 0) continue;
-    gain(name, "xp", short);
+    credit(name, { xp: short }, { for: "advance", level: prosperityTonight });
     log.push(`${name} advances to level ${prosperityTonight}, the prosperity level`);
   }
 
@@ -1623,7 +1666,12 @@ function applyDraft(raw, d, data) {
   // Bless cards kept from an earlier donation are used in tonight's scenario.
   if (playedTonight) for (const name of party) if (who(name)?.blessNext && !(d.donations || []).some(x => x.character === name && x.when === "after")) delete who(name).blessNext;
   // Who retired tonight leaves with nothing: their gold is gone (p. 48).
-  for (const name of retiring) if (who(name)?.retired) who(name).gold = 0;
+  for (const name of retiring) {
+    const c = who(name);
+    if (!c?.retired) continue;
+    line(name, { gold: -(c.gold || 0) }, { for: "retirement" });
+    c.gold = 0;
+  }
 
   log.push(...joinLog);
 
@@ -1633,6 +1681,7 @@ function applyDraft(raw, d, data) {
     const c = who(b.character);
     const price = priceOf(b.item) ?? 0;
     c.gold = (c.gold || 0) - price;
+    line(b.character, { gold: -price }, { for: "buy", item: b.item });
     giveItem(b.character, b.item);
     takeReturned(b.item);
     log.push(`${b.character} buys ${b.item} for ${goldText(price)}`);
@@ -1657,6 +1706,7 @@ function applyDraft(raw, d, data) {
     const item = Object.values(itemsRef?.items || {}).find(x => sameItem(x.name, sale.item));
     const value = item ? Math.floor(item.cost / 2) : 0;
     c.gold = (c.gold || 0) + value;
+    line(sale.character, { gold: value }, { for: "sell", item: sale.item });
     log.push(`${sale.character} sells ${sale.item} for ${goldText(value)}`);
   }
   out.city ||= {};
@@ -1665,6 +1715,7 @@ function applyDraft(raw, d, data) {
   for (const x of donors) {
     const c = who(x.character);
     c.gold = (c.gold || 0) - DONATION;
+    line(x.character, { gold: -DONATION }, { for: "donation" });
     out.city.donations = (out.city.donations || 0) + DONATION;
     c.donated = (c.donated || 0) + DONATION;
     // Two Bless cards for their next scenario (p. 45): tonight's, if they
@@ -1686,6 +1737,7 @@ function applyDraft(raw, d, data) {
     const c = who(x.character);
     if (!c) continue;
     c.gold = (c.gold || 0) - num(x.cost);
+    line(x.character, { gold: -num(x.cost) }, { for: "enhancement", what: x.what });
     c.enhanced = (c.enhanced || 0) + 1;
     log.push(`${x.character} enhances a card (${x.what}) for ${goldText(num(x.cost))}`);
   }
@@ -1754,7 +1806,8 @@ function withDefaults(raw) {
 // what they got: its results and players, wherever fromFile keeps them (the
 // win that completed a scenario gave them to the scenario); then each
 // scenario marked completed with no session behind it. The one way to read
-// a play's results.
+// a play's results: each says what the character took (playGain), with what
+// was played beside it (dial XP as played, coins).
 const playsCache = new WeakMap();
 function plays(data) {
   if (playsCache.has(data)) return playsCache.get(data);
@@ -1764,17 +1817,34 @@ function plays(data) {
   for (const session of data.sessions) {
     for (const play of session.scenarios || []) {
       const from = done.get(play.number)?.play === play ? entry.get(play.number) || play : play;
-      out.push({ number: play.number, result: play.result, casual: Boolean(play.casual), session,
-                 results: from.results || [], players: from.players || [] });
+      out.push({ number: play.number, level: play.level ?? null, result: play.result, casual: Boolean(play.casual), session,
+                 results: tookFrom(play, from.results), players: from.players || [] });
     }
   }
   for (const s of data.scenarios) {
     if (s.status === "completed" && !done.has(s.number)) {
-      out.push({ number: s.number, result: "success", casual: false, session: null, results: s.results || [], players: s.players || [] });
+      out.push({ number: s.number, level: null, result: "success", casual: false, session: null, results: tookFrom({}, s.results), players: s.players || [] });
     }
   }
   playsCache.set(data, out);
   return out;
+}
+const tookFrom = (play, results) => (results || []).map(r => ({ ...r, played: { xp: r.xp, coins: r.coins }, ...playGain(play, r) }));
+
+// What each character took from the play that completed scenario n.
+const completionResults = (data, n) => plays(data).find(p => p.number === n && p.result === "success" && !p.casual)?.results || [];
+
+// What each character took from every play: name -> { xp, gold, checkmarks }.
+function tookFromPlays(data) {
+  const sums = new Map();
+  for (const p of plays(data)) {
+    for (const r of p.results) {
+      const t = sums.get(r.character) || { xp: 0, gold: 0, checkmarks: 0 };
+      for (const k of ["xp", "gold", "checkmarks"]) t[k] += r[k];
+      sums.set(r.character, t);
+    }
+  }
+  return sums;
 }
 
 // Who played: those its results or its players name (players say who played
@@ -2134,30 +2204,37 @@ function milestoneStates(data) {
 }
 
 // --- The file: campaign.json ------------------------------------------------
-// campaign.json keeps what happened, each thing once (schemaVersion 2):
+// campaign.json keeps what happened, each thing once (schemaVersion 3):
 // - sessions: every evening, and in it every scenario played: its number,
-//   level and result, and what each character gained there (results; who
-//   played, if not the session's characters). A scenario is completed by
-//   its first success that wasn't a casual replay, and the sessions, by date
-//   (undated ones first, as the file lists them), are the order things
-//   happened in.
+//   level and result, and what each character did there (results: the XP on
+//   their dial, their coins, a battle goal made; who played, if not the
+//   session's characters). What that gave them is worked out from the
+//   play's level (playGain). A scenario is completed by its first success
+//   that wasn't a casual replay, and the sessions, by date (undated ones
+//   first, as the file lists them), are the order things happened in.
 // - scenarios: what belongs to a scenario rather than to an evening: its
 //   treasures and notes; how it was found, where the reference data can't
 //   say (unlockedBy, unlockedVia); "blocked" set by hand.
 // - characters: each sheet as its log began (start), and every change
-//   since, one entry an evening (log): XP, gold, checkmarks, donations and
-//   enhancements as amounts, items gained and lost, perks taken.
+//   since (log), dated. A change to XP, gold or checkmarks is a line of its
+//   own saying what it was for: a scenario's reward, a treasure, an event, a
+//   purchase or sale, a donation, an enhancement, advancing to the
+//   prosperity level, retiring. Items gained and lost and perks taken are
+//   an entry an evening. A sheet's XP, gold and checkmarks are its start,
+//   its log, and what its scenarios gave: each counted once, in one place.
 // - city: what's opened by hand (envelopes, the Town Records Book) and
 //   anything the rules can't work out; donations made before the log
 //   began, in start.
 // Everything else is worked out. fromFile() turns the file into the shape
 // the page works with (completed scenarios with their results, characters
 // with their totals); toFile() turns that shape back into the file. An
-// older file (schemaVersion 1, which kept totals and statuses) is moved
-// over by migrate() as it's read, and written in the new layout next time.
+// older file is moved over as it's read, every sheet's totals as they were,
+// and written in the new layout next time: schemaVersion 1 kept totals and
+// statuses; 2 kept each evening's change to a sheet as one sum, what the
+// scenarios gave included, and a play's XP with its bonus.
 
-const SCHEMA_VERSION = 2;
-const SHEET_SUMS = ["xp", "gold", "checkmarks", "donated", "enhanced"];
+const SCHEMA_VERSION = 3;
+const SHEET_SUMS = ["xp", "gold", "checkmarks"];
 const copyJson = value => JSON.parse(JSON.stringify(value));
 
 // The sessions are in the order they happened, as the file lists them. A
@@ -2183,15 +2260,24 @@ function completions(sessions) {
 }
 
 
-// A character's sheet: the start, with each log entry applied in turn.
+// A character's sheet from its start and its log; what the scenarios gave
+// is added by the caller (tookFromPlays). Donations and enhancements are
+// counted from the log's lines for them. (A schemaVersion 2 log kept them
+// as sums: read here, so it moves over.)
 function sheetTotals(c) {
   const start = c.start || {};
   const t = Object.fromEntries(SHEET_SUMS.map(k => [k, start[k] || 0]));
+  t.donated = start.donated || 0;
+  t.enhanced = start.enhanced || 0;
   t.items = [...(start.items || [])];
   t.perks = [...(start.perks || [])];
   const drop = (list, x) => { const i = list.indexOf(x); if (i >= 0) list.splice(i, 1); };
   for (const e of c.log || []) {
     for (const k of SHEET_SUMS) t[k] += e[k] || 0;
+    if (e.for === "donation") t.donated -= e.gold || 0;
+    if (e.for === "enhancement") t.enhanced += 1;
+    t.donated += e.donated || 0;
+    t.enhanced += e.enhanced || 0;
     for (const x of e.lost || []) drop(t.items, x);
     t.items.push(...(e.gained || []));
     for (const x of e.perksDropped || []) drop(t.perks, x);
@@ -2199,6 +2285,10 @@ function sheetTotals(c) {
   }
   return t;
 }
+
+// A sheet with what the scenarios gave added, or taken off.
+const withTook = (t, took, sign = 1) => took
+  ? { ...t, ...Object.fromEntries(SHEET_SUMS.map(k => [k, (t[k] || 0) + sign * took[k]])) } : t;
 
 // From one sheet to another, as a log entry: only what changed.
 function sheetChange(before, after) {
@@ -2224,19 +2314,11 @@ function sheetOf(c) {
 
 // The file -> the shape the page works with.
 function fromFile(json) {
-  const out = copyJson((json?.schemaVersion || 1) >= SCHEMA_VERSION ? json : migrate(json));
+  const version = json?.schemaVersion || 1;
+  const out = version < 2 ? oldLayout(json) : copyJson(json);
   out.sessions ||= [];
-  out.characters = (out.characters || []).map(c => {
-    // A character written in by hand, with totals and no start: those
-    // totals are where their log starts (and the file says so next time).
-    if (!c.start) c = { ...c, start: sheetOf(c), log: c.log || [] };
-    const t = sheetTotals(c);
-    const m = { ...c, xp: t.xp, gold: t.gold, checkmarks: t.checkmarks, items: t.items, perks: t.perks };
-    if (t.donated) m.donated = t.donated;
-    if (t.enhanced) m.enhanced = t.enhanced;
-    return m;
-  });
-  out.city = { ...out.city, donations: (out.city?.start?.donations || 0) + out.characters.reduce((sum, c) => sum + (c.donated || 0), 0) };
+  // schemaVersion 2 kept a play's XP with its bonus in it: what was on the dial.
+  if (version === 2) for (const s of out.sessions) for (const p of s.scenarios || []) dialOnly(p);
   // Each completed scenario, in the order completed, with what it gave
   // (moved from its play, so nothing reads it twice); then the rest.
   const entries = new Map((out.scenarios || []).map(e => [e.number, e]));
@@ -2255,12 +2337,29 @@ function fromFile(json) {
   // Each named, from the scenario data unless the file names it itself.
   for (const e of out.scenarios) e.name ||= scenarioRef?.scenarios?.[String(e.number)]?.name;
   for (const e of out.scenarios) if (!e.name) delete e.name;
+  // Each sheet: its start, its log, and what its scenarios gave.
+  const fromPlays = tookFromPlays(out);
+  out.characters = (out.characters || []).map(c => {
+    const took = fromPlays.get(c.name);
+    // Totals with no start (written in by hand, or a schemaVersion 1 file):
+    // they stand, so the start is what was had before the plays recorded.
+    if (!c.start) c = { ...c, start: withTook(sheetOf(c), took, -1), log: c.log || [] };
+    else if (version === 2) c = fromSums(c, took);
+    const t = withTook(sheetTotals(c), took);
+    const m = { ...c, xp: t.xp, gold: t.gold, checkmarks: t.checkmarks, items: t.items, perks: t.perks };
+    if (t.donated) m.donated = t.donated;
+    if (t.enhanced) m.enhanced = t.enhanced;
+    return m;
+  });
+  out.city = { ...out.city, donations: (out.city?.start?.donations || 0) + out.characters.reduce((sum, c) => sum + (c.donated || 0), 0) };
   return out;
 }
 
-// The page's shape -> the file. A character's sheet that changed gets a
-// log entry dated with the evening (when: the draft's date).
+// The page's shape -> the file. A character's sheet that changed in a way
+// its log and scenarios don't say gets an entry dated with the evening
+// (when: the draft's date): items gained and lost, perks taken.
 function toFile(m, when = m.updated || today()) {
+  const fromPlays = tookFromPlays(m);
   const out = copyJson(m);
   out.schemaVersion = SCHEMA_VERSION;
   out.sessions ||= [];
@@ -2286,12 +2385,11 @@ function toFile(m, when = m.updated || today()) {
     .sort((a, b) => a.number - b.number);
   out.characters = (out.characters || []).map(c => {
     const after = sheetOf(c);
-    const start = c.start ? copyJson(c.start) : after;
+    const took = fromPlays.get(c.name);
+    const start = c.start ? copyJson(c.start) : withTook(after, took, -1);
     const log = [...(c.log || [])];
-    if (c.start) {
-      const change = sheetChange(sheetTotals(c), after);
-      if (Object.keys(change).length) log.push({ date: when, ...change });
-    }
+    const change = sheetChange(withTook(sheetTotals({ start, log }), took), after);
+    if (Object.keys(change).length) log.push({ date: when, ...change });
     const { name, class: cls, xp, gold, checkmarks, items, perks, donated, enhanced, start: _s, log: _l, ...rest } = c;
     return { name, class: cls, start, log, ...rest };
   });
@@ -2302,13 +2400,36 @@ function toFile(m, when = m.updated || today()) {
   return out;
 }
 
-// An older file (schemaVersion 1: totals on the sheets, statuses and
-// results on the scenarios) in the new layout. Each completed scenario
+// A schemaVersion 2 play kept each character's XP with the bonus for its
+// level in it, on a success: what was on the dial is that less the bonus.
+function dialOnly(play) {
+  if (play.level == null || play.result !== "success") return;
+  const bonus = scenarioStats(play.level).xp;
+  for (const r of play.results || []) {
+    const dial = num(r.xp) - bonus;
+    if (dial > 0) r.xp = dial; else delete r.xp;
+  }
+}
+
+// A schemaVersion 2 sheet: each evening's change was one sum, what its
+// scenarios gave included. Those sums go into the start (less what the
+// scenarios gave, which the plays now say), so the totals stand; the log
+// keeps its items and perks.
+function fromSums(c, took) {
+  const t = withTook(sheetTotals(c), took, -1);
+  const start = { ...c.start, ...Object.fromEntries(SHEET_SUMS.map(k => [k, t[k]])) };
+  for (const k of ["donated", "enhanced"]) if (t[k]) start[k] = t[k]; else delete start[k];
+  const log = (c.log || []).map(e => Object.fromEntries(Object.entries(e).filter(([k]) => ![...SHEET_SUMS, "donated", "enhanced"].includes(k))))
+    .filter(e => Object.keys(e).some(k => k !== "date"));
+  return { ...c, start, log };
+}
+
+// A schemaVersion 1 file (totals on the sheets, statuses and results on
+// the scenarios) laid out as the sessions keep it. Each completed scenario
 // goes into the session it was played in: the one already listing it, else
 // the one on its completion date, else the first undated one (made if
-// there's none). Each sheet as it stands becomes its start.
-function migrate(json) {
-  if ((json?.schemaVersion || 1) >= SCHEMA_VERSION) return copyJson(json);
+// there's none). The sheets keep their totals, for fromFile.
+function oldLayout(json) {
   const m = copyJson(json);
   m.sessions ||= [];
   // The old file said what was completed, on the scenarios. A success in a
@@ -2334,14 +2455,16 @@ function migrate(json) {
     (session.scenarios ||= []).push({ number: s.number, result: "success" });
   }
   const donated = (m.characters || []).reduce((sum, c) => sum + (c.donated || 0), 0);
-  m.characters = (m.characters || []).map(c => ({ ...c, start: sheetOf(c), log: [] }));
   const before = (m.city?.donations || 0) - donated;
   if (m.city) {
     if (before > 0) m.city.start = { ...m.city.start, donations: before };
     delete m.city.donations;
   }
-  return toFile(m, null);
+  return m;
 }
+
+// An older file in the current layout, as it would be written.
+const migrate = json => toFile(fromFile(json), null);
 
 // What's in the file that the page works out anyway, or that contradicts
 // it: each said once, so the file stays one record. (toFile never writes
@@ -2366,10 +2489,10 @@ function fileQuestions(json) {
     if (s.unlockedBy != null && s.unlockedBy === revealed.get(s.number)) q.push(`#${s.number}'s "unlockedBy" is worked out from #${s.unlockedBy}. Remove it from campaign.json.`);
   }
   // Totals beside a start: two records of one sheet. (Totals with no start
-  // are taken as the start.)
+  // stand, and the start is worked out from them.)
   for (const c of (json.characters || []).filter(c => c.start)) {
     const totals = ["xp", "gold", "checkmarks", "items", "perks", "donated", "enhanced"].filter(k => k in c);
-    if (totals.length) q.push(`${c.name}'s ${totals.map(k => `"${k}"`).join(", ")} ${totals.length === 1 ? "is" : "are"} worked out from "start" and "log". Remove ${totals.length === 1 ? "it" : "them"}, and put any change in the log.`);
+    if (totals.length) q.push(`${c.name}'s ${totals.map(k => `"${k}"`).join(", ")} ${totals.length === 1 ? "is" : "are"} worked out from "start", "log" and the sessions. Remove ${totals.length === 1 ? "it" : "them"}, and put any change in the log.`);
   }
   if (json.city && "donations" in json.city) q.push(`The city's "donations" are worked out from the characters' logs. Remove it, putting any made before the log in the city's "start".`);
 
