@@ -1009,7 +1009,9 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .rec-note { align-self: center; }
 /* What a character's row comes to, after bonus XP and coins. */
 .rec-gain { align-self: flex-end; min-height: 44px; display: inline-flex; align-items: center; font-size: var(--t-sm); font-weight: 600; color: var(--fg-3); font-variant-numeric: tabular-nums; }
-.rec-icon .gicon { width: 28px; height: 28px; margin: 0; color: var(--fg-2); }
+.rec-opens { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; font-weight: 600; }
+.rec-opens .gicon { width: 28px; height: 28px; margin: 0; color: var(--fg-2); }
+.rec-opens .muted { font-weight: 400; }
 .rec-results { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
 .rec-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
 /* An event's row, with what it did under it. */

@@ -61,5 +61,47 @@ async function runSmoke() {
     check(`page, ${c.name}: no error while used`, !errors.length, errors.join("; ") || "none");
     frame.remove();
   }
+
+  // The session form, as a recorder fills it in: every kind of row added,
+  // each choice in it made (a choice can bring another, as who retires
+  // brings their quest card), and each quest shown, without an error. On a
+  // copy of the campaign (?data=), which keeps its draft and picks apart
+  // from the real ones; what it kept in the browser is cleared after.
+  {
+    const path = "tests/fixtures/campaign-v1.json";
+    const frame = await open(`../index.html?data=${path}`, 1200);
+    const errors = [];
+    frame.contentWindow.addEventListener("error", e => errors.push(e.message));
+    frame.contentWindow.addEventListener("unhandledrejection", e => errors.push(String(e.reason)));
+    await ready(frame);
+    const doc = frame.contentDocument;
+    [...doc.querySelectorAll("button")].find(b => b.innerText.includes("Record the evening"))?.click();
+    await wait(150);
+    const kinds = ["add-scenario", "add-event", "add-retire", "add-new", "add-buy", "add-sell", "add-perk", "add-donation", "add-opened"];
+    const added = [];
+    for (const key of kinds) {
+      const b = doc.querySelector(`[data-key="${key}"]`);
+      if (b) { b.click(); added.push(key); await wait(40); }
+    }
+    // Stopping at the first error, so a broken form fails quickly.
+    let picked = 0;
+    for (; picked < 60 && !errors.length; picked++) {
+      const sel = [...doc.querySelectorAll(".recorder select")].find(s => !s.value && s.options.length > 1);
+      if (!sel) break;
+      sel.value = sel.options[1].value;
+      sel.dispatchEvent(new Event("change", { bubbles: true }));
+      await wait(40);
+    }
+    const shows = [...doc.querySelectorAll('.recorder [data-key^="pq-now-"]')].map(b => b.dataset.key);
+    for (const key of shows) { if (errors.length) break; doc.querySelector(`[data-key="${key}"]`)?.click(); await wait(40); }
+    check("form: every kind of row added and filled in, without an error",
+      doc.querySelector(".recorder") && added.length === kinds.length && !errors.length,
+      errors.join("; ") || `${added.length} of ${kinds.length} kinds of row, ${picked} choices, ${shows.length} quests shown`);
+    // The page keys what it keeps by the data file's path as served.
+    const store = frame.contentWindow.localStorage;
+    const kept = `:${new URL(path, frame.contentWindow.location.href).pathname}`;
+    for (const k of Object.keys(store)) if (k.endsWith(kept)) store.removeItem(k);
+    frame.remove();
+  }
   return results;
 }
