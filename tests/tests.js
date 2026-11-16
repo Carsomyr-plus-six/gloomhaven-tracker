@@ -64,17 +64,20 @@ async function runTests(load, loadText) {
   same("evening: written twice, the same file", written(toFile(apply().out)), written(file));
   same("evening: the written file reads back unchanged", written(toFile(fromFile(copy(file)))), written(file));
   same("evening: asks only what must be settled by hand", fileQuestions(file), []);
-  // Each change to XP, gold or checkmarks is a line in the log saying what
-  // it was for, dated with the evening; what the scenarios gave isn't there
-  // (the plays say it); items and perks are an entry an evening. (The
-  // amounts are checked above: the sheets match the golden file.)
-  const said = e => e.for || (["xp", "gold", "checkmarks"].some(k => k in e) ? "unexplained" : "items and perks");
+  // Each change to a sheet is a line in the log saying what it was for,
+  // dated with the evening, its gold and the item it bought on the same
+  // line; what the scenarios gave isn't there (the plays say it), and no
+  // change goes unexplained. (The amounts are checked above: the sheets
+  // match the golden file.)
   same("evening: each change in the logs says what it was for",
-    file.characters.map(c => [c.name, c.log.map(e => `${e.date} ${said(e)}`)]),
-    [["Azorica", ["2026-11-20 event", "2026-11-20 event", "2026-11-20 sell", "2026-11-20 items and perks"]],
-     ["Craig", ["2026-11-20 event", "2026-11-20 event", "2026-11-20 treasure", "2026-11-20 buy", "2026-11-20 items and perks"]],
+    file.characters.map(c => [c.name, c.log.map(e => `${e.date} ${e.for || "unexplained"}`)]),
+    [["Azorica", ["2026-11-20 event", "2026-11-20 event", "2026-11-20 sell", "2026-11-20 perk"]],
+     ["Craig", ["2026-11-20 event", "2026-11-20 event", "2026-11-20 treasure", "2026-11-20 buy"]],
      ["Flik Flak", ["2026-11-20 event", "2026-11-20 event", "2026-11-20 donation", "2026-11-20 enhancement"]],
-     ["Kaktus", ["2026-11-20 items and perks"]], ["Newbie", []]]);
+     ["Kaktus", ["2026-11-20 treasure"]], ["Newbie", []]]);
+  same("evening: a purchase is one line, its gold and its item",
+    file.characters.find(c => c.name === "Craig").log.find(e => e.for === "buy"),
+    { date: "2026-11-20", for: "buy", gold: -10, gained: ["Iron Helmet"] });
   // A play keeps what was played (the dial, the coins); what it gave is
   // worked out from its level.
   const won = file.sessions.at(-1).scenarios[0];
