@@ -32,6 +32,7 @@ const ICONS = {
   minus: '<path d="M5 12h14"/>',
   book: '<path d="M5 5a2 2 0 0 1 2-2h12v15H7a2 2 0 0 0-2 2z"/><path d="M5 20a2 2 0 0 0 2 2h12v-4"/>',
   cards: '<rect x="4" y="6.500" width="11" height="14" rx="2"/><path d="M8.500 3.500H18a2 2 0 0 1 2 2V17"/>',
+  hourglass: '<path d="M6 3h12M6 21h12M7 3c0 5 10 5 10 9s-10 4-10 9M17 3c0 5-10 5-10 9s10 4 10 9"/>',
   heart: '<path d="M12 20s-7.500-4.600-7.500-10.200A4.200 4.200 0 0 1 12 7.300a4.200 4.200 0 0 1 7.500 2.500C19.500 15.400 12 20 12 20z"/>',
   question: '<circle cx="12" cy="12" r="9"/><path d="M9.500 9.500a2.500 2.500 0 1 1 3.600 2.200c-.700.400-1.100 1-1.100 1.800"/><path d="M12 17h.010"/>',
   replay: '<path d="M4 12a8 8 0 1 0 2.400-5.700"/><path d="M4 4v4h4"/>',
@@ -1182,19 +1183,32 @@ function recordStats(data) {
 // What the campaign is working towards, each with how far it has come: the
 // envelopes, the Town Records Book and the class boxes reputation opens
 // (rulebook p. 49). Done is "Open", reached but not yet done is "Ready".
+// How far is a block per step (a donation of 10g for Envelope B), filled as
+// it's reached and counted in fives, as the attack modifier deck is; the
+// figures are for hover and screen readers.
 function milestones(data) {
   const envelope = letter => h("span", { class: "mile-env", "aria-hidden": "true" }, letter);
   const MARKS = { "envelope-a": () => envelope("A"), "envelope-b": () => envelope("B"), "envelope-x": () => envelope("X"),
     "town-records": () => icon("book"), sun: () => gameIcon("class-sun"), eclipse: () => gameIcon("class-eclipse"),
     "events-plus-20": () => icon("plus"), "events-minus-20": () => icon("minus"), drake: () => icon("plus") };
-  return h("ul", { class: "miles" }, milestoneStates(data).filter(x => x.shown).map(x =>
-    h("li", { class: x.open ? "open" : x.ready ? "ready" : null },
+  // The blocks' colour: the reputation milestones as the reputation track
+  // has them, the rest brass.
+  const TONES = { sun: "good", "events-plus-20": "good", eclipse: "bad", "events-minus-20": "bad" };
+  return h("ul", { class: "miles" }, milestoneStates(data).filter(x => x.shown).map(x => {
+    const step = x.id === "envelope-b" ? DONATION : 1;
+    const need = x.need / step;
+    const have = Math.max(0, Math.min(need, Math.floor(x.have / step)));
+    const said = x.says || (x.need ? `${Math.max(0, x.have)} of ${x.need}${x.unit || ""}${x.what ? ` ${x.what}` : ""}` : x.what);
+    return h("li", { class: x.open ? "open" : x.ready ? "ready" : null, title: x.open || x.ready ? null : said },
       h("span", { class: "mile-mark" }, MARKS[x.id]?.()),
       h("span", { class: "mile-text" },
-        h("span", { class: "mile-name" }, h("strong", {}, x.name), h("span", { class: "mile-state" },
-          x.open ? "Open" : x.ready ? "Ready" : x.says || (x.need ? `${Math.max(0, x.have)} of ${x.need}${x.unit || ""}` : x.what))),
-        x.need && !x.open ? meter(Math.max(0, Math.min(1, x.have / x.need)), x.ready) : null,
-        x.need && !x.open && x.what ? h("span", { class: "sub" }, x.what) : null))));
+        h("span", { class: "mile-name" }, h("strong", {}, x.name),
+          x.open || x.ready ? h("span", { class: "mile-state" }, x.open ? "Open" : "Ready")
+            : x.need ? null : h("span", { class: "mile-state" }, x.what)),
+        x.need && !x.open ? h("span", { class: `mile-steps ${TONES[x.id] || "brass"}`, role: "img", "aria-label": said },
+          Array.from({ length: need }, (_, i) => h("i", { class: `${i < have ? "on" : ""}${i > 0 && i % 5 === 0 ? " five" : ""}`.trim() || null }))) : null,
+        x.need && !x.open && x.what ? h("span", { class: "sub", "aria-hidden": "true" }, x.what) : null));
+  }));
 }
 
 // Each achievement with what it does to the scenarios found so far: which
@@ -2390,15 +2404,26 @@ function cardBlock(c) {
   const poisoned = Boolean(tableState(c.name).conds?.poison);
   const left = roundsLeft(piles);
   const exhausted = piles.hand < 2 && !canRest;
-  const pile = (name, n, kind) => h("div", { class: `pile ${kind}${n ? "" : " none"}${n > 1 ? " stack" : ""}` },
-    h("output", { class: "num", "aria-live": "polite" }, String(n), h("span", { class: "sr-only" }, ` ${n === 1 ? "card" : "cards"} ${name === "Hand" ? "in hand" : name === "Discard" ? "in the discard pile" : "lost"}`)),
+  // The piles as the attack modifier deck is drawn: a column each, a small
+  // card per card, in rows of five from the bottom; every column as tall as
+  // the whole hand would make it, so nothing moves as cards do.
+  const total = piles.hand + piles.discard + piles.lost;
+  const rows = Math.max(1, Math.ceil(total / 5));
+  const pile = (name, n, kind) => h("div", { class: `pile ${kind}${n ? "" : " none"}` },
+    h("div", { class: "pile-cards", style: `--rows: ${rows}`, "aria-hidden": "true" }, Array.from({ length: n }, () => h("i"))),
     h("span", { class: "label", "aria-hidden": "true" }, name));
+  const said = `${piles.hand} in hand, ${piles.discard} in the discard pile, ${piles.lost} lost`;
+  const roundsSaid = `Up to ${plural(left, "round")} left`;
 
   const block = h("div", { class: "block card-block", id: `cards-${c.name}` },
+    // Rounds left as the deck shows its size: an hourglass and the number;
+    // exhausted, or a rest due, said in words.
     h("div", { class: "block-head" }, h("h4", { class: "label" }, "Ability cards"),
-      h("span", { class: `small${exhausted ? " pile-warn" : " muted"}` },
-        exhausted ? "Exhausted" : piles.hand < 2 ? "Rest this round" : `Up to ${plural(left, "round")} left`)),
-    h("div", { class: "piles" }, pile("Hand", piles.hand, "hand"), pile("Discard", piles.discard, "discard"), pile("Lost", piles.lost, "lost")),
+      exhausted || piles.hand < 2
+        ? h("span", { class: `small${exhausted ? " pile-warn" : " muted"}` }, exhausted ? "Exhausted" : "Rest this round")
+        : h("span", { class: "pile-rounds", role: "img", "aria-label": roundsSaid, title: roundsSaid }, icon("hourglass"), h("b", { class: "num" }, String(left)))),
+    h("div", { class: "piles", title: said }, pile("Hand", piles.hand, "hand"), pile("Discard", piles.discard, "discard"), pile("Lost", piles.lost, "lost"),
+      h("output", { class: "sr-only", "aria-live": "polite" }, said)),
     h("div", { class: "pile-row" }, h("span", { class: "label" }, "Play"),
       move("pile-discard", piles.hand > 0, p => { p.hand--; p.discard++; })("To discard"),
       move("pile-lose", piles.hand > 0, p => { p.hand--; p.lost++; })("To lost")),
