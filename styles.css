@@ -80,7 +80,8 @@ button { font: inherit; color: inherit; }
 .figure, .gold, .level-stats .num { font-family: var(--text); font-weight: 700; font-variant-numeric: lining-nums tabular-nums; letter-spacing: -0.02em; }
 .muted { color: var(--muted); }
 /* Said to screen readers, not shown. */
-.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.sr-only { position: absolute !important; width: 1px !important; height: 1px !important; margin: -1px !important; padding: 0 !important;
+  overflow: hidden !important; clip: rect(0 0 0 0) !important; white-space: nowrap !important; border: 0 !important; }
 .small { font-size: var(--t-sm); }
 .num { font-variant-numeric: tabular-nums; }
 /* The one small-caps label style. It is brass only where the label itself
@@ -1018,7 +1019,9 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
 .shop .price .unit { font-weight: 500; color: var(--brass); }
 .shop .price-col { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 /* How far a price could be off while reputation isn't certain. */
-.price-doubt { margin-left: 5px; padding: 0 4px; border: 1px dashed var(--line-strong); border-radius: var(--r-xs); font-size: var(--t-xs); font-weight: 600; color: var(--muted); cursor: help; }
+.price-doubt { margin-left: 5px; padding: 0 4px; border: 1px dashed var(--line-strong); border-radius: var(--r-xs); background: none; font: inherit; font-size: var(--t-xs); font-weight: 600; color: var(--muted); cursor: pointer; }
+.price-doubt[aria-expanded="true"] { border-style: solid; color: var(--fg-2); }
+.price-why { margin-top: -6px; }
 /* Buy, for this phone's character: a small brass pill under the price, its
    tap area reaching past its edges. */
 .shop .buy { position: relative; padding: 2px 12px; border: 1px solid var(--brass-line); border-radius: var(--r-pill);
@@ -1156,9 +1159,9 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .hero-head { min-height: 0; padding-right: 0; }
   .hero-decor { display: none; }
   .hero-side { display: contents; }
-  .ready { align-self: stretch; order: 4; }
+  .ready { align-self: stretch; order: 5; }
   /* Tonight's scenario, picked from Ready to play below it. */
-  .scen-ref { order: 2; display: flex; flex-direction: column; gap: 14px; scroll-margin-top: 16px; }
+  .scen-ref { order: 3; display: flex; flex-direction: column; gap: 14px; scroll-margin-top: 16px; }
   .scen-ref:focus { outline: none; }
   .scen-ref-head { display: flex; align-items: center; gap: 12px; }
   .scen-ref-head .hex { --w: 48px; }
@@ -1222,9 +1225,16 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .todo-open .icon { width: 16px; height: 16px; transform: rotate(-90deg); }
   .town-gold { color: var(--brass); }
   /* Recording, on a phone that isn't: a link, not a brass button. */
-  .todo-do.quiet { padding: 0; border: 0; background: none; color: var(--fg-2); text-decoration: underline; text-underline-offset: 0.2em; text-decoration-color: var(--line-strong); }
+  .todo-rest { margin-top: 8px; }
+  .shop-rec { flex-basis: 100%; }
+  /* The tracker still holding another scenario's numbers. */
+  .ref-stale { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 8px 12px; border: 1px dashed var(--brass-edge); border-radius: var(--r-md);
+    font-size: var(--t-sm); color: var(--fg-2); }
+  .ref-stale > span { flex: 1; min-width: 12em; }
+  .ref-stale > .icon { color: var(--brass); }
+  .ref-stale .btn { min-height: 40px; margin-left: auto; }
   /* The battle goal kept: hidden behind Show, as the personal quest is. */
-  .goal-card { order: 3; display: flex; flex-direction: column; gap: 10px; }
+  .goal-card { order: 4; display: flex; flex-direction: column; gap: 10px; }
   .goal-change { min-height: 44px; margin: -12px -8px -12px 0; }
   .goal-reveal { align-self: center; display: block; width: 128px; min-width: 0; aspect-ratio: 5 / 7; padding: 0; overflow: hidden;
     border: 1px solid var(--brass-edge); border-radius: var(--r-md); background: var(--surface); }
@@ -1236,6 +1246,9 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .goal-checks { display: flex; gap: 4px; color: var(--brass); }
   .goal-checks .gicon { width: 22px; height: 22px; margin: 0; background-color: var(--brass); }
   .goal-checks { font-size: var(--t-sm); color: var(--muted); }
+  .goal-hint { font-size: var(--t-xs); font-weight: 600; color: var(--fg-3); }
+  .sum-goal-label .goal-checks { display: inline-flex; margin-left: 8px; vertical-align: -3px; }
+  .sum-goal-label .goal-checks .gicon { width: 16px; height: 16px; }
   .goal-card select { min-height: 44px; }
   .sum-made { flex: none; }
 
@@ -1246,14 +1259,14 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .sum-card h3 { font: 700 var(--t-xl)/1.2 var(--text); margin-bottom: 4px; }
   .sum-row { display: flex; align-items: center; gap: 10px; min-height: 44px; border-bottom: 1px solid var(--line-soft); }
   .sum-row > .label { width: 6.5em; flex: none; }
-  .sum-how { flex: 1; min-width: 0; font-size: var(--t-sm); color: var(--muted); }
+  .sum-how { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: var(--t-sm); color: var(--muted); }
   .sum-row > b { font-size: var(--t-xl); }
   .sum-row > .sum-goal-label { flex: 1; width: auto; }
   .sum-goal { display: flex; align-items: center; gap: 6px; }
   .sum-goal b { width: 1.4em; text-align: center; font-size: var(--t-xl); }
   .sum-after { padding-top: 8px; font-size: var(--t-sm); color: var(--fg-2); }
   .sum-gains { display: block; margin-top: 4px; color: var(--brass); }
-  .tiles { order: 5; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .tiles { order: 2; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .level-tile { grid-area: auto; grid-column: 1 / -1; }
   .rep-tile, .prosp-tile { grid-area: auto; }
   .todo { order: 1; }

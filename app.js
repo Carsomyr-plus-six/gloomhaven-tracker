@@ -747,6 +747,7 @@ function scenarioCard(data) {
         h("h2", { id: "scen-ref-title" }, s.name || `Scenario ${s.number}`)),
       tonightPick === s.number ? h("button", { type: "button", class: "btn quiet scen-ref-change", "data-key": "scen-ref-change",
         onclick: () => openSheet("ready") }, "Change") : null),
+    staleTracker(data, s),
     // The level's numbers, as the monster stat cards and the map need them.
     t ? h("div", { class: "level-stats ref-stats" },
           [["Monster level", t.level], ["Trap damage", t.trap], ["Hazardous terrain", t.hazard], ["Gold per coin", t.gold], ["Bonus XP", `+${t.xp}`]]
@@ -768,6 +769,31 @@ function scenarioCard(data) {
       rawCampaign && draft ? h("button", { type: "button", class: "btn", "data-key": "scen-ref-record", onclick: () => recordScenario(data, s.number) },
         draft.scenarios?.some(x => num(x.number) === s.number) ? "Go to it in the draft" : "Record it") : null,
       h("a", { class: "ref-more", href: "#scenarios", onclick: () => openScenario(data, s.number) }, "Its details under Scenarios")));
+}
+
+// This phone's tracker still holding numbers from another scenario, or an
+// earlier day: said on tonight's scenario, with a way to start fresh (asked
+// twice, as on the dock).
+function staleTracker(data, s) {
+  const c = data.characters.find(x => !x.retired && x.name === me);
+  if (!c || !tableActive(c.name)) return null;
+  const st = tableState(c.name);
+  const earlier = !st.since || st.since < today();
+  if (!earlier && (!st.scenario || st.scenario === s.number)) return null;
+  const from = !st.since ? "an earlier scenario" : earlier ? formatDate(st.since, { day: "numeric", month: "short" }) : scenarioLabel(data, st.scenario);
+  let armed = null;
+  const fresh = h("button", { type: "button", class: "btn quiet", "data-key": "ref-fresh", onclick: () => {
+    if (!armed) {
+      fresh.textContent = "Tap again to clear";
+      armed = setTimeout(() => { armed = null; fresh.textContent = "Start fresh"; }, 3000);
+      return;
+    }
+    clearTimeout(armed);
+    resetTable(c.name);
+    render(data);
+    document.querySelector(".scen-ref")?.focus({ preventScroll: true });
+  } }, "Start fresh");
+  return h("div", { class: "ref-stale" }, icon("replay"), h("span", {}, `${c.name}'s tracker still holds the numbers from ${from}.`), fresh);
 }
 
 // Going straight on from the last scenario played to one linked to it needs
@@ -805,6 +831,11 @@ function blessings() {
   return who.size ? ` (${who.size * 2} Bless)` : "";
 }
 
+// One phone records the evening: the one holding a draft. Wide screens are
+// for keeping the campaign, so they always record. On the other phones
+// nothing starts a draft but "Record the evening on this phone".
+function isRecorder() { return !phone.matches || Boolean(draft); }
+
 function tonightStrip(data) {
   const t = tonight(data);
   const decks = data.eventState?.decks;
@@ -829,10 +860,9 @@ function tonightStrip(data) {
   ].filter(([n]) => n).map(([n, what]) => plural(n, what)).join(", ") + blessings() : "";
   const played = (draft?.scenarios || []).filter(s => num(s.number));
   const firstPlayed = (draft?.scenarios || []).findIndex(s => num(s.number));
-  // One phone records the evening: the one holding a draft. On the others,
-  // the event steps open the decks to read, not the form. Wide screens are
-  // for keeping the campaign, so they always record.
-  const recorder = !phone.matches || Boolean(draft);
+  // On the phones that aren't recording, the event steps open the decks to
+  // read, not the form.
+  const recorder = isRecorder();
   // Anyone to play: a new campaign has no one until characters are added.
   const anyone = data.characters.some(c => !c.retired) || Boolean(draft?.newCharacters?.some(x => x.name));
   const nav = h("nav", { class: "tonight", "data-tab": "tonight", "aria-label": "Tonight, step by step" },
@@ -850,6 +880,15 @@ function tonightStrip(data) {
     rawCampaign ? h("button", { type: "button", class: recorder ? `btn${recording ? "" : " primary"} tonight-record` : "tonight-record quiet-link", "data-key": "tonight-record",
       onclick: () => { if (!draft) draft = newDraft(data); showInRecorder(data, "rec-date"); } },
       recording ? "Go on recording" : recorder ? "Record the evening" : "Record the evening on this phone") : null);
+  // Phones: the Scenario step goes to tonight's scenario, or what's ready to
+  // play, on this tab rather than the Campaign tab's list.
+  nav.querySelectorAll(".tonight-step")[3]?.addEventListener("click", e => {
+    if (!phone.matches || played.length || !anyone) return;
+    e.preventDefault();
+    const to = document.querySelector(".scen-ref") || document.querySelector(".ready");
+    to?.scrollIntoView({ block: "start", behavior: "instant" });
+    (to?.matches(".scen-ref") ? to : to?.querySelector(".ready-card"))?.focus({ preventScroll: true });
+  });
   // The first step not yet in the draft is the one to see to now.
   const now = nav.querySelector(".tonight-step:not(.done)");
   if (now) { now.classList.add("current"); now.setAttribute("aria-current", "step"); }
@@ -863,6 +902,9 @@ function todoItems(data) {
   // place: what the link says, if not the section's name.
   // urgent: it stops someone playing, so it goes first, marked.
   const add = (text, href, onclick, action, place, urgent) => items.push({ text, href, onclick, action, place, urgent });
+  // Whose each is: a character's name, "table" for what everyone plays by,
+  // or none for keeping the record.
+  const whose = (from, who) => { for (const item of items.slice(from)) item.who = who; };
   const order = characterOrder(data);
 
   if (draftChanges(draft, data)) add("What's been recorded on this phone isn't saved yet: download it from Sessions and commit it.", "#sessions");
@@ -885,6 +927,7 @@ function todoItems(data) {
 
   // Someone sitting out isn't reminded of anything: it waits on their sheet.
   for (const c of order.filter(playable)) {
+    const from = items.length;
     const st = characterStats(c);
     // Phones open that character's sheet; wide screens scroll to its card.
     const go = e => {
@@ -922,6 +965,7 @@ function todoItems(data) {
     if (left) add(`${c.name} has ${plural(left, "perk")} to choose.`, "#characters", go,
       { label: "Record it", run: () => recordPerk(data, c.name) }, sheet);
     for (const r of perkCheck(c).rows.filter(r => r.note && !r.quiet)) add(`${c.name}: "${r.written}". ${r.note}`, "#characters", go, null, sheet);
+    whose(from, c.name);
   }
 
   for (const d of data.draws || []) add(`Draw ${d.what} (${d.from}).`, "#record");
@@ -934,10 +978,12 @@ function todoItems(data) {
     ...(draft?.events || []).filter(e => num(e.number) && e.option)
       .map(e => ({ deck: e.deck, number: num(e.number), option: e.option, names: [...(draft.party || [])], paid: e.paid === "yes" ? true : e.paid === "no" ? false : undefined })),
   ];
+  const fromEvents = items.length;
   for (const e of waiting) {
     const oc = chosenOutcome(data, classRef, e.deck, e.number, e.option, e.names, e.paid);
     for (const fx of (oc?.effects || []).filter(fx => fx.type === "nextScenario")) add(`${eventLabel(e.deck, e.number)}, option ${e.option}: ${nextScenarioText(fx)}.`, "#sessions");
   }
+  whose(fromEvents, "table");
   (data.claims || []).forEach((c, i) => add(`Treasure ${c.treasure} in ${c.where} gave ${c.item}: who looted it?`, "#record", null,
     rawCampaign ? { label: "Record it", run: () => recordClaim(data, i) } : null));
 
@@ -1196,18 +1242,24 @@ function revealCharacter(name) {
 }
 
 function todoList(data) {
-  const items = todoItems(data);
+  const all = todoItems(data);
+  // A player's phone: their own character's, what stops anyone playing, and
+  // what the table plays by. The record's loose ends wait for the recorder.
+  const player = phone.matches && !isRecorder() && data.characters.some(c => !c.retired && c.name === me);
+  const items = player ? all.filter(i => i.urgent || i.who === me || i.who === "table") : all;
+  const rest = all.length - items.length;
   return h("div", { class: "card todo", "data-tab": "tonight" },
     h("div", { class: "block-head" },
       h("h2", { class: "label" }, "Before you play"),
-      h("span", {}, items.length ? plural(items.length, "thing") + " to see to" : "All clear")),
+      h("span", {}, items.length ? plural(items.length, "thing") + " to see to" : player ? `Nothing for ${me}` : "All clear")),
     items.length
       ? h("ul", { class: "rows" }, items.map(item => h("li", { class: item.urgent ? "urgent" : null },
           h("span", {}, item.urgent ? icon("lock", "Stops play") : null, item.text),
           h("span", { class: "todo-acts" },
-            item.action ? h("button", { type: "button", class: `todo-do${phone.matches && !draft ? " quiet" : ""}`, onclick: item.action.run }, item.action.label) : null,
+            item.action && isRecorder() ? h("button", { type: "button", class: "todo-do", onclick: item.action.run }, item.action.label) : null,
             h("a", { class: "todo-go", href: item.href, onclick: item.onclick || null }, item.place || TODO_PLACES[item.href] || "Open")))))
-      : h("p", { class: "small muted" }, "Nothing to sort out before the next scenario."));
+      : rest ? null : h("p", { class: "small muted" }, "Nothing to sort out before the next scenario."),
+    rest ? h("p", { class: "small muted todo-rest" }, `${rest} more for whoever records the evening.`) : null);
 }
 
 // The party at a glance, on phones. Each row opens that character's sheet.
@@ -2829,7 +2881,8 @@ function battleGoalCard(data) {
           shown
             ? h("span", { class: "goal-face" }, h("span", { class: "goal-name" }, kept.name),
                 h("span", { class: "goal-checks", role: "img", "aria-label": `${plural(kept.checks, "checkmark")} if made` },
-                  Array.from({ length: kept.checks }, () => gameIcon("checkmark"))))
+                  Array.from({ length: kept.checks }, () => gameIcon("checkmark"))),
+                h("span", { class: "goal-hint", "aria-hidden": "true" }, "Tap to hide"))
             : h("span", { class: "goal-back" }, h("span", { class: "brand-mark", "aria-hidden": "true" }), h("span", {}, "Tap to look")))
       : h("label", { class: "field" },
           h("span", {}, "Which card did you keep?"),
@@ -3182,8 +3235,8 @@ function maxHealth(c) {
 
 const tableKey = name => storeKey(`table:${name}`);
 // A scenario under way on this phone: anything tracked since the last reset.
-function tableActive(name) {
-  const st = tableState(name);
+function tableActive(name) { return tracking(tableState(name)); }
+function tracking(st) {
   return Boolean(st.hp != null || st.xp || st.coins || st.goal || st.cards
     || Object.keys(st.items || {}).length || Object.keys(st.conds || {}).length);
 }
@@ -3194,8 +3247,37 @@ function tableState(name) {
   return { hp: null, xp: 0, coins: 0, items: {}, conds: {}, cards: null, goal: 0, ...(saved && typeof saved === "object" ? saved : {}) };
 }
 // The tracker and the items each save their own part over what's stored.
+// The first number tracked notes the day and the scenario picked: the
+// numbers belong to that scenario, and that evening.
 function saveTable(name, part) {
-  try { localStorage.setItem(tableKey(name), JSON.stringify({ ...tableState(name), ...part })); } catch {}
+  const was = tableState(name);
+  const next = { ...was, ...part };
+  if (!tracking(was) && tracking(next)) Object.assign(next, { since: today(), scenario: tonightPick || null });
+  try { localStorage.setItem(tableKey(name), JSON.stringify(next)); } catch {}
+}
+
+// A new scenario: full hit points and hand, nothing gained, every item
+// ready, no conditions, no battle goal, and the result asked afresh.
+function resetTable(name) {
+  saveTable(name, { hp: null, xp: 0, coins: 0, items: {}, conds: {}, cards: null, goal: 0, battleGoal: null, goalMet: null, since: null, scenario: null });
+  cardUndo.delete(name);
+  if (name === me) setTonightResult("success");
+}
+
+// A tracker whose evening is in campaign.json now (a session from the day it
+// started on, with its scenario) has been recorded: cleared, so the next
+// evening starts fresh, on Tonight.
+function clearRecordedTables(data) {
+  for (const c of data.characters) {
+    const st = tableState(c.name);
+    if (!st.since) continue;
+    const recorded = data.sessions.some(s => s.date >= st.since && s.scenarios?.length
+      && (!st.scenario || s.scenarios.some(x => num(x.number) === st.scenario)));
+    if (!recorded) continue;
+    try { localStorage.removeItem(tableKey(c.name)); } catch {}
+    cardUndo.delete(c.name);
+    if (c.name === me) setTonightResult("success");
+  }
 }
 
 // Items at the table (phones): tapping one marks it used, as its card is
@@ -3289,7 +3371,7 @@ function cardBlock(c) {
     onclick: () => {
       if (!can) return;
       const before = tableState(c.name);
-      cardUndo.set(c.name, [...undo, also ? { cards: piles, hp: before.hp, items: before.items } : { cards: piles }].slice(-20));
+      cardUndo.set(c.name, [...undo, also ? { cards: piles, hp: before.hp, items: before.items, conds: before.conds } : { cards: piles }].slice(-20));
       const next = { ...piles };
       fn(next);
       saveTable(c.name, { cards: next });
@@ -3304,6 +3386,7 @@ function cardBlock(c) {
     (target?.getAttribute("aria-disabled") === "true" ? fresh.querySelector('.pile-move[aria-disabled="false"]') : target)?.focus({ preventScroll: true });
   };
   const canRest = piles.discard >= 2;
+  const poisoned = Boolean(tableState(c.name).conds?.poison);
   const left = roundsLeft(piles);
   const exhausted = piles.hand < 2 && !canRest;
   const pile = (name, n, kind) => h("div", { class: `pile ${kind}${n ? "" : " none"}${n > 1 ? " stack" : ""}` },
@@ -3323,14 +3406,21 @@ function cardBlock(c) {
         h("span", {}, "Short rest"), h("small", {}, canRest ? "lose 1 at random" : "needs 2 discarded")),
       move("pile-long", canRest, p => { p.hand += p.discard - 1; p.lost++; p.discard = 0; }, () => {
         // Heal 2 and refresh spent items, on the tracker and the item list.
+        // The heal removes poison and wound; while poisoned it does nothing
+        // else (rulebook pp. 22-23).
         const st = tableState(c.name);
         const max = maxHealth(c);
         const marks = st.items || {};
         for (const n of Object.keys(marks)) if (marks[n]?.down && itemInfo(n)?.use === "spent") delete marks[n];
-        saveTable(c.name, { hp: max ? Math.min(max, (st.hp ?? max) + 2) : st.hp, items: marks });
+        const conds = { ...st.conds };
+        const hp = max && !conds.poison ? Math.min(max, (st.hp ?? max) + 2) : st.hp;
+        delete conds.poison;
+        delete conds.wound;
+        saveTable(c.name, { hp, items: marks, conds });
         card()?.querySelector(".item-track")?.replaceWith(itemTrack(c));
+        document.getElementById(`conds-${c.name}`)?.replaceWith(condBlock(c));
         card()?.querySelector(".table-dock")?.replaceWith(tableDock(c));
-      })(h("span", {}, "Long rest"), h("small", {}, canRest ? "heal 2 · refresh" : "needs 2 discarded"))),
+      })(h("span", {}, "Long rest"), h("small", {}, canRest ? `${poisoned ? "ends poison" : "heal 2"} · refresh` : "needs 2 discarded"))),
     h("div", { class: "pile-row pile-more" },
       move("pile-burn", piles.discard > 0, p => { p.discard--; p.lost++; })("Lose from discard"),
       move("pile-recover", piles.lost > 0, p => { p.lost--; p.hand++; })("Recover lost"),
@@ -3339,6 +3429,7 @@ function cardBlock(c) {
           cardUndo.set(c.name, undo.slice(0, -1));
           saveTable(c.name, undo.at(-1));
           card()?.querySelector(".item-track")?.replaceWith(itemTrack(c));
+          document.getElementById(`conds-${c.name}`)?.replaceWith(condBlock(c));
           card()?.querySelector(".table-dock")?.replaceWith(tableDock(c));
           redraw(`pile-undo-${c.name}`);
         } }, icon("replay"), "Undo") : null));
@@ -3377,6 +3468,7 @@ function condBlock(c) {
     next.querySelector(`[data-key="${CSS.escape(key)}"]`)?.focus({ preventScroll: true });
     // The dock shows what's on, too, and the deck its Bless and Curse cards.
     document.querySelector(`.char-card[data-char="${CSS.escape(c.name)}"] .dock-conds`)?.replaceWith(condStrip(c));
+    if (key.startsWith("cond-poison-")) document.getElementById(`cards-${c.name}`)?.replaceWith(cardBlock(c));
   };
   // Bless and Curse are counted in the deck block, where they act.
   const on = CONDITIONS.filter(([id]) => conds[id]);
@@ -3419,7 +3511,8 @@ function playLine(data) {
   const s = tonightScenario(data);
   return h("p", { class: "play-line" },
     s ? h("strong", {}, scenarioLabel(data, s.number)) : null,
-    h("span", {}, `Level ${t.level} · monsters ${t.level} · traps ${t.trap} · hazards ${t.hazard}`));
+    // Monsters are at the scenario level, so it's said once.
+    h("span", {}, `Scenario level ${t.level} · traps ${t.trap} · hazards ${t.hazard}`));
 }
 
 // Docked at the foot of the screen, above the tabs, while the sheet scrolls
@@ -3469,8 +3562,7 @@ function tableDock(c) {
       }
       disarm();
       Object.assign(state, { hp: null, xp: 0, coins: 0 });
-      saveTable(c.name, { hp: null, xp: 0, coins: 0, items: {}, conds: {}, cards: null, goal: 0, battleGoal: null, goalMet: null });
-      cardUndo.delete(c.name);
+      resetTable(c.name);
       paint();
       // Every item ready again, on the sheet above.
       const items = document.querySelector(`.char-card[data-char="${CSS.escape(c.name)}"] .item-track`);
@@ -3515,6 +3607,10 @@ function tableDock(c) {
 const RESULT_KEY = storeKey("tonightResult");
 let tonightResult = "success";
 try { tonightResult = localStorage.getItem(RESULT_KEY) || "success"; } catch {}
+function setTonightResult(r) {
+  tonightResult = r;
+  try { if (r === "success") localStorage.removeItem(RESULT_KEY); else localStorage.setItem(RESULT_KEY, r); } catch {}
+}
 
 function scenarioSummary(data) {
   const t = tonight(data);
@@ -3523,12 +3619,10 @@ function scenarioSummary(data) {
   });
   if (!shown.length) return null;
   const won = tonightResult === "success";
-  const sc = tonightScenario(data);
-  const setResult = r => () => {
-    tonightResult = r;
-    try { localStorage.setItem(RESULT_KEY, r); } catch {}
-    render(data, "shop");
-  };
+  // The scenario the numbers were tracked in, rather than whatever is picked now.
+  const tracked = shown.map(c => tableState(c.name).scenario).find(Boolean);
+  const sc = tracked ? { number: tracked } : tonightScenario(data);
+  const setResult = r => () => { setTonightResult(r); render(data, "shop"); };
   // A sum as it's worked: each part in a pill, then what it comes to.
   const eq = (n, what) => h("span", { class: "eq" }, String(n), what ? h("small", {}, what) : null);
   const op = text => h("span", { class: "op" }, text);
@@ -3565,7 +3659,9 @@ function scenarioSummary(data) {
         row("XP", [eq(st.xp, "dial"), bonus ? [op("+"), eq(bonus, "bonus")] : null, op("=")], `+${xp}`),
         row("Gold", [eq(st.coins, st.coins === 1 ? "coin" : "coins"), t ? [op("×"), eq(t.gold)] : null, op("=")], gold != null ? `+${gold}` : "?"),
         won && battleGoal(c.name) ? h("div", { class: "sum-row" },
-          h("span", { class: "label sum-goal-label" }, `${battleGoal(c.name).name} (${plural(battleGoal(c.name).checks, "checkmark")})`),
+          h("span", { class: "label sum-goal-label" }, battleGoal(c.name).name,
+            h("span", { class: "goal-checks", role: "img", "aria-label": plural(battleGoal(c.name).checks, "checkmark") },
+              Array.from({ length: battleGoal(c.name).checks }, () => gameIcon("checkmark")))),
           h("span", { class: "segmented sum-made", role: "group", "aria-label": `Battle goal ${battleGoal(c.name).name}` },
             [[true, "Made it"], [false, "Missed"]].map(([made, label]) =>
               h("button", { type: "button", "data-key": `goal-${made ? "made" : "missed"}-${c.name}`, "aria-pressed": String(st.goalMet === made),
@@ -3582,7 +3678,7 @@ function scenarioSummary(data) {
         h("p", { class: "sum-after" },
           `Then ${c.xp + xp} XP`,
           after.level === before.level && after.toNext ? ` · ${after.toNext.remaining} to level ${after.level + 1}` : "",
-          gold != null ? ` · ${c.gold + gold} gold` : "",
+          gold != null ? ` · ${c.gold + gold - draftSpend(data, c.name)} gold${draftSpend(data, c.name) ? " after the draft" : ""}` : "",
           gains ? h("strong", { class: "sum-gains" }, capitalize(gains)) : null));
     }),
     null);
@@ -3598,7 +3694,9 @@ function townJobs(data) {
   const jobs = [];
   // The Shop and enhancing open as sheets over the tab.
   const opener = (key, label, run) => h("button", { type: "button", class: "todo-open", "data-key": key, onclick: run }, label, icon("chevron"));
-  jobs.push([c ? h("span", {}, `${c.name} has `, h("strong", { class: "town-gold" }, `${c.gold} gold`), " to spend.") : "The Shop.",
+  const spent = c ? draftSpend(data, c.name) : 0;
+  jobs.push([c ? h("span", {}, `${c.name} has `, h("strong", { class: "town-gold" }, `${c.gold} gold`), " to spend",
+      spent ? `, ${c.gold - spent} after the draft` : "", ".") : "The Shop.",
     opener("town-shop", "Shop", () => { shopFor = undefined; shopFilter = c ? "can" : "all"; render(data, "shop"); openSheet("shop"); })]);
   if (!c) {
     jobs.push(["Enhance an ability card.", opener("town-enhance", "Enhancing", () => openSheet("enhance"))]);
@@ -3702,6 +3800,14 @@ function deriveShop(data, items, ledger) {
   return { level, modifier, stock, questions, coming, pricesUnsure: modifiers.size > 1, range, normal };
 }
 
+// What the draft spends of a character's gold: purchases less sales, at
+// the Shop's prices.
+function draftSpend(data, name) {
+  const priceOf = item => data.shop?.stock.find(i => sameItem(i.name, item));
+  return (draft?.buys || []).filter(b => b.character === name && b.item).reduce((sum, b) => sum + (priceOf(b.item)?.price || 0), 0)
+       - (draft?.sells || []).filter(x => x.character === name && x.item).reduce((sum, x) => sum + (priceOf(x.item)?.sells || 0), 0);
+}
+
 // Whose shopping the Shop shows: until someone is picked, this phone's
 // character; then a name, or "" for no one.
 let shopFor;
@@ -3726,9 +3832,7 @@ function renderShop(data) {
   const mineSells = shopper ? sells.filter(x => x.character === shopper.name) : [];
   const owned = shopper ? [...shopper.items.filter(i => !mineSells.some(x => sameItem(x.item, i))), ...mineBuys.map(b => b.item)] : [];
   const room = shopper ? slotUse({ ...shopper, items: owned }, characterStats(shopper).level) : null;
-  const priceOf = name => shop.stock.find(i => sameItem(i.name, name));
-  const spent = mineBuys.reduce((sum, b) => sum + (priceOf(b.item)?.price || 0), 0)
-              - mineSells.reduce((sum, x) => sum + (priceOf(x.item)?.sells || 0), 0);
+  const spent = shopper ? draftSpend(data, shopper.name) : 0;
   const gold = shopper ? shopper.gold - spent : 0;
   const left = item => item.left - buys.filter(b => sameItem(b.item, item.name)).length + sells.filter(x => sameItem(x.item, item.name)).length;
   const full = item => { const [k, n] = slotNeed(item.slot); return room && k in room.used && room.used[k] + n > room.limits[k]; };
@@ -3740,7 +3844,7 @@ function renderShop(data) {
 
   // On the right: the price, and under it what the shopper can do. It goes
   // into the draft, as "Record it" does for a perk.
-  const action = item => !shopper || !rawCampaign ? null
+  const action = item => !shopper || !rawCampaign || !isRecorder() ? null
     : has(item) ? (sold(item) ? h("span", { class: "in-draft" }, "Sold in the draft")
         : h("button", { type: "button", class: "buy sell", "data-key": `sell-${item.id}`, "aria-label": `Sell ${item.name} for ${item.sells} gold`,
             onclick: () => recordSell(data, shopper.name, item.name) }, `Sell for ${item.sells}`))
@@ -3778,10 +3882,15 @@ function renderShop(data) {
   const doubt = priceDoubt(shop, data.ledger?.reputation);
   const pick = name => () => { shopFor = shopper?.name === name ? "" : name; render(data, "shop"); };
 
+  // Why, under the heading on a tap: a phone has no hover.
+  const why = doubt ? h("p", { class: "small muted price-why" }, doubt.why) : null;
+  if (why) why.hidden = true;
   return [
     // How far prices could be off, said once beside them all.
     sectionHead("Shop", [`Prosperity ${shop.level} · ${priceNote}`,
-      doubt ? h("span", { class: "price-doubt", role: "img", title: doubt.why, "aria-label": doubt.why }, doubt.text) : null]),
+      doubt ? h("button", { type: "button", class: "price-doubt", title: doubt.why, "aria-expanded": "false", "aria-label": `Prices ${doubt.text} Why?`,
+        onclick: e => { why.hidden = !why.hidden; e.currentTarget.setAttribute("aria-expanded", String(!why.hidden)); } }, doubt.text) : null]),
+    why,
     active.length ? h("div", { class: "shop-for" },
       h("span", { class: "label", id: "shop-for-label" }, "Shopping for"),
       h("div", { class: "filters", role: "group", "aria-labelledby": "shop-for-label" }, active.map(c =>
@@ -3793,7 +3902,8 @@ function renderShop(data) {
       slotStrip({ ...shopper, items: owned }, characterStats(shopper).level),
       h("div", { class: "segmented", role: "group", "aria-label": "Show" }, [["all", "Everything"], ["can", "Can buy"]].map(([key, label]) =>
         h("button", { type: "button", "data-key": `shop-show-${key}`, "aria-pressed": String(shopFilter === key),
-          onclick: () => { shopFilter = key; render(data, "shop"); } }, label)))) : null,
+          onclick: () => { shopFilter = key; render(data, "shop"); } }, label))),
+      isRecorder() ? null : h("p", { class: "small muted shop-rec" }, "Buying and selling go in on the phone recording the evening.")) : null,
     shop.pricesUnsure ? pricesNote(shop, data.ledger?.reputation) : null,
     shop.questions.map(q => nudge("question", "Check an item", q)),
     groups.length ? null : empty(`Nothing ${shopper?.name} can buy right now.`),
@@ -5552,6 +5662,7 @@ async function start() {
     if (mine >= 0) characterIndex = mine;
     // At the start of an evening that's Tonight; with a scenario under way on
     // this phone, the player's sheet.
+    clearRecordedTables(data);
     if (phone.matches && mine >= 0 && location.hash.length <= 1) history.replaceState(null, "", tableActive(me) ? "#characters" : "#overview");
 
     if (draft && !draftChanges(draft, data)) dropDraft();
