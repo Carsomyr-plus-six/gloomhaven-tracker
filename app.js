@@ -454,7 +454,7 @@ function heroDecor() {
 // particular than Gloomhaven itself. The edition is only in the footer.
 function locationText(location) {
   const here = String(location || "").trim();
-  return here && here.toLowerCase() !== "gloomhaven" ? here : null;
+  return here && here !== "Gloomhaven" ? here : null;
 }
 
 function renderOverview(data) {
@@ -786,7 +786,7 @@ function todoItems(data) {
     const left = perksLeft(c);
     if (left) add(`${c.name} has ${plural(left, "perk")} to choose.`, "#characters", go,
       { label: "Record it", run: () => recordPerk(data, c.name) }, sheet);
-    for (const r of perkCheck(c).rows.filter(r => r.note && !r.quiet)) add(`${c.name}: "${r.written}". ${r.note}`, "#characters", go, null, sheet);
+    for (const r of perkCheck(c).rows.filter(r => r.note)) add(`${c.name}: "${r.written}". ${r.note}`, "#characters", go, null, sheet);
     whose(from, c.name);
   }
 
@@ -835,49 +835,6 @@ function lastLevelUps(data) { return [...data.sessions].reverse().find(s => s.sc
 // Perks picked in the session being recorded, not yet in campaign.json.
 function draftedPerks(name) { return (draft?.perks || []).filter(p => p.character === name && p.perk).length; }
 // Perks still to choose, leaving out those already picked in the draft.
-// A character's attack modifier deck: the standard twenty cards, changed by
-// the perks they've taken, read from the perks' wording ("Remove two −1
-// cards", "Replace one +0 card with one +2 card", "Add one +2 FIRE card").
-// unread lists any perk it couldn't follow.
-const BASE_DECK = [["−2", 1], ["−1", 5], ["+0", 6], ["+1", 5], ["+2", 1], ["2×", 1], ["Null", 1]];
-function attackDeck(perkTexts) {
-  const deck = new Map(BASE_DECK);
-  const unread = [];
-  const words = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6 };
-  const count = w => words[w.toLowerCase()] ?? (Number(w) || 0);
-  const card = t => t.replace(/(^|\s)-(\d)/g, "$1−$2").replace(/\s+/g, " ").trim();
-  // "two +0 cards and one +0 FIRE card" -> [[2, "+0"], [1, "+0 FIRE"]], or null.
-  const cardsIn = list => {
-    const parts = list.split(/\s+and\s+/i).map(part => part.match(/^(\w+) (.+?) cards?$/i));
-    return parts.every(m => m && count(m[1])) ? parts.map(m => [count(m[1]), card(m[2])]) : null;
-  };
-  for (const text of perkTexts) {
-    // "Ignore negative item effects" changes no card; it may lead an "add".
-    const rest = String(text).replace(/\.$/, "").replace(/^ignore negative \w+ effects(\s+and\s+)?/i, "").trim();
-    if (!rest) continue;
-    const m = rest.match(/^(remove|replace|add)\s+(.+?)(?:\s+with\s+(.+))?$/i);
-    const verb = m?.[1].toLowerCase();
-    const out = verb === "replace" ? cardsIn(m[2] || "") : verb === "remove" ? cardsIn(m[2]) : [];
-    const into = verb === "replace" ? cardsIn(m[3] || "") : verb === "add" ? cardsIn(m[2]) : [];
-    // Worked out on a copy, kept only if every card it names can be taken
-    // and put: a perk is never half applied.
-    const next = new Map(deck);
-    const find = t => [...next.keys()].find(k => k.toLowerCase() === t.toLowerCase()) || t;
-    let ok = Boolean(m && out && into && (verb !== "replace" || m[3]));
-    for (const [n, t] of ok ? out : []) {
-      const k = find(t);
-      if (!next.has(k) || next.get(k) < n) { ok = false; break; }
-      next.set(k, next.get(k) - n);
-    }
-    if (ok) for (const [n, t] of into) { const k = find(t); next.set(k, (next.get(k) || 0) + n); }
-    if (ok) { deck.clear(); for (const [k, v] of next) deck.set(k, v); } else unread.push(text);
-  }
-  const order = ["Null", "−2", "−1", "+0", "+1", "+2", "+3", "+4", "2×"];
-  const rank = k => order.includes(k) ? order.indexOf(k) : order.length;
-  const cards = [...deck].filter(([, n]) => n > 0).sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b));
-  return { cards, total: cards.reduce((sum, [, n]) => sum + n, 0), unread };
-}
-
 function perksLeft(c) { return Math.max(0, characterStats(c).unspent - draftedPerks(c.name)); }
 
 // What each "Before you play" link says: the section it goes to.
@@ -1654,42 +1611,6 @@ function perkText(text) {
   });
 }
 
-const NUMBER_WORDS = { "1": "one", "2": "two", "3": "three", "4": "four" };
-
-// How a perk reads with the wording differences that don't matter taken out.
-// strict keeps "rolling" and "+0"; loose drops them too.
-function perkKey(text, loose = false) {
-  let t = String(text).toLowerCase().replace(/[−–]/g, "-").replace(/\([^)]*\)/g, " ")
-    .replace(/(^|\s)([1-4])(?=\s|$)/g, (m, pre, d) => pre + NUMBER_WORDS[d])
-    .replace(/\bcards?\b/g, " ").replace(/[^a-z0-9+\- ]/g, " ");
-  if (loose) t = t.replace(/\brolling\b/g, " ").replace(/(^|\s)\+0(?=\s|$)/g, " ");
-  return t.replace(/\s+/g, " ").trim();
-}
-
-// The class perk a written perk is, or null. Strict match first, then loose
-// if that points at exactly one perk.
-function matchPerk(text, perks) {
-  const strict = perks.find(p => perkKey(p.text) === perkKey(text));
-  if (strict) return strict;
-  const loose = perks.filter(p => perkKey(p.text, true) === perkKey(text, true));
-  return loose.length === 1 ? loose[0] : null;
-}
-
-// The class perk sharing the most telling words with a written one, for a
-// hint. "Add", "with" and the counts say little about which perk it is.
-const PLAIN_WORDS = new Set(["add", "remove", "replace", "with", "and", "one", "two", "three", "four"]);
-function closestPerk(text, perks) {
-  const telling = t => perkKey(t, true).split(" ").filter(w => w && !PLAIN_WORDS.has(w));
-  const words = new Set(telling(text));
-  let best = null, score = 0;
-  for (const p of perks) {
-    const theirs = telling(p.text);
-    const shared = theirs.filter(w => words.has(w)).length / (new Set([...words, ...theirs]).size || 1);
-    if (shared > score) { best = p; score = shared; }
-  }
-  return score >= 0.3 ? best : null;
-}
-
 // A perk's boxes as on the character sheet: the ticked ones filled, the
 // rest empty. A lone ticked box says nothing a screen reader needs.
 function perkBoxes(ticked, empty) {
@@ -1698,61 +1619,6 @@ function perkBoxes(ticked, empty) {
   return h("span", total > 1 ? { class: "perk-boxes", role: "img", "aria-label": `${ticked} of ${total} boxes ticked` }
                              : { class: "perk-boxes", "aria-hidden": "true" },
     Array.from({ length: total }, (_, i) => box(i < ticked)));
-}
-
-// The perks a character has taken, matched to the class's list, and the ones
-// still open.
-function perkCheck(c) {
-  const perks = classPerks(c.class);
-  const rows = [];
-  for (const text of c.perks) {
-    const match = perks ? matchPerk(text, perks) : null;
-    const key = match ? match.text : text;
-    const row = rows.find(r => r.key === key);
-    if (row) row.count++;
-    else rows.push({ key, text: match ? match.text : text, written: text, match, count: 1 });
-  }
-  for (const r of rows) {
-    if (!perks) continue;
-    if (!r.match) {
-      const near = closestPerk(r.written, perks);
-      r.note = `Not on the ${c.class} sheet.${near ? ` Closest: ${near.text}.` : ""}`;
-    } else if (r.count > r.match.count) {
-      r.note = `Taken ${r.count} times, but the sheet has ${plural(r.match.count, "box").replace("boxs", "boxes")}.`;
-    } else if (r.written !== r.match.text) {
-      r.note = `Written as "${r.written}".`;
-      r.quiet = true;
-    }
-  }
-  const open = (perks || []).map(p => ({ ...p, left: p.count - (rows.find(r => r.match === p)?.count || 0) }))
-    .filter(p => p.left > 0);
-  return { known: Boolean(perks), rows, open };
-}
-
-// Slots: one head, body and legs item; two hands (a two-handed item takes
-// both); small items up to half the character's level, rounded up.
-// What a character's items take up, and the room they have at their level.
-function slotUse(c, level) {
-  const byName = new Map(Object.values(itemsRef?.items || {}).map(i => [i.name.toLowerCase(), i]));
-  const used = { head: 0, body: 0, legs: 0, hands: 0, small: 0 };
-  for (const name of c.items) {
-    const slot = byName.get(name.toLowerCase())?.slot;
-    if (slot === "onehand") used.hands += 1;
-    else if (slot === "twohand") used.hands += 2;
-    else if (slot in used) used[slot] += 1;
-  }
-  return { used, limits: { head: 1, body: 1, legs: 1, hands: 2, small: Math.ceil(level / 2) } };
-}
-// How much of that room an item takes, by the slot the item cards print.
-const slotNeed = slot => slot === "onehand" ? ["hands", 1] : slot === "twohand" ? ["hands", 2] : [slot, 1];
-
-// A character can own any number of items, but equip only what the slots
-// hold (rulebook p. 43): where they own more, which to take is their pick.
-function itemCheck(c, level) {
-  const { used, limits } = slotUse(c, level);
-  const names = { head: "head items", body: "body items", legs: "legs items", hands: "hands' worth of items", small: "small items" };
-  return Object.keys(limits).filter(k => used[k] > limits[k])
-    .map(k => `Owns ${used[k]} ${names[k]} and can equip ${limits[k]}${k === "small" ? ` at level ${level}` : ""}: pick which to take into a scenario.`);
 }
 
 // --- Characters -----------------------------------------------------------------
@@ -1870,7 +1736,8 @@ function cardKind(label) {
 function attackDeckBlock(c, rows) {
   const sheet = classPerks(c.class);
   const inOrder = [...rows].sort((a, b) => (a.match ? sheet.indexOf(a.match) : sheet.length) - (b.match ? sheet.indexOf(b.match) : sheet.length));
-  const { cards, total, unread } = attackDeck(inOrder.flatMap(r => Array(r.count).fill(r.match ? r.match.text : r.written)));
+  const { cards, total, unread } = attackDeck(inOrder.filter(r => r.match).flatMap(r => Array(r.count).fill(r.match)),
+    inOrder.filter(r => !r.match).map(r => r.written));
   // Bless and Curse cards in the deck now, as counted under Conditions; with
   // none counted, Sanctuary blessings in the session being recorded, for the
   // next scenario.
@@ -2090,7 +1957,7 @@ function questProgress(data, c, card) {
     else if (kind === "itemType") out.n = c.items.filter(i => arg.split("|").includes(itemSlot(i))).length;
     else if (kind === "item") {
       const name = itemsRef?.items?.[arg]?.name;
-      out.n = c.items.some(i => name && i.toLowerCase() === name.toLowerCase()) ? 1 : 0;
+      out.n = c.items.some(i => name && sameItem(i, name)) ? 1 : 0;
     } else {
       out.auto = false;
       if (sameShape) out.n = recorded[i][0];
@@ -2141,7 +2008,7 @@ function questDetail(data, c) {
           x.opens && !data.scenarios.some(s => s.number === x.opens) ? `opens #${x.opens} ${scenarioRef?.scenarios?.[String(x.opens)]?.name || ""}`.trim() : null,
         ].filter(Boolean).join(" · "))),
       h("span", { class: "num" }, x.n == null ? `?/${x.count}` : `${x.n}/${x.count}`)))) : null,
-    p && !p.known ? h("p", { class: "small muted" }, "Some steps can't be counted from the record: write the quest as one count per step (like 1/3 + 0/1) to fill them in.") : null,
+    p && !p.known ? h("p", { class: "small muted" }, "Some steps can't be counted from the record: write the quest as one count per step (like 1/3, then 0/1) to fill them in.") : null,
     differs && !p.text ? h("p", { class: "small muted" }, `The record says ${pending || c.personalQuest || "nothing"}, which doesn't fit the count above.`) : null,
     differs && p.text && rawCampaign ? h("button", { type: "button", class: "todo-do", "data-key": `pq-use-${c.name}`,
         onclick: () => { if (!draft) draft = newDraft(data); draft.quests[c.name] = p.text; showInRecorder(data, `pq-${c.name}`); } },
@@ -2165,7 +2032,7 @@ function renderCharacters(data) {
     // order, taken boxes filled and untaken perks quiet, as the paper sheet
     // reads; otherwise just the perks taken. Perks not on the sheet come last.
     const choosing = st.unspent && check.known && !c.retired;
-    const taken = r => ({ text: r.text, count: r.count, total: r.match ? r.match.count : r.count, note: r.note, quiet: r.quiet });
+    const taken = r => ({ text: r.text, count: r.count, total: r.match ? r.match.count : r.count, note: r.note });
     const perks = choosing
       ? [...classPerks(c.class).map(p => {
           const row = check.rows.find(r => r.match === p);
@@ -2225,7 +2092,7 @@ function renderCharacters(data) {
             : null,
         perks.length
           ? h("ul", { class: "perks" }, perks.map(p => {
-              const unsure = p.note && !p.quiet;
+              const unsure = Boolean(p.note);
               return h("li", { class: unsure ? "unsure" : p.open ? "open" : null },
                 // Its boxes, as ticked on the sheet; the game's checkmark is
                 // kept for battle goals, so the card shows only one kind of tick.
@@ -3425,9 +3292,9 @@ function renderRecorder(data) {
   const retiringTonight = d.retirements.filter(x => active.some(c => c.name === x.character)).length;
   // A player's retired characters, tonight's included: their newcomer's extra perks.
   const retiredByPlayer = player => {
-    const name = String(player || "").trim().toLowerCase();
+    const name = String(player || "").trim();
     if (!name) return 0;
-    const playerOf = c => String(d.retirements.find(x => x.character === c.name)?.player || c.player || "").trim().toLowerCase();
+    const playerOf = c => String(d.retirements.find(x => x.character === c.name)?.player || c.player || "").trim();
     return data.characters.filter(c => playerOf(c) === name && (c.retired || d.retirements.some(x => x.character === c.name))).length;
   };
   const prosperity = stepFor(data.city.prosperityCheckmarks + retiringTonight, CHECKMARKS_FOR_PROSPERITY);

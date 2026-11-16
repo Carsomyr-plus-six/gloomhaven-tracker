@@ -158,7 +158,7 @@
         "Remove two -1 cards",
         "Replace one -2 card with one +0 card",
         "Add one +3 card",
-        "Add three MUDDLE cards",
+        "Add three rolling MUDDLE cards",
         "Ignore negative scenario effects"
       ],
       "items": ["Eagle-Eye Goggles", "Minor Stamina Potion"],

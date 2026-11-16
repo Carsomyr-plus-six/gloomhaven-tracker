@@ -24,7 +24,7 @@
  "achievements": {
   "party": [
    {
-    "id": "example-party-achievement",
+    "id": "Example party achievement",
     "name": "Example party achievement",
     "count": 1,
     "where": "#2"
@@ -38,7 +38,7 @@
   ],
   "global": [
    {
-    "id": "example-global-achievement",
+    "id": "Example global achievement",
     "name": "Example global achievement",
     "count": 1,
     "where": "#2"
