@@ -84,7 +84,30 @@ async function runTests(load, loadText) {
   same("evening: a play keeps the dial and coins, and gives the bonus and a coin's worth at its level",
     [won.results[0], plays(buildData(copy(file))).find(p => p.number === 5).results[0]],
     [{ character: "Azorica", xp: 8, coins: 2, checkmarks: 1 },
-     { character: "Azorica", xp: 8 + scenarioStats(2).xp, coins: 2, checkmarks: 1, played: { xp: 8, coins: 2 }, gold: 2 * scenarioStats(2).gold }]);
+     { character: "Azorica", xp: 8 + scenarioStats(2).xp, coins: 2, checkmarks: 1, gold: 2 * scenarioStats(2).gold }]);
+
+  // The changes the evening above doesn't make: a reward item, an event
+  // that costs gold, advancing to the prosperity level, and retiring. Each
+  // is a line saying what it was for, with nothing left unexplained.
+  const more = copy(raw);
+  more.scenarios.push({ number: 68 });   // Toxic Moor, open for the test: two Major Healing Potions as its reward
+  more.adjustments = [{ prosperity: 30, notes: "Made up for the test" }];
+  const moreDraft = { ...copy(draft), scenarios: [{ number: "68", level: "2", result: "success", treasures: [], rewardTakers: ["Azorica", "Craig"],
+      results: { Azorica: { xp: "5" }, Craig: { xp: "5", coins: "2" }, "Flik Flak": { xp: "5" } } }],
+    events: [{ deck: "road", number: "8", option: "A", scenario: "", paid: "" }],
+    buys: [], sells: [], perks: [], donations: [], enhancements: [], claims: {}, quests: {}, newCharacters: [],
+    advances: ["Kaktus"], retirements: [{ character: "Craig", unlocks: "envelope-x" }] };
+  const moreRes = applyDraft(fromFile(copy(more)), moreDraft, buildData(copy(more)));
+  const moreFile = toFile(moreRes.out);
+  const lines = name => moreFile.characters.find(c => c.name === name).log.map(e => Object.fromEntries(Object.entries(e).filter(([k]) => k !== "date")));
+  const craigBefore = buildData(copy(more)).characters.find(c => c.name === "Craig").gold;
+  same("evening: a reward item, an event's cost, advancing and retiring are each a line saying what for",
+    [lines("Azorica"), lines("Craig"), lines("Kaktus").map(e => e.for), buildData(copy(moreFile)).characters.find(c => c.name === "Craig").gold,
+     written(toFile(fromFile(copy(moreFile))))],
+    [[{ for: "event", deck: "road", card: 8, option: "A", gold: -5 }, { for: "reward", scenario: 68, gained: ["Major Healing Potion"] }],
+     [{ for: "event", deck: "road", card: 8, option: "A", gold: -5 }, { for: "reward", scenario: 68, gained: ["Major Healing Potion"] },
+      { for: "retirement", gold: -(craigBefore - 5 + 2 * scenarioStats(2).gold) }],
+     ["advance"], 0, written(moreFile)]);
 
   // A schemaVersion 2 file (each evening one sum on the sheet, a play's XP
   // with its bonus) moves over with the same totals: the sums go into the

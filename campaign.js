@@ -133,7 +133,7 @@ function perksEarned(level, checkmarks) {
 function signed(n) { return n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : "0"; }
 // Gold as the rulebook's tables write it (the enhancement costs, p. 47):
 // "25g", and a change as "+5g" or "−5g". Words for screen readers say "gold".
-const goldText = n => `${n}g`;
+const goldText = n => n < 0 ? `−${Math.abs(n)}g` : `${n}g`;
 const goldChange = n => `${signed(n)}g`;
 
 function plural(n, word) { return `${n} ${word}${n === 1 ? "" : "s"}`; }
@@ -1164,15 +1164,16 @@ function applyDraft(raw, d, data) {
   const who = name => out.characters.find(c => c.name === name);
   // Handing someone an item (bought, looted or a reward): one of each item
   // per character, and whoever's items change gets the slot check below.
-  // why: what it was for, as a log line (below); what: any gold it cost.
+  // The caller writes it on the log line it belongs to; false if there's no
+  // one to give it to.
   const changed = new Set();
-  const giveItem = (name, item, why, what = {}) => {
+  const giveItem = (name, item) => {
     const c = who(name);
-    if (!c) return;
+    if (!c) return false;
     if (c.items.some(i => sameItem(i, item))) warnings.push(`${name} already has ${item}: a character can own only one of each item.`);
     c.items.push(item);
     changed.add(name);
-    line(name, { ...what, gained: [item] }, why);
+    return true;
   };
   // Every copy of an item already owned by someone still adventuring.
   const noCopyLeft = item => {
@@ -1201,43 +1202,50 @@ function applyDraft(raw, d, data) {
     gainFor.set(name, g);
   };
   // Every change to a sheet other than what a scenario's results give
-  // (those the play keeps) is a line in the character's log, dated with the
-  // evening, saying what it was for: the one record of it. what: { xp,
-  // gold, checkmarks, gained, lost, perks }; why: { for, ... }.
+  // (those the play keeps) is written in the character's log, dated with
+  // the evening: a line for each thing that happened, saying what it was
+  // for, with all it changed. The one record of it. what: { xp, gold,
+  // checkmarks, gained, lost, perks }; why: { for, ... }.
   const when = d.date || today();
   const LISTS = ["gained", "lost", "perks"];
-  // Two parts of one thing (an event's gold and checkmark, a treasure's
-  // gold and item) are one line; a purchase or sale is always its own.
   const line = (name, what, why) => {
     const c = who(name);
     const amounts = Object.fromEntries([...SHEET_SUMS.filter(k => what[k]).map(k => [k, what[k]]),
       ...LISTS.filter(k => what[k]?.length).map(k => [k, [...what[k]]])]);
-    if (!c || !Object.keys(amounts).length) return;
-    const last = (c.log ||= []).at(-1);
-    const cause = e => JSON.stringify(Object.entries(e).filter(([k]) => k !== "date" && !SHEET_SUMS.includes(k) && !LISTS.includes(k)));
-    if (last && last.date === when && ["event", "treasure", "reward"].includes(why.for) && cause(last) === cause(why)) {
-      for (const [k, v] of Object.entries(amounts)) {
-        if (LISTS.includes(k)) last[k] = [...(last[k] || []), ...v];
-        else { last[k] = (last[k] || 0) + v; if (!last[k]) delete last[k]; }
-      }
-    } else c.log.push({ date: when, ...why, ...amounts });
+    if (c && Object.keys(amounts).length) (c.log ||= []).push({ date: when, ...why, ...amounts });
   };
-  // A gain that counts with the evening's (for levels reached tonight).
-  const credit = (name, what, why) => {
-    for (const k of ["xp", "gold", "checkmarks"]) gain(name, k, what[k] || 0);
-    line(name, what, why);
+  // One thing that happened, in parts (an event's gold and checkmark, a
+  // treasure's gold and item, a scenario's reward and reward item): each
+  // part added as it's worked out, then written as one line a character.
+  // gain(): a part that counts with the evening's gains (for levels reached
+  // tonight); add(): one already on the sheet.
+  const happening = why => {
+    const parts = new Map();
+    const add = (name, what) => {
+      const p = parts.get(name) || {};
+      for (const k of SHEET_SUMS) if (what[k]) p[k] = (p[k] || 0) + what[k];
+      for (const k of LISTS) if (what[k]?.length) p[k] = [...(p[k] || []), ...what[k]];
+      parts.set(name, p);
+    };
+    return {
+      add,
+      gain: (name, what) => { for (const k of SHEET_SUMS) gain(name, k, what[k] || 0); add(name, what); },
+      write: () => { for (const [name, what] of parts) line(name, what, why); },
+    };
   };
-  // An event's gold or XP. A gain counts with the evening's; a loss comes off
-  // at once, and can't take gold below 0 or XP below the start of the
-  // character's level (rulebook p. 42).
-  const eventGain = (name, key, amount, why) => {
-    if (amount >= 0) return credit(name, { [key]: amount }, why);
+  // A gain that is a thing of its own (advancing to the prosperity level).
+  const credit = (name, what, why) => { const one = happening(why); one.gain(name, what); one.write(); };
+  // An event's gold or XP, as part of the event. A gain counts with the
+  // evening's; a loss comes off at once, and can't take gold below 0 or XP
+  // below the start of the character's level (rulebook p. 42).
+  const eventGain = (ev, name, key, amount) => {
+    if (amount >= 0) return ev.gain(name, { [key]: amount });
     const c = who(name);
     if (!c) return;
     const was = c[key] || 0;
     if (key === "gold") c.gold = Math.max(0, was + amount);
     else c.xp = Math.max(XP_FOR_LEVEL[stepFor(was, XP_FOR_LEVEL) - 1], was + amount);
-    line(name, { [key]: c[key] - was }, why);
+    ev.add(name, { [key]: c[key] - was });
   };
   // Newcomers before anything else: a newcomer can play tonight's scenarios
   // and go shopping. Retirements come after the scenarios (below). Each
@@ -1349,7 +1357,7 @@ function applyDraft(raw, d, data) {
     // as the party split it (rulebook p. 42).
     if (!e.option || !classRef?.events?.[e.deck]?.[String(entry.number)]) continue;
     const label = `${eventLabel(e.deck, entry.number)}, option ${e.option}`;
-    const because = { for: "event", deck: e.deck, card: entry.number, option: e.option };
+    const ev = happening({ for: "event", deck: e.deck, card: entry.number, option: e.option });
     const outcome = chosenOutcome(data, classRef, e.deck, entry.number, e.option, party, entry.paid);
     const pays = JSON.stringify(classRef.events[e.deck][String(entry.number)][e.option] || []).includes('"type":"pay');
     if (!outcome && pays && entry.paid === undefined) { warnings.push(`${label}: say on its row whether the party paid (Paid?).`); continue; }
@@ -1357,24 +1365,24 @@ function applyDraft(raw, d, data) {
     if (outcome.unsure) warnings.push(`${label}: part of the outcome depends on something not recorded; check the card for gold or XP.`);
     for (const fx of outcome.effects) {
       if (fx.type === "gold" || fx.type === "experience") {
-        for (const name of party) eventGain(name, fx.type === "gold" ? "gold" : "xp", fx.amount, because);
+        for (const name of party) eventGain(ev, name, fx.type === "gold" ? "gold" : "xp", fx.amount);
         log.push(`${label}: ${fx.type === "gold" ? goldChange(fx.amount) : `${signed(fx.amount)} XP`} each, for ${party.join(", ")}`);
       } else if (fx.type === "collectiveGold") {
         const shares = e.shares || {};
         const total = party.reduce((sum, name) => sum + Math.max(0, num(shares[name])), 0);
         const want = Math.abs(fx.amount);
         if (total !== want) warnings.push(`${label}: ${goldText(want)} to ${fx.amount > 0 ? "share" : "pay"}, but the shares come to ${total}.`);
-        for (const name of party) if (num(shares[name]) > 0) eventGain(name, "gold", Math.sign(fx.amount) * num(shares[name]), because);
+        for (const name of party) if (num(shares[name]) > 0) eventGain(ev, name, "gold", Math.sign(fx.amount) * num(shares[name]));
         if (total) log.push(`${label}: ${goldText(total)} ${fx.amount > 0 ? "shared" : "paid"} (${party.filter(n => num(shares[n]) > 0).map(n => `${n} ${goldText(num(shares[n]))}`).join(", ")})`);
       } else if (fx.type === "checkmarks") {
         for (const name of party) {
           const c = who(name);
-          if (fx.amount > 0) credit(name, { checkmarks: fx.amount }, because);
+          if (fx.amount > 0) ev.gain(name, { checkmarks: fx.amount });
           // A character can never lose a checkmark that would cost a perk (p. 42).
           else if (c) {
             const was = c.checkmarks || 0;
             c.checkmarks = Math.max(3 * Math.floor(was / 3), was + fx.amount);
-            line(name, { checkmarks: c.checkmarks - was }, because);
+            ev.add(name, { checkmarks: c.checkmarks - was });
           }
         }
         log.push(`${label}: ${signed(fx.amount)} battle goal ${Math.abs(fx.amount) === 1 ? "checkmark" : "checkmarks"} each, for ${party.join(", ")}${fx.amount < 0 ? " (never one that would cost a perk)" : ""}`);
@@ -1386,6 +1394,7 @@ function applyDraft(raw, d, data) {
         warnings.push(`${label}: the party gave up ${itemName(fx.item)}: take it off the sheet of whoever had it.`);
       }
     }
+    ev.write();
   }
 
   // Treasures already looted, and where: a tile is looted once.
@@ -1446,19 +1455,20 @@ function applyDraft(raw, d, data) {
         const tiles = info?.treasures;
         if (tiles && !tiles.includes(tile)) warnings.push(`Treasure ${t.number} isn't in ${label}${tiles.length ? ` (its ${tiles.length === 1 ? "tile is" : "tiles are"} ${tiles.join(", ")})` : ""}. Check the number.`);
         looted.set(tile, n);
+        const tr = happening({ for: "treasure", treasure: t.number });
         for (const part of treasureParts(scenarioRef, t.number)) {
           if (!t.character) { if (["gold", "experience", "item", "battleGoal"].includes(part.type)) warnings.push(`Treasure ${t.number}: who looted it?`); continue; }
           if (part.type === "gold") {
-            credit(t.character, { gold: num(part.value) }, { for: "treasure", treasure: t.number });
+            tr.gain(t.character, { gold: num(part.value) });
             log.push(`${t.character} gains ${goldText(num(part.value))} from treasure ${t.number}`);
           }
           if (part.type === "experience") {
-            credit(t.character, { xp: num(part.value) }, { for: "treasure", treasure: t.number });
+            tr.gain(t.character, { xp: num(part.value) });
             log.push(`${t.character} gains ${num(part.value)} XP from treasure ${t.number}`);
           }
           // A battle-goal checkmark, which counts towards a perk as any other.
           if (part.type === "battleGoal") {
-            credit(t.character, { checkmarks: num(part.value) }, { for: "treasure", treasure: t.number });
+            tr.gain(t.character, { checkmarks: num(part.value) });
             log.push(`${t.character} gains ${plural(num(part.value), "battle goal checkmark")} from treasure ${t.number}`);
           }
           if (part.type === "item") {
@@ -1467,20 +1477,21 @@ function applyDraft(raw, d, data) {
             // supply (p. 27).
             if (who(t.character)?.items.some(i => sameItem(i, item))) {
               const value = Math.floor((Object.values(itemsRef?.items || {}).find(x => sameItem(x.name, item))?.cost || 0) / 2);
-              credit(t.character, { gold: value }, { for: "treasure", treasure: t.number });
+              tr.gain(t.character, { gold: value });
               returnItem(item);
               log.push(`${t.character} already has ${item}, so the one from treasure ${t.number} is sold at once for ${goldText(value)}`);
             } else if (noCopyLeft(item)) {
               // Every copy is someone's: the looter gains its sell value instead (FAQ).
               const value = Math.floor((Object.values(itemsRef?.items || {}).find(x => sameItem(x.name, item))?.cost || 0) / 2);
-              credit(t.character, { gold: value }, { for: "treasure", treasure: t.number });
+              tr.gain(t.character, { gold: value });
               log.push(`No copy of ${item} is left, so ${t.character} gains its sell value from treasure ${t.number}: ${goldText(value)}`);
             } else {
-              giveItem(t.character, item, { for: "treasure", treasure: t.number });
+              if (giveItem(t.character, item)) tr.add(t.character, { gained: [item] });
               log.push(`${t.character} takes ${item} from treasure ${t.number}`);
             }
           }
         }
+        tr.write();
       }
     };
 
@@ -1517,14 +1528,15 @@ function applyDraft(raw, d, data) {
 
     // Rewards each character gets, and what treasures gave their looters.
     const r = info?.rewards || {};
-    for (const name of party) credit(name, { gold: r.gold, xp: r.experience, checkmarks: r.battleGoals }, { for: "reward", scenario: n });
+    const rw = happening({ for: "reward", scenario: n });
+    for (const name of party) rw.gain(name, { gold: r.gold, xp: r.experience, checkmarks: r.battleGoals });
     if (r.battleGoals) log.push(`${label} reward: ${plural(r.battleGoals, "battle goal checkmark")} each`);
     if (r.gold || r.experience) log.push(`${label} reward: ${[r.gold ? goldText(r.gold) : null, r.experience ? `${r.experience} XP` : null].filter(Boolean).join(" and ")} each`);
     if (r.collectiveGold) {
       // Shared as the party split it in the form.
       const shares = s.rewardShares || {};
       const total = party.reduce((sum, name) => sum + Math.max(0, num(shares[name])), 0);
-      for (const name of party) if (num(shares[name]) > 0) credit(name, { gold: num(shares[name]) }, { for: "reward", scenario: n });
+      for (const name of party) if (num(shares[name]) > 0) rw.gain(name, { gold: num(shares[name]) });
       if (total !== r.collectiveGold) warnings.push(`${label} gives ${goldText(r.collectiveGold)} to share, but the shares come to ${total}.`);
       else log.push(`${label} reward: ${goldText(total)} shared (${party.filter(n => num(shares[n]) > 0).map(n => `${n} ${goldText(num(shares[n]))}`).join(", ")})`);
     }
@@ -1533,9 +1545,10 @@ function applyDraft(raw, d, data) {
     if (s.result === "success") rewardCopies(info).forEach((item, k) => {
       const taker = (s.rewardTakers || [])[k];
       if (!taker) { warnings.push(`${label} gives ${item}: who takes it?`); return; }
-      giveItem(taker, item, { for: "reward", scenario: n });
+      if (giveItem(taker, item)) rw.add(taker, { gained: [item] });
       log.push(`${taker} takes ${item}, a reward of ${label}`);
     });
+    rw.write();
     if (r.chooseLocation) {
       const chosen = num(s.chosen);
       if (!chosen) warnings.push(`${label} lets you choose one of ${r.chooseLocation.map(x => `#${x}`).join(", ")}: pick it in the form.`);
@@ -1597,7 +1610,8 @@ function applyDraft(raw, d, data) {
     if (k < 0) continue;
     const t = sc.treasures[k];
     sc.treasures[k] = { ...(typeof t === "object" ? t : { number: t }), character: x.character };
-    if (x.kept !== false) giveItem(x.character, c.item, { for: "treasure", treasure: c.treasure }); else returnItem(c.item);
+    if (x.kept === false) returnItem(c.item);
+    else if (giveItem(x.character, c.item)) line(x.character, { gained: [c.item] }, { for: "treasure", treasure: c.treasure });
     log.push(`Treasure ${c.treasure} in ${c.where}: ${x.character} looted ${c.item}${x.kept !== false ? "" : ", and has since sold it"}`);
   }
 
@@ -1689,7 +1703,7 @@ function applyDraft(raw, d, data) {
     const c = who(b.character);
     const price = priceOf(b.item) ?? 0;
     c.gold = (c.gold || 0) - price;
-    giveItem(b.character, b.item, { for: "buy" }, { gold: -price });
+    if (giveItem(b.character, b.item)) line(b.character, { gold: -price, gained: [b.item] }, { for: "buy" });
     takeReturned(b.item);
     log.push(`${b.character} buys ${b.item} for ${goldText(price)}`);
   }
@@ -1814,11 +1828,16 @@ function withDefaults(raw) {
 // what they got: its results and players, wherever fromFile keeps them (the
 // win that completed a scenario gave them to the scenario); then each
 // scenario marked completed with no session behind it. The one way to read
-// a play's results: each says what the character took (playGain), with what
-// was played beside it (dial XP as played, coins).
+// a play's results: each says what the character took (playGain).
+// The page's data doesn't change once built, so its plays are read once;
+// fromFile and toFile read them afresh (readPlays), as what they're given
+// may be a shape still being changed.
 const playsCache = new WeakMap();
 function plays(data) {
-  if (playsCache.has(data)) return playsCache.get(data);
+  if (!playsCache.has(data)) playsCache.set(data, readPlays(data));
+  return playsCache.get(data);
+}
+function readPlays(data) {
   const done = completions(data.sessions);
   const entry = new Map(data.scenarios.map(s => [s.number, s]));
   const out = [];
@@ -1834,10 +1853,9 @@ function plays(data) {
       out.push({ number: s.number, level: null, result: "success", casual: false, session: null, results: tookFrom({}, s.results), players: s.players || [] });
     }
   }
-  playsCache.set(data, out);
   return out;
 }
-const tookFrom = (play, results) => (results || []).map(r => ({ ...r, played: { xp: r.xp, coins: r.coins }, ...playGain(play, r) }));
+const tookFrom = (play, results) => (results || []).map(r => ({ ...r, ...playGain(play, r) }));
 
 // What each character took from the play that completed scenario n.
 const completionResults = (data, n) => plays(data).find(p => p.number === n && p.result === "success" && !p.casual)?.results || [];
@@ -1845,7 +1863,7 @@ const completionResults = (data, n) => plays(data).find(p => p.number === n && p
 // What each character took from every play: name -> { xp, gold, checkmarks }.
 function tookFromPlays(data) {
   const sums = new Map();
-  for (const p of plays(data)) {
+  for (const p of readPlays(data)) {
     for (const r of p.results) {
       const t = sums.get(r.character) || { xp: 0, gold: 0, checkmarks: 0 };
       for (const k of ["xp", "gold", "checkmarks"]) t[k] += r[k];
@@ -2270,8 +2288,7 @@ function completions(sessions) {
 
 // A character's sheet from its start and its log; what the scenarios gave
 // is added by the caller (tookFromPlays). Donations and enhancements are
-// counted from the log's lines for them. (A schemaVersion 2 log kept them
-// as sums: read here, so it moves over.)
+// counted from the log's lines for them.
 function sheetTotals(c) {
   const start = c.start || {};
   const t = Object.fromEntries(SHEET_SUMS.map(k => [k, start[k] || 0]));
@@ -2284,8 +2301,6 @@ function sheetTotals(c) {
     for (const k of SHEET_SUMS) t[k] += e[k] || 0;
     if (e.for === "donation") t.donated -= e.gold || 0;
     if (e.for === "enhancement") t.enhanced += 1;
-    t.donated += e.donated || 0;
-    t.enhanced += e.enhanced || 0;
     for (const x of e.lost || []) drop(t.items, x);
     t.items.push(...(e.gained || []));
     for (const x of e.perksDropped || []) drop(t.perks, x);
@@ -2426,7 +2441,11 @@ function dialOnly(play) {
 function fromSums(c, took) {
   const t = withTook(sheetTotals(c), took, -1);
   const start = { ...c.start, ...Object.fromEntries(SHEET_SUMS.map(k => [k, t[k]])) };
-  for (const k of ["donated", "enhanced"]) if (t[k]) start[k] = t[k]; else delete start[k];
+  // Its donations and enhancements were sums too.
+  for (const k of ["donated", "enhanced"]) {
+    const n = (c.start?.[k] || 0) + (c.log || []).reduce((sum, e) => sum + (e[k] || 0), 0);
+    if (n) start[k] = n; else delete start[k];
+  }
   const log = (c.log || []).map(e => Object.fromEntries(Object.entries(e).filter(([k]) => ![...SHEET_SUMS, "donated", "enhanced"].includes(k))))
     .filter(e => Object.keys(e).some(k => k !== "date"));
   return { ...c, start, log };
@@ -2478,7 +2497,7 @@ const migrate = json => toFile(fromFile(json), null);
 // it: each said once, so the file stays one record. (toFile never writes
 // these; a hand edit might.) Shown in the Campaign record and Before you play.
 function fileQuestions(json) {
-  if ((json?.schemaVersion || 1) < SCHEMA_VERSION) return [];
+  if ((json?.schemaVersion || 1) < 2) return [];
   const q = [];
   const completing = completions(json.sessions || []);
   const revealed = revealedByReference(scenarioRef, [...completing.keys()]);
