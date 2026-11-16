@@ -23,15 +23,14 @@ async function runTests(load, loadText) {
   same("reference data: every file pinned to one commit", commits.every(c => /^[0-9a-f]{40}$/.test(c || "")) && new Set(commits).size === 1, true);
 
   // What the page asks about each file: only what a person must settle.
-  // Kaktus's progress was written "5?"; the sample has made-up achievements
-  // and quest on purpose, to show these questions.
-  const kaktus = `Kaktus's personal quest progress "5?" can't be read: write it as counts, like "2/15", or "1/3, then 0/1" for a quest in steps.`;
+  // The sample has made-up achievements and quest on purpose, to show these
+  // questions; campaign.json has nothing to settle.
   const asked = {
-    campaign: [kaktus],
+    campaign: [],
     sample: [
       `The party achievement "Example party achievement" isn't in the scenario data, so no scenario or event counts it. Check it against the scenario book.`,
       `The global achievement "Example global achievement" isn't in the scenario data, so no scenario or event counts it. Check it against the scenario book.`,
-      `Grunt's personal quest progress "Example quest" can't be read: write it as counts, like "2/15", or "1/3, then 0/1" for a quest in steps.`,
+      `Grunt's personal quest progress "Example quest" can't be read: write it as counts, like "2/15", "1/3, then 0/1" for steps in order, or "2/2 + 1/2" for steps side by side.`,
     ],
   };
   for (const [name, file, old] of [["campaign", "campaign.json", "tests/fixtures/campaign-v1.json"],
@@ -64,7 +63,7 @@ async function runTests(load, loadText) {
   }, await load("tests/golden/evening.json"), "tests/golden/evening.json");
   same("evening: written twice, the same file", written(toFile(apply().out)), written(file));
   same("evening: the written file reads back unchanged", written(toFile(fromFile(copy(file)))), written(file));
-  same("evening: asks only what must be settled by hand", fileQuestions(file), [kaktus]);
+  same("evening: asks only what must be settled by hand", fileQuestions(file), []);
   // Each character whose sheet changed has one entry for the evening, and
   // nothing else changed in the logs. (The amounts are checked above: the
   // sheets worked out from the logs match the golden file.)
@@ -76,24 +75,22 @@ async function runTests(load, loadText) {
     [[5, "success", ["Azorica", "Craig", "Flik Flak"]], [6, "failure", ["Azorica", "Craig", "Flik Flak"]]]);
 
   // A hand edit that keeps something the page works out is asked about.
-  // (Each counts only the questions its edit adds to campaign.json's own.)
-  const added = list => list.filter(q => q !== kaktus);
   const edited = copy(raw);
   edited.scenarios[0].status = "completed";
   edited.scenarios[0].name = "Black Barrow";
   edited.characters[0].xp = 149;
   edited.city.donations = 0;
-  same("file: what's kept but worked out is asked about", added(fileQuestions(edited)).map(q => q.split(" ")[0]),
+  same("file: what's kept but worked out is asked about", fileQuestions(edited).map(q => q.split(" ")[0]),
     ["#1's", "#1's", "Azorica's", "The"]);
   same("file: the questions go to the Campaign record, not the event decks",
-    [added(buildData(copy(edited)).fileQuestions).length, buildData(copy(edited)).eventState.questions.length], [4, 0]);
+    [buildData(copy(edited)).fileQuestions.length, buildData(copy(edited)).eventState.questions.length], [4, 0]);
 
   // A completion written on a scenario with no session behind it still
   // counts, is asked about, and survives being written back.
   const stray = copy(raw);
   stray.scenarios.push({ number: 7, status: "completed" });
   same("file: a completion with no session still counts, and is asked about",
-    [buildData(copy(stray)).scenarios.find(s => s.number === 7).status, added(fileQuestions(stray)).length,
+    [buildData(copy(stray)).scenarios.find(s => s.number === 7).status, fileQuestions(stray).length,
      toFile(fromFile(copy(stray))).scenarios.find(s => s.number === 7)],
     ["completed", 1, { number: 7, status: "completed" }]);
 
@@ -103,7 +100,7 @@ async function runTests(load, loadText) {
   hand.characters.push({ name: "Hand", class: "Brute", xp: 45, gold: 30, items: ["Hide Armor"], perks: [] });
   const handSheet = buildData(copy(hand)).characters.find(c => c.name === "Hand");
   same("file: a character written in with totals keeps them, as the start",
-    [handSheet.xp, handSheet.gold, handSheet.items, toFile(fromFile(copy(hand))).characters.at(-1).start, added(fileQuestions(hand))],
+    [handSheet.xp, handSheet.gold, handSheet.items, toFile(fromFile(copy(hand))).characters.at(-1).start, fileQuestions(hand)],
     [45, 30, ["Hide Armor"], { xp: 45, gold: 30, checkmarks: 0, items: ["Hide Armor"], perks: [] }, []]);
 
   // The sessions' order is history's: a new evening goes in by its date,
@@ -117,7 +114,7 @@ async function runTests(load, loadText) {
     [undated.sessions.map(s => s.date), [...completions(undated.sessions).keys()].at(-1)], [[null, "2026-10-26", "2026-11-13", null], 5]);
   const swapped = copy(raw);
   swapped.sessions.push(swapped.sessions.splice(1, 1)[0]);
-  same("sessions: listed out of date order, asked about", added(fileQuestions(swapped)).length, 1);
+  same("sessions: listed out of date order, asked about", fileQuestions(swapped).length, 1);
 
   // Moving an old file over: a scenario completed on a date no session has
   // gets a session of its own, in its place; a success the old file didn't
@@ -169,7 +166,7 @@ async function runTests(load, loadText) {
   same("names: an item written another way isn't the item, and is asked about",
     [namesData.shop.questions.some(q => q.includes(`Write it "Minor Power Potion"`)), slotUse(namesData.characters[1], 4).used.small],
     [true, 1]);
-  same("names: a class, an achievement, a player written another way, asked about", added(fileQuestions(names)).map(q => q.split(":")[0].split(".")[0]), [
+  same("names: a class, an achievement, a player written another way, asked about", fileQuestions(names).map(q => q.split(":")[0].split(".")[0]), [
     `Azorica's class "spellweaver" isn't in the class list`,
     `The global achievement "the merchant flees" isn't in the scenario data, so no scenario or event counts it`,
     `The player "Mathias" is also written "mathias"`,
@@ -194,12 +191,131 @@ async function runTests(load, loadText) {
     [0, 0, 7, [`"12.5" (XP) isn't a whole number: check it.`, `"12abc" (XP) isn't a whole number: check it.`]]);
   const tiles = copy(raw);
   tiles.scenarios[2].treasures = ["65a"];
-  same("numbers: a treasure number that isn't one is asked about", added(fileQuestions(tiles)).length, 1);
+  same("numbers: a treasure number that isn't one is asked about", fileQuestions(tiles).length, 1);
 
-  // Quest progress has one way of being written.
-  same("quests: progress read only as written in the one way",
-    [questSteps("2/15"), questSteps("1/3, then 0/1"), questSteps("1/3 + 0/1"), questSteps("1 / 3"), questSteps("5?")],
-    [[[2, 15]], [[1, 3], [0, 1]], null, null, null]);
+  // Every quest card, for every character in campaign.json and the sample,
+  // as the page counts it from the record (which card a character holds is
+  // kept on their phone, so each is tried). Progress is left out, so nothing
+  // here ties a character to a card.
+  const questCase = p => ({
+    steps: p.steps.map(x => [`${x.n ?? "?"}/${x.count}`, x.auto ? null : "by hand", x.after ? "after the one before" : null,
+      x.maybe.length ? `maybe ${x.maybe.map(n => `#${n}`).join(" ")}` : null, x.extra ? `up to ${x.extra} more` : null,
+      x.opens ? `opens #${x.opens}` : null].filter(Boolean).join(", ")),
+    text: p.text,
+  });
+  const questTable = {}, unwritten = [];
+  for (const [name, file] of [["campaign", "campaign.json"], ["sample", "examples/sample-campaign.json"]]) {
+    const json = copy(await load(file));
+    for (const c of json.characters) c.personalQuest = "";
+    const data = buildData(json);
+    for (const [id, q] of Object.entries(questRef.quests)) {
+      for (const c of data.characters) {
+        const p = questProgress(data, c, id);
+        (questTable[name] ||= {})[`${id} ${q.name}`] ||= {};
+        questTable[name][`${id} ${q.name}`][c.name] = questCase(p);
+        // What the page offers to record, it can read back, and it fits.
+        if (p.text && !(questSteps(p.text)?.length === p.steps.length && p.fits(p.text))) unwritten.push(`${id} for ${c.name}: ${p.text}`);
+      }
+    }
+  }
+  // And by hand: for each card, a made-up character (so no real one is tied
+  // to it) with nothing the record can count, and 1 written for every step,
+  // joined as on the card; then the same joined the other way.
+  {
+    const data = buildData(copy(raw));
+    const test = { ...data.characters[0], name: "Test", items: [], gold: 0, checkmarks: 0, donated: 0, enhanced: 0 };
+    for (const [id, q] of Object.entries(questRef.quests)) {
+      const own = q.steps.map((x, i) => `${i ? (x.after ? ", then " : " + ") : ""}${Math.min(1, x.count)}/${x.count}`).join("");
+      const other = own.replace(/, then | \+ /g, j => j === " + " ? ", then " : " + ");
+      const p = questProgress(data, { ...test, personalQuest: own }, id);
+      // And what the page offers to set for each step: a count it gives, a
+      // check box, or − and + (from, to, and where it stands).
+      const inputs = questInputs(p, own);
+      (questTable.byHand ||= {})[`${id} ${q.name}`] = { written: own, ...questCase(p), fits: p.fits(own),
+        ...(q.steps.length > 1 ? { joinedOtherwise: other, fitsJoinedOtherwise: p.fits(other) } : {}),
+        inputs: inputs.steps.map(x => `${x.kind}, ${x.min} to ${x.max}, at ${x.value}`), inputsWrite: inputs.text };
+    }
+  }
+
+  // The inputs, set: a tap writes the progress, within what each step allows.
+  {
+    const json = copy(raw);
+    json.characters.push({ name: "Test", class: "Brute", start: { xp: 0, gold: 0, checkmarks: 0, items: [], perks: [] }, log: [], personalQuest: "" });
+    json.sessions.push({ date: "2026-11-21", characters: ["Test"], scenarios: [{ number: 4, result: "success", casual: true }] });
+    const data = buildData(json);
+    const test = data.characters.find(c => c.name === "Test");
+    const on = (card, written) => questInputs(questProgress(data, { ...test, personalQuest: written }, card), written);
+    const seeker = on("510", "");
+    const slayer = on("523", "1/1 + 0/1 + 0/1 + 0/1 + 0/1 + 0/1");
+    const stand = on("517", "5/20");
+    same("quests: the inputs, set with a tap", [
+      seeker.steps.map(x => [x.kind, x.value]), seeker.text,
+      slayer.steps.map(x => x.kind), questSet(slayer, 2, 1),
+      questSet(stand, 0, 6), questSet(stand, 0, 21), questSet(stand, 0, -1),
+    ], [
+      [["fixed", 1], ["fixed", 0]], "1/3, then 0/1",
+      ["check", "check", "check", "check", "check", "check"], "1/1 + 0/1 + 1/1 + 0/1 + 0/1 + 0/1",
+      "6/20", "20/20", "0/20",
+    ]);
+    // Without the card: the steps the record has, a step after ", then"
+    // waiting until the one before is done; nothing, with no steps written.
+    const shape = written => questInputs(null, written)?.steps.map(x => `${x.kind}, ${x.min} to ${x.max}, at ${x.value}`) ?? null;
+    same("quests: without the card, the inputs the record's steps give",
+      [shape("2/15"), shape("1/3, then 0/1"), shape("3/3, then 0/1"), shape("1/2 + 0/1"), shape(""), shape("5?")],
+      [["count, 0 to 15, at 2"], ["count, 0 to 3, at 1", "fixed, 0 to 0, at 0"], ["count, 0 to 3, at 3", "check, 0 to 1, at 0"],
+       ["count, 0 to 2, at 1", "check, 0 to 1, at 0"], null, null]);
+  }
+  same("quests: every card, counted from the record, matches tests/golden/quests.json", questTable,
+    await load("tests/golden/quests.json").catch(() => null), "tests/golden/quests.json");
+  same("quests: the count the page offers to record reads back, and fits", unwritten, []);
+
+  // Steps the record can't count take the count written by hand, when it's
+  // written in the card's steps and joins; joined otherwise, it doesn't fit.
+  {
+    const data = buildData(copy(raw));
+    const c = { ...data.characters[0], name: "Test", personalQuest: "7/20" };
+    const stand = questProgress(data, c, "517");
+    const merchant = questProgress(data, { ...c, personalQuest: "" }, "511");
+    const seeker = questProgress(data, { ...c, personalQuest: "" }, "510");
+    same("quests: a count by hand, and steps joined as on the card",
+      [stand.steps[0].n, stand.fits("7/20"), stand.fits("8/20"), merchant.text.includes(", then "),
+       merchant.fits(merchant.text), merchant.fits(merchant.text.replaceAll(" + ", ", then ")), seeker.fits("0/3 + 0/1"), seeker.fits("0/3, then 0/1")],
+      [7, true, false, false, true, false, false, true]);
+  }
+
+  // Who completed a scenario: those its results or players name, or with
+  // neither, who was at the session it was won in.
+  {
+    const json = copy(raw);
+    json.sessions.push({ date: "2026-11-21", characters: ["Azorica", "Craig", "Flik Flak", "Kaktus"], scenarios: [
+      { number: 5, result: "success", results: [{ character: "Azorica", xp: 8, gold: 4 }] },
+      { number: 6, result: "success", casual: true, players: ["Craig", "Kaktus"] },
+      { number: 7, result: "success" },
+      { number: 9, result: "success", results: [{ character: "Flik Flak", xp: 8, gold: 4 }], players: ["Flik Flak", "Kaktus"] },
+    ] });
+    const by = completedBy(buildData(json));
+    same("quests: who completed a scenario, by results and players, else the session",
+      [5, 6, 7, 9].map(n => [...by.get(n)]), [["Azorica"], ["Craig", "Kaktus"], ["Azorica", "Craig", "Flik Flak", "Kaktus"], ["Flik Flak", "Kaktus"]]);
+  }
+
+  // The form records only progress it can read.
+  {
+    const res = applyDraft(fromFile(copy(raw)), { ...copy(draft), quests: { Craig: "3/4?", "Flik Flak": "1/3 + 1/1" } }, buildData(copy(raw)));
+    same("quests: the form records only progress it can read, and says so",
+      [res.out.characters.map(c => c.personalQuest), res.warnings.filter(w => w.includes("personal quest progress")).length],
+      [["2/15", "2/4", "1/3 + 1/1", "5/20", ""], 1]);
+  }
+
+  // A step that waits on another waits on the one just before it, in every
+  // card: the page joins it to that one with ", then".
+  same("quests: every step that waits, waits on the one before",
+    Object.entries(questRef.quests).flatMap(([id, q]) => q.steps.map((x, i) => [x, i]).filter(([x, i]) => x.after && !(x.after.length === 1 && x.after[0] === i)).map(([, i]) => `${id} step ${i + 1}`)), []);
+
+  // Quest progress is written in counts, joined in one of two ways.
+  same("quests: progress read only as written in the ways it can be",
+    [questSteps("2/15"), questSteps("1/3, then 0/1"), questSteps("2/2 + 1/2"), questSteps("1/3 & 0/1"), questSteps("1/3,then 0/1"), questSteps("1 / 3"), questSteps("5?")],
+    [[[2, 15]], [[1, 3], [0, 1]], [[2, 2], [1, 2]], null, null, null, null]);
+  same("quests: the joins, as written", questParts("1/2 + 0/2, then 0/1")?.joins, [" + ", ", then "]);
 
   // The milestones, from the one table, as they stand for campaign.json.
   same("milestones: campaign.json", milestoneStates(buildData(copy(raw))).map(m => [m.id, m.have, m.open, m.ready, m.shown]), [

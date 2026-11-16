@@ -1,0 +1,1452 @@
+{
+ "campaign": {
+  "510 Seeker of Xorn": {
+   "Azorica": {
+    "steps": [
+     "1/3",
+     "0/1, after the one before"
+    ],
+    "text": "1/3, then 0/1"
+   },
+   "Craig": {
+    "steps": [
+     "1/3",
+     "0/1, after the one before"
+    ],
+    "text": "1/3, then 0/1"
+   },
+   "Flik Flak": {
+    "steps": [
+     "1/3",
+     "0/1, after the one before"
+    ],
+    "text": "1/3, then 0/1"
+   },
+   "Kaktus": {
+    "steps": [
+     "0/3",
+     "0/1, after the one before"
+    ],
+    "text": "0/3, then 0/1"
+   }
+  },
+  "511 Merchant Class": {
+   "Azorica": {
+    "steps": [
+     "0/2",
+     "1/2",
+     "0/2",
+     "0/3",
+     "2/4"
+    ],
+    "text": "0/2 + 1/2 + 0/2 + 0/3 + 2/4"
+   },
+   "Craig": {
+    "steps": [
+     "1/2",
+     "0/2",
+     "1/2",
+     "0/3",
+     "2/4"
+    ],
+    "text": "1/2 + 0/2 + 1/2 + 0/3 + 2/4"
+   },
+   "Flik Flak": {
+    "steps": [
+     "1/2",
+     "0/2",
+     "0/2",
+     "0/3",
+     "1/4"
+    ],
+    "text": "1/2 + 0/2 + 0/2 + 0/3 + 1/4"
+   },
+   "Kaktus": {
+    "steps": [
+     "1/2",
+     "1/2",
+     "0/2",
+     "0/3",
+     "1/4"
+    ],
+    "text": "1/2 + 1/2 + 0/2 + 0/3 + 1/4"
+   }
+  },
+  "512 Greed Is Good": {
+   "Azorica": {
+    "steps": [
+     "44/200"
+    ],
+    "text": "44/200"
+   },
+   "Craig": {
+    "steps": [
+     "94/200"
+    ],
+    "text": "94/200"
+   },
+   "Flik Flak": {
+    "steps": [
+     "109/200"
+    ],
+    "text": "109/200"
+   },
+   "Kaktus": {
+    "steps": [
+     "56/200"
+    ],
+    "text": "56/200"
+   }
+  },
+  "513 Finding the Cure": {
+   "Azorica": {
+    "steps": [
+     "?/8, by hand",
+     "0/1, after the one before"
+    ],
+    "text": null
+   },
+   "Craig": {
+    "steps": [
+     "?/8, by hand",
+     "0/1, after the one before"
+    ],
+    "text": null
+   },
+   "Flik Flak": {
+    "steps": [
+     "?/8, by hand",
+     "0/1, after the one before"
+    ],
+    "text": null
+   },
+   "Kaktus": {
+    "steps": [
+     "?/8, by hand",
+     "0/1, after the one before"
+    ],
+    "text": null
+   }
+  },
+  "514 A Study of Anatomy": {
+   "Azorica": {
+    "steps": [
+     "?/15, by hand"
+    ],
+    "text": null
+   },
+   "Craig": {
+    "steps": [
+     "?/15, by hand"
+    ],
+    "text": null
+   },
+   "Flik Flak": {
+    "steps": [
+     "?/15, by hand"
+    ],
+    "text": null
+   },
+   "Kaktus": {
+    "steps": [
+     "?/15, by hand"
+    ],
+    "text": null
+   }
+  },
+  "515 Law Bringer": {
+   "Azorica": {
+    "steps": [
+     "?/20, by hand"
+    ],
+    "text": null
+   },
+   "Craig": {
+    "steps": [
+     "?/20, by hand"
+    ],
+    "text": null
+   },
+   "Flik Flak": {
+    "steps": [
+     "?/20, by hand"
+    ],
+    "text": null
+   },
+   "Kaktus": {
+    "steps": [
+     "?/20, by hand"
+    ],
+    "text": null
+   }
+  },
+  "516 Pounds of Flesh": {
+   "Azorica": {
+    "steps": [
+     "?/15, by hand"
+    ],
+    "text": null
+   },
+   "Craig": {
+    "steps": [
+     "?/15, by hand"
+    ],
+    "text": null
+   },
+   "Flik Flak": {
+    "steps": [
+     "?/15, by hand"
+    ],
+    "text": null
+   },
+   "Kaktus": {
+    "steps": [
+     "?/15, by hand"
+    ],
+    "text": null
+   }
+  },
+  "517 Trophy Hunt": {
+   "Azorica": {
+    "steps": [
+     "?/20, by hand"
+    ],
+    "text": null
+   },
+   "Craig": {
+    "steps": [
+     "?/20, by hand"
+    ],
+    "text": null
+   },
+   "Flik Flak": {
+    "steps": [
+     "?/20, by hand"
+    ],
+    "text": null
+   },
+   "Kaktus": {
+    "steps": [
+     "?/20, by hand"
+    ],
+    "text": null
+   }
+  },
+  "518 Eternal Wanderer": {
+   "Azorica": {
+    "steps": [
+     "7/15"
+    ],
+    "text": "7/15"
+   },
+   "Craig": {
+    "steps": [
+     "7/15"
+    ],
+    "text": "7/15"
+   },
+   "Flik Flak": {
+    "steps": [
+     "7/15"
+    ],
+    "text": "7/15"
+   },
+   "Kaktus": {
+    "steps": [
+     "3/15"
+    ],
+    "text": "3/15"
+   }
+  },
+  "519 Battle Legend": {
+   "Azorica": {
+    "steps": [
+     "1/15, up to 6 more"
+    ],
+    "text": null
+   },
+   "Craig": {
+    "steps": [
+     "1/15, up to 8 more"
+    ],
+    "text": null
+   },
+   "Flik Flak": {
+    "steps": [
+     "1/15, up to 10 more"
+    ],
+    "text": null
+   },
+   "Kaktus": {
+    "steps": [
+     "0/15, up to 2 more"
+    ],
+    "text": null
+   }
+  },
+  "520 Implement of Light": {
+   "Azorica": {
+    "steps": [
+     "0/1",
+     "0/7, by hand, after the one before"
+    ],
+    "text": "0/1, then 0/7"
+   },
+   "Craig": {
+    "steps": [
+     "0/1",
+     "0/7, by hand, after the one before"
+    ],
+    "text": "0/1, then 0/7"
+   },
+   "Flik Flak": {
+    "steps": [
+     "0/1",
+     "0/7, by hand, after the one before"
+    ],
+    "text": "0/1, then 0/7"
+   },
+   "Kaktus": {
+    "steps": [
+     "0/1",
+     "0/7, by hand, after the one before"
+    ],
+    "text": "0/1, then 0/7"
+   }
+  },
+  "521 Take Back the Trees": {
+   "Azorica": {
+    "steps": [
+     "1/3",
+     "0/1, after the one before"
+    ],
+    "text": "1/3, then 0/1"
+   },
+   "Craig": {
+    "steps": [
+     "1/3",
+     "0/1, after the one before"
+    ],
+    "text": "1/3, then 0/1"
+   },
+   "Flik Flak": {
+    "steps": [
+     "1/3",
+     "0/1, after the one before"
+    ],
+    "text": "1/3, then 0/1"
+   },
+   "Kaktus": {
+    "steps": [
+     "1/3",
+     "0/1, after the one before"
+    ],
+    "text": "1/3, then 0/1"
+   }
+  },
+  "522 The Thin Places": {
+   "Azorica": {
+    "steps": [
+     "0/6"
+    ],
+    "text": "0/6"
+   },
+   "Craig": {
+    "steps": [
+     "0/6"
+    ],
+    "text": "0/6"
+   },
+   "Flik Flak": {
+    "steps": [
+     "0/6"
+    ],
+    "text": "0/6"
+   },
+   "Kaktus": {
+    "steps": [
+     "0/6"
+    ],
+    "text": "0/6"
+   }
+  },
+  "523 Aberrant Slayer": {
+   "Azorica": {
+    "steps": [
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand"
+    ],
+    "text": null
+   },
+   "Craig": {
+    "steps": [
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand"
+    ],
+    "text": null
+   },
+   "Flik Flak": {
+    "steps": [
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand"
+    ],
+    "text": null
+   },
+   "Kaktus": {
+    "steps": [
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand"
+    ],
+    "text": null
+   }
+  },
+  "524 Fearless Stand": {
+   "Azorica": {
+    "steps": [
+     "?/20, by hand"
+    ],
+    "text": null
+   },
+   "Craig": {
+    "steps": [
+     "?/20, by hand"
+    ],
+    "text": null
+   },
+   "Flik Flak": {
+    "steps": [
+     "?/20, by hand"
+    ],
+    "text": null
+   },
+   "Kaktus": {
+    "steps": [
+     "?/20, by hand"
+    ],
+    "text": null
+   }
+  },
+  "525 Piety in All Things": {
+   "Azorica": {
+    "steps": [
+     "0/120, up to 120 more"
+    ],
+    "text": null
+   },
+   "Craig": {
+    "steps": [
+     "0/120, up to 120 more"
+    ],
+    "text": null
+   },
+   "Flik Flak": {
+    "steps": [
+     "0/120, up to 120 more"
+    ],
+    "text": null
+   },
+   "Kaktus": {
+    "steps": [
+     "0/120, up to 120 more"
+    ],
+    "text": null
+   }
+  },
+  "526 Vengeance": {
+   "Azorica": {
+    "steps": [
+     "?/4, by hand",
+     "0/1, after the one before"
+    ],
+    "text": null
+   },
+   "Craig": {
+    "steps": [
+     "?/4, by hand",
+     "0/1, after the one before"
+    ],
+    "text": null
+   },
+   "Flik Flak": {
+    "steps": [
+     "?/4, by hand",
+     "0/1, after the one before"
+    ],
+    "text": null
+   },
+   "Kaktus": {
+    "steps": [
+     "?/4, by hand",
+     "0/1, after the one before"
+    ],
+    "text": null
+   }
+  },
+  "527 Zealot of the Blood Good": {
+   "Azorica": {
+    "steps": [
+     "?/12, by hand"
+    ],
+    "text": null
+   },
+   "Craig": {
+    "steps": [
+     "?/12, by hand"
+    ],
+    "text": null
+   },
+   "Flik Flak": {
+    "steps": [
+     "?/12, by hand"
+    ],
+    "text": null
+   },
+   "Kaktus": {
+    "steps": [
+     "?/12, by hand"
+    ],
+    "text": null
+   }
+  },
+  "528 Goliath Toppler": {
+   "Azorica": {
+    "steps": [
+     "2/4"
+    ],
+    "text": "2/4"
+   },
+   "Craig": {
+    "steps": [
+     "2/4"
+    ],
+    "text": "2/4"
+   },
+   "Flik Flak": {
+    "steps": [
+     "2/4"
+    ],
+    "text": "2/4"
+   },
+   "Kaktus": {
+    "steps": [
+     "1/4"
+    ],
+    "text": "1/4"
+   }
+  },
+  "529 The Fall of Man": {
+   "Azorica": {
+    "steps": [
+     "0/2",
+     "0/1, after the one before"
+    ],
+    "text": "0/2, then 0/1"
+   },
+   "Craig": {
+    "steps": [
+     "0/2",
+     "0/1, after the one before"
+    ],
+    "text": "0/2, then 0/1"
+   },
+   "Flik Flak": {
+    "steps": [
+     "0/2",
+     "0/1, after the one before"
+    ],
+    "text": "0/2, then 0/1"
+   },
+   "Kaktus": {
+    "steps": [
+     "0/2",
+     "0/1, after the one before"
+    ],
+    "text": "0/2, then 0/1"
+   }
+  },
+  "530 Augmented Abilities": {
+   "Azorica": {
+    "steps": [
+     "0/4, up to 4 more"
+    ],
+    "text": null
+   },
+   "Craig": {
+    "steps": [
+     "0/4, up to 4 more"
+    ],
+    "text": null
+   },
+   "Flik Flak": {
+    "steps": [
+     "0/4, up to 4 more"
+    ],
+    "text": null
+   },
+   "Kaktus": {
+    "steps": [
+     "0/4, up to 4 more"
+    ],
+    "text": null
+   }
+  },
+  "531 Elemental Samples": {
+   "Azorica": {
+    "steps": [
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand"
+    ],
+    "text": null
+   },
+   "Craig": {
+    "steps": [
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand"
+    ],
+    "text": null
+   },
+   "Flik Flak": {
+    "steps": [
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand"
+    ],
+    "text": null
+   },
+   "Kaktus": {
+    "steps": [
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand"
+    ],
+    "text": null
+   }
+  },
+  "532 A Helping Hand": {
+   "Azorica": {
+    "steps": [
+     "0/2"
+    ],
+    "text": "0/2"
+   },
+   "Craig": {
+    "steps": [
+     "0/2"
+    ],
+    "text": "0/2"
+   },
+   "Flik Flak": {
+    "steps": [
+     "0/2"
+    ],
+    "text": "0/2"
+   },
+   "Kaktus": {
+    "steps": [
+     "0/2"
+    ],
+    "text": "0/2"
+   }
+  },
+  "533 The Perfect Poison": {
+   "Azorica": {
+    "steps": [
+     "?/3, by hand",
+     "?/3, by hand",
+     "?/3, by hand"
+    ],
+    "text": null
+   },
+   "Craig": {
+    "steps": [
+     "?/3, by hand",
+     "?/3, by hand",
+     "?/3, by hand"
+    ],
+    "text": null
+   },
+   "Flik Flak": {
+    "steps": [
+     "?/3, by hand",
+     "?/3, by hand",
+     "?/3, by hand"
+    ],
+    "text": null
+   },
+   "Kaktus": {
+    "steps": [
+     "?/3, by hand",
+     "?/3, by hand",
+     "?/3, by hand"
+    ],
+    "text": null
+   }
+  }
+ },
+ "sample": {
+  "510 Seeker of Xorn": {
+   "Grunt": {
+    "steps": [
+     "0/3",
+     "0/1, after the one before"
+    ],
+    "text": "0/3, then 0/1"
+   },
+   "Sparks": {
+    "steps": [
+     "0/3",
+     "0/1, after the one before"
+    ],
+    "text": "0/3, then 0/1"
+   }
+  },
+  "511 Merchant Class": {
+   "Grunt": {
+    "steps": [
+     "0/2",
+     "0/2",
+     "1/2",
+     "0/3",
+     "1/4"
+    ],
+    "text": "0/2 + 0/2 + 1/2 + 0/3 + 1/4"
+   },
+   "Sparks": {
+    "steps": [
+     "0/2",
+     "0/2",
+     "0/2",
+     "0/3",
+     "0/4"
+    ],
+    "text": "0/2 + 0/2 + 0/2 + 0/3 + 0/4"
+   }
+  },
+  "512 Greed Is Good": {
+   "Grunt": {
+    "steps": [
+     "35/200"
+    ],
+    "text": "35/200"
+   },
+   "Sparks": {
+    "steps": [
+     "12/200"
+    ],
+    "text": "12/200"
+   }
+  },
+  "513 Finding the Cure": {
+   "Grunt": {
+    "steps": [
+     "?/8, by hand",
+     "0/1, after the one before"
+    ],
+    "text": null
+   },
+   "Sparks": {
+    "steps": [
+     "?/8, by hand",
+     "0/1, after the one before"
+    ],
+    "text": null
+   }
+  },
+  "514 A Study of Anatomy": {
+   "Grunt": {
+    "steps": [
+     "?/15, by hand"
+    ],
+    "text": null
+   },
+   "Sparks": {
+    "steps": [
+     "?/15, by hand"
+    ],
+    "text": null
+   }
+  },
+  "515 Law Bringer": {
+   "Grunt": {
+    "steps": [
+     "?/20, by hand"
+    ],
+    "text": null
+   },
+   "Sparks": {
+    "steps": [
+     "?/20, by hand"
+    ],
+    "text": null
+   }
+  },
+  "516 Pounds of Flesh": {
+   "Grunt": {
+    "steps": [
+     "?/15, by hand"
+    ],
+    "text": null
+   },
+   "Sparks": {
+    "steps": [
+     "?/15, by hand"
+    ],
+    "text": null
+   }
+  },
+  "517 Trophy Hunt": {
+   "Grunt": {
+    "steps": [
+     "?/20, by hand"
+    ],
+    "text": null
+   },
+   "Sparks": {
+    "steps": [
+     "?/20, by hand"
+    ],
+    "text": null
+   }
+  },
+  "518 Eternal Wanderer": {
+   "Grunt": {
+    "steps": [
+     "2/15"
+    ],
+    "text": "2/15"
+   },
+   "Sparks": {
+    "steps": [
+     "1/15"
+    ],
+    "text": "1/15"
+   }
+  },
+  "519 Battle Legend": {
+   "Grunt": {
+    "steps": [
+     "0/15, up to 4 more"
+    ],
+    "text": null
+   },
+   "Sparks": {
+    "steps": [
+     "0/15, up to 1 more"
+    ],
+    "text": null
+   }
+  },
+  "520 Implement of Light": {
+   "Grunt": {
+    "steps": [
+     "0/1",
+     "0/7, by hand, after the one before"
+    ],
+    "text": "0/1, then 0/7"
+   },
+   "Sparks": {
+    "steps": [
+     "0/1",
+     "0/7, by hand, after the one before"
+    ],
+    "text": "0/1, then 0/7"
+   }
+  },
+  "521 Take Back the Trees": {
+   "Grunt": {
+    "steps": [
+     "0/3",
+     "0/1, after the one before"
+    ],
+    "text": "0/3, then 0/1"
+   },
+   "Sparks": {
+    "steps": [
+     "0/3",
+     "0/1, after the one before"
+    ],
+    "text": "0/3, then 0/1"
+   }
+  },
+  "522 The Thin Places": {
+   "Grunt": {
+    "steps": [
+     "0/6"
+    ],
+    "text": "0/6"
+   },
+   "Sparks": {
+    "steps": [
+     "0/6"
+    ],
+    "text": "0/6"
+   }
+  },
+  "523 Aberrant Slayer": {
+   "Grunt": {
+    "steps": [
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand"
+    ],
+    "text": null
+   },
+   "Sparks": {
+    "steps": [
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand"
+    ],
+    "text": null
+   }
+  },
+  "524 Fearless Stand": {
+   "Grunt": {
+    "steps": [
+     "?/20, by hand"
+    ],
+    "text": null
+   },
+   "Sparks": {
+    "steps": [
+     "?/20, by hand"
+    ],
+    "text": null
+   }
+  },
+  "525 Piety in All Things": {
+   "Grunt": {
+    "steps": [
+     "0/120, up to 120 more"
+    ],
+    "text": null
+   },
+   "Sparks": {
+    "steps": [
+     "0/120, up to 120 more"
+    ],
+    "text": null
+   }
+  },
+  "526 Vengeance": {
+   "Grunt": {
+    "steps": [
+     "?/4, by hand",
+     "0/1, after the one before"
+    ],
+    "text": null
+   },
+   "Sparks": {
+    "steps": [
+     "?/4, by hand",
+     "0/1, after the one before"
+    ],
+    "text": null
+   }
+  },
+  "527 Zealot of the Blood Good": {
+   "Grunt": {
+    "steps": [
+     "?/12, by hand"
+    ],
+    "text": null
+   },
+   "Sparks": {
+    "steps": [
+     "?/12, by hand"
+    ],
+    "text": null
+   }
+  },
+  "528 Goliath Toppler": {
+   "Grunt": {
+    "steps": [
+     "1/4"
+    ],
+    "text": "1/4"
+   },
+   "Sparks": {
+    "steps": [
+     "1/4"
+    ],
+    "text": "1/4"
+   }
+  },
+  "529 The Fall of Man": {
+   "Grunt": {
+    "steps": [
+     "0/2",
+     "0/1, after the one before"
+    ],
+    "text": "0/2, then 0/1"
+   },
+   "Sparks": {
+    "steps": [
+     "0/2",
+     "0/1, after the one before"
+    ],
+    "text": "0/2, then 0/1"
+   }
+  },
+  "530 Augmented Abilities": {
+   "Grunt": {
+    "steps": [
+     "0/4, up to 4 more"
+    ],
+    "text": null
+   },
+   "Sparks": {
+    "steps": [
+     "0/4, up to 4 more"
+    ],
+    "text": null
+   }
+  },
+  "531 Elemental Samples": {
+   "Grunt": {
+    "steps": [
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand"
+    ],
+    "text": null
+   },
+   "Sparks": {
+    "steps": [
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand",
+     "?/1, by hand"
+    ],
+    "text": null
+   }
+  },
+  "532 A Helping Hand": {
+   "Grunt": {
+    "steps": [
+     "0/2"
+    ],
+    "text": "0/2"
+   },
+   "Sparks": {
+    "steps": [
+     "0/2"
+    ],
+    "text": "0/2"
+   }
+  },
+  "533 The Perfect Poison": {
+   "Grunt": {
+    "steps": [
+     "?/3, by hand",
+     "?/3, by hand",
+     "?/3, by hand"
+    ],
+    "text": null
+   },
+   "Sparks": {
+    "steps": [
+     "?/3, by hand",
+     "?/3, by hand",
+     "?/3, by hand"
+    ],
+    "text": null
+   }
+  }
+ },
+ "byHand": {
+  "510 Seeker of Xorn": {
+   "written": "1/3, then 1/1",
+   "steps": [
+    "0/3",
+    "0/1, after the one before"
+   ],
+   "text": "0/3, then 0/1",
+   "fits": false,
+   "joinedOtherwise": "1/3 + 1/1",
+   "fitsJoinedOtherwise": false,
+   "inputs": [
+    "fixed, 0 to 0, at 0",
+    "fixed, 0 to 0, at 0"
+   ],
+   "inputsWrite": "0/3, then 0/1"
+  },
+  "511 Merchant Class": {
+   "written": "1/2 + 1/2 + 1/2 + 1/3 + 1/4",
+   "steps": [
+    "0/2",
+    "0/2",
+    "0/2",
+    "0/3",
+    "0/4"
+   ],
+   "text": "0/2 + 0/2 + 0/2 + 0/3 + 0/4",
+   "fits": false,
+   "joinedOtherwise": "1/2, then 1/2, then 1/2, then 1/3, then 1/4",
+   "fitsJoinedOtherwise": false,
+   "inputs": [
+    "fixed, 0 to 0, at 0",
+    "fixed, 0 to 0, at 0",
+    "fixed, 0 to 0, at 0",
+    "fixed, 0 to 0, at 0",
+    "fixed, 0 to 0, at 0"
+   ],
+   "inputsWrite": "0/2 + 0/2 + 0/2 + 0/3 + 0/4"
+  },
+  "512 Greed Is Good": {
+   "written": "1/200",
+   "steps": [
+    "0/200"
+   ],
+   "text": "0/200",
+   "fits": false,
+   "inputs": [
+    "fixed, 0 to 0, at 0"
+   ],
+   "inputsWrite": "0/200"
+  },
+  "513 Finding the Cure": {
+   "written": "1/8, then 1/1",
+   "steps": [
+    "1/8, by hand",
+    "0/1, after the one before"
+   ],
+   "text": "1/8, then 0/1",
+   "fits": false,
+   "joinedOtherwise": "1/8 + 1/1",
+   "fitsJoinedOtherwise": false,
+   "inputs": [
+    "count, 0 to 8, at 1",
+    "fixed, 0 to 0, at 0"
+   ],
+   "inputsWrite": "1/8, then 0/1"
+  },
+  "514 A Study of Anatomy": {
+   "written": "1/15",
+   "steps": [
+    "1/15, by hand"
+   ],
+   "text": "1/15",
+   "fits": true,
+   "inputs": [
+    "count, 0 to 15, at 1"
+   ],
+   "inputsWrite": "1/15"
+  },
+  "515 Law Bringer": {
+   "written": "1/20",
+   "steps": [
+    "1/20, by hand"
+   ],
+   "text": "1/20",
+   "fits": true,
+   "inputs": [
+    "count, 0 to 20, at 1"
+   ],
+   "inputsWrite": "1/20"
+  },
+  "516 Pounds of Flesh": {
+   "written": "1/15",
+   "steps": [
+    "1/15, by hand"
+   ],
+   "text": "1/15",
+   "fits": true,
+   "inputs": [
+    "count, 0 to 15, at 1"
+   ],
+   "inputsWrite": "1/15"
+  },
+  "517 Trophy Hunt": {
+   "written": "1/20",
+   "steps": [
+    "1/20, by hand"
+   ],
+   "text": "1/20",
+   "fits": true,
+   "inputs": [
+    "count, 0 to 20, at 1"
+   ],
+   "inputsWrite": "1/20"
+  },
+  "518 Eternal Wanderer": {
+   "written": "1/15",
+   "steps": [
+    "0/15"
+   ],
+   "text": "0/15",
+   "fits": false,
+   "inputs": [
+    "fixed, 0 to 0, at 0"
+   ],
+   "inputsWrite": "0/15"
+  },
+  "519 Battle Legend": {
+   "written": "1/15",
+   "steps": [
+    "0/15"
+   ],
+   "text": "0/15",
+   "fits": false,
+   "inputs": [
+    "fixed, 0 to 0, at 0"
+   ],
+   "inputsWrite": "0/15"
+  },
+  "520 Implement of Light": {
+   "written": "1/1, then 1/7",
+   "steps": [
+    "0/1",
+    "1/7, by hand, after the one before"
+   ],
+   "text": "0/1, then 1/7",
+   "fits": false,
+   "joinedOtherwise": "1/1 + 1/7",
+   "fitsJoinedOtherwise": false,
+   "inputs": [
+    "fixed, 0 to 0, at 0",
+    "count, 0 to 1, at 1"
+   ],
+   "inputsWrite": "0/1, then 1/7"
+  },
+  "521 Take Back the Trees": {
+   "written": "1/3, then 1/1",
+   "steps": [
+    "0/3",
+    "0/1, after the one before"
+   ],
+   "text": "0/3, then 0/1",
+   "fits": false,
+   "joinedOtherwise": "1/3 + 1/1",
+   "fitsJoinedOtherwise": false,
+   "inputs": [
+    "fixed, 0 to 0, at 0",
+    "fixed, 0 to 0, at 0"
+   ],
+   "inputsWrite": "0/3, then 0/1"
+  },
+  "522 The Thin Places": {
+   "written": "1/6",
+   "steps": [
+    "0/6"
+   ],
+   "text": "0/6",
+   "fits": false,
+   "inputs": [
+    "fixed, 0 to 0, at 0"
+   ],
+   "inputsWrite": "0/6"
+  },
+  "523 Aberrant Slayer": {
+   "written": "1/1 + 1/1 + 1/1 + 1/1 + 1/1 + 1/1",
+   "steps": [
+    "1/1, by hand",
+    "1/1, by hand",
+    "1/1, by hand",
+    "1/1, by hand",
+    "1/1, by hand",
+    "1/1, by hand"
+   ],
+   "text": "1/1 + 1/1 + 1/1 + 1/1 + 1/1 + 1/1",
+   "fits": true,
+   "joinedOtherwise": "1/1, then 1/1, then 1/1, then 1/1, then 1/1, then 1/1",
+   "fitsJoinedOtherwise": false,
+   "inputs": [
+    "check, 0 to 1, at 1",
+    "check, 0 to 1, at 1",
+    "check, 0 to 1, at 1",
+    "check, 0 to 1, at 1",
+    "check, 0 to 1, at 1",
+    "check, 0 to 1, at 1"
+   ],
+   "inputsWrite": "1/1 + 1/1 + 1/1 + 1/1 + 1/1 + 1/1"
+  },
+  "524 Fearless Stand": {
+   "written": "1/20",
+   "steps": [
+    "1/20, by hand"
+   ],
+   "text": "1/20",
+   "fits": true,
+   "inputs": [
+    "count, 0 to 20, at 1"
+   ],
+   "inputsWrite": "1/20"
+  },
+  "525 Piety in All Things": {
+   "written": "1/120",
+   "steps": [
+    "0/120, up to 120 more"
+   ],
+   "text": null,
+   "fits": true,
+   "inputs": [
+    "count, 0 to 120, at 1"
+   ],
+   "inputsWrite": "1/120"
+  },
+  "526 Vengeance": {
+   "written": "1/4, then 1/1",
+   "steps": [
+    "1/4, by hand",
+    "0/1, after the one before"
+   ],
+   "text": "1/4, then 0/1",
+   "fits": false,
+   "joinedOtherwise": "1/4 + 1/1",
+   "fitsJoinedOtherwise": false,
+   "inputs": [
+    "count, 0 to 4, at 1",
+    "fixed, 0 to 0, at 0"
+   ],
+   "inputsWrite": "1/4, then 0/1"
+  },
+  "527 Zealot of the Blood Good": {
+   "written": "1/12",
+   "steps": [
+    "1/12, by hand"
+   ],
+   "text": "1/12",
+   "fits": true,
+   "inputs": [
+    "count, 0 to 12, at 1"
+   ],
+   "inputsWrite": "1/12"
+  },
+  "528 Goliath Toppler": {
+   "written": "1/4",
+   "steps": [
+    "0/4"
+   ],
+   "text": "0/4",
+   "fits": false,
+   "inputs": [
+    "fixed, 0 to 0, at 0"
+   ],
+   "inputsWrite": "0/4"
+  },
+  "529 The Fall of Man": {
+   "written": "1/2, then 1/1",
+   "steps": [
+    "0/2",
+    "0/1, after the one before"
+   ],
+   "text": "0/2, then 0/1",
+   "fits": false,
+   "joinedOtherwise": "1/2 + 1/1",
+   "fitsJoinedOtherwise": false,
+   "inputs": [
+    "fixed, 0 to 0, at 0",
+    "fixed, 0 to 0, at 0"
+   ],
+   "inputsWrite": "0/2, then 0/1"
+  },
+  "530 Augmented Abilities": {
+   "written": "1/4",
+   "steps": [
+    "0/4, up to 4 more"
+   ],
+   "text": null,
+   "fits": true,
+   "inputs": [
+    "count, 0 to 4, at 1"
+   ],
+   "inputsWrite": "1/4"
+  },
+  "531 Elemental Samples": {
+   "written": "1/1 + 1/1 + 1/1 + 1/1 + 1/1 + 1/1",
+   "steps": [
+    "1/1, by hand",
+    "1/1, by hand",
+    "1/1, by hand",
+    "1/1, by hand",
+    "1/1, by hand",
+    "1/1, by hand"
+   ],
+   "text": "1/1 + 1/1 + 1/1 + 1/1 + 1/1 + 1/1",
+   "fits": true,
+   "joinedOtherwise": "1/1, then 1/1, then 1/1, then 1/1, then 1/1, then 1/1",
+   "fitsJoinedOtherwise": false,
+   "inputs": [
+    "check, 0 to 1, at 1",
+    "check, 0 to 1, at 1",
+    "check, 0 to 1, at 1",
+    "check, 0 to 1, at 1",
+    "check, 0 to 1, at 1",
+    "check, 0 to 1, at 1"
+   ],
+   "inputsWrite": "1/1 + 1/1 + 1/1 + 1/1 + 1/1 + 1/1"
+  },
+  "532 A Helping Hand": {
+   "written": "1/2",
+   "steps": [
+    "0/2"
+   ],
+   "text": "0/2",
+   "fits": false,
+   "inputs": [
+    "fixed, 0 to 0, at 0"
+   ],
+   "inputsWrite": "0/2"
+  },
+  "533 The Perfect Poison": {
+   "written": "1/3 + 1/3 + 1/3",
+   "steps": [
+    "1/3, by hand",
+    "1/3, by hand",
+    "1/3, by hand"
+   ],
+   "text": "1/3 + 1/3 + 1/3",
+   "fits": true,
+   "joinedOtherwise": "1/3, then 1/3, then 1/3",
+   "fitsJoinedOtherwise": false,
+   "inputs": [
+    "count, 0 to 3, at 1",
+    "count, 0 to 3, at 1",
+    "count, 0 to 3, at 1"
+   ],
+   "inputsWrite": "1/3 + 1/3 + 1/3"
+  }
+ }
+}
