@@ -555,6 +555,8 @@ function renderOverview(data) {
       h("div", { class: "tiles" }, levelTile(data), reputationTile(party, data.ledger), prosperityTile(city, data.ledger)),
       // Phones: the scenario picked for tonight, to set up by.
       scenarioCard(data),
+      // Phones: the battle goal this phone's player kept, hidden until asked.
+      battleGoalCard(data),
       h("div", { class: "hero-side" },
         todoList(data),
         h("div", { class: "ready", "data-tab": "tonight" },
@@ -2637,6 +2639,47 @@ function questStat(data, c) {
       shown ? value : h("span", { class: "quest quest-hidden" }, icon("eye"), "Show")));
 }
 
+// The battle goal a player kept (phones), as secret as the card: kept with
+// the tracker in their phone's browser only, and on Tonight shown only when
+// asked. Which cards there are and the checkmarks each gives:
+// data/gloomhaven-quests.json. After the scenario, the Town summary asks
+// whether it was made, for its checkmarks.
+const goalShown = new Set();
+
+function battleGoal(name) {
+  const id = tableState(name).battleGoal;
+  const card = id && questRef?.battleGoals?.[id];
+  return card ? { id, ...card } : null;
+}
+
+function battleGoalCard(data) {
+  const c = data.characters.find(x => !x.retired && x.name === me);
+  const goals = Object.entries(questRef?.battleGoals || {});
+  if (!c || !goals.length) return null;
+  const kept = battleGoal(c.name);
+  const shown = goalShown.has(c.name);
+  const redraw = key => { render(data, "overview"); document.querySelector(`[data-key="${key}"]`)?.focus(); };
+  const choose = id => { saveTable(c.name, { battleGoal: id || null, goalMet: null }); goalShown.delete(c.name); redraw(id ? "goal-show" : "goal-pick"); };
+  return h("div", { class: "card goal-card", "data-tab": "tonight" },
+    h("div", { class: "block-head" }, h("h2", { class: "label" }, `${c.name}'s battle goal`),
+      kept && shown ? h("button", { type: "button", class: "btn quiet goal-change", "data-key": "goal-change", onclick: () => choose(null) }, "Change") : null),
+    kept
+      ? h("button", { type: "button", class: `quest-reveal goal-reveal${shown ? " shown" : ""}`, "data-key": "goal-show",
+          "aria-expanded": String(shown), "aria-label": shown ? null : `Show ${c.name}'s battle goal`, title: shown ? "Tap to hide" : null,
+          onclick: () => { if (shown) goalShown.delete(c.name); else goalShown.add(c.name); redraw("goal-show"); } },
+          shown
+            ? [h("span", { class: "quest" }, kept.name), h("span", { class: "goal-checks" }, plural(kept.checks, "checkmark"), " if made")]
+            : h("span", { class: "quest quest-hidden" }, icon("eye"), "Show"))
+      : h("label", { class: "field" },
+          h("span", {}, "Which card did you keep?"),
+          h("select", { "data-key": "goal-pick", onchange: e => choose(e.target.value) },
+            h("option", { value: "" }, "Pick it after the deal"),
+            // By name, as it's read off the card.
+            goals.sort(([, a], [, b]) => a.name.localeCompare(b.name)).map(([id, g]) =>
+              h("option", { value: id }, `${g.name} (${plural(g.checks, "checkmark")})`)))),
+    h("p", { class: "small muted" }, kept ? "Kept on this phone only. After the scenario, Town asks whether you made it." : "Kept on this phone only, out of sight until you ask for it."));
+}
+
 function toggleQuest(name) {
   if (questShown.has(name)) questShown.delete(name); else questShown.add(name);
 }
@@ -3246,7 +3289,7 @@ function tableDock(c) {
       }
       disarm();
       Object.assign(state, { hp: null, xp: 0, coins: 0 });
-      saveTable(c.name, { hp: null, xp: 0, coins: 0, items: {}, conds: {}, cards: null, goal: 0 });
+      saveTable(c.name, { hp: null, xp: 0, coins: 0, items: {}, conds: {}, cards: null, goal: 0, battleGoal: null, goalMet: null });
       cardUndo.delete(c.name);
       paint();
       // Every item ready again, on the sheet above.
@@ -3333,7 +3376,13 @@ function scenarioSummary(data) {
         h("h3", {}, c.name),
         row("XP", `${st.xp} on the dial${bonus ? ` + ${bonus} bonus` : ""}`, `+${xp}`),
         row("Gold", t ? `${plural(st.coins, "coin")} × ${t.gold}` : plural(st.coins, "coin"), gold != null ? `+${gold}` : "?"),
-        won ? h("div", { class: "sum-row" },
+        won && battleGoal(c.name) ? h("div", { class: "sum-row" },
+          h("span", { class: "label sum-goal-label" }, `${battleGoal(c.name).name} (${plural(battleGoal(c.name).checks, "checkmark")})`),
+          h("span", { class: "segmented sum-made", role: "group", "aria-label": `Battle goal ${battleGoal(c.name).name}` },
+            [[true, "Made it"], [false, "Missed"]].map(([made, label]) =>
+              h("button", { type: "button", "data-key": `goal-${made ? "made" : "missed"}-${c.name}`, "aria-pressed": String(st.goalMet === made),
+                onclick: () => { saveTable(c.name, { goalMet: made, goal: made ? battleGoal(c.name).checks : 0 }); render(data, "shop"); } }, label))))
+        : won ? h("div", { class: "sum-row" },
           h("span", { class: "label sum-goal-label" }, "Battle goal checkmarks"),
           h("span", { class: "sum-goal" },
             h("button", { type: "button", class: "dock-step", "data-key": `goal-down-${c.name}`, "aria-label": "1 less checkmark",
@@ -5251,9 +5300,13 @@ async function start() {
       if (location.hash === "#characters") window.scrollTo({ top: 0, behavior: "instant" });
     });
     window.addEventListener("hashchange", onNavigate);
-    // Town's summary reads the tracker, which the Play tab changes: drawn
-    // afresh on the way there.
-    window.addEventListener("hashchange", () => { if (phone.matches && currentTab() === "town") render(data, "shop"); });
+    // Town's summary and Tonight's battle goal read the tracker, which the
+    // Play tab changes (its reset clears them): drawn afresh on the way there.
+    window.addEventListener("hashchange", () => {
+      if (!phone.matches) return;
+      if (currentTab() === "town") render(data, "shop");
+      if (currentTab() === "tonight") render(data, "overview");
+    });
     // Skip to content: to the page itself, without changing the address (which
     // on a phone would change the tab).
     document.querySelector(".skip")?.addEventListener("click", e => {

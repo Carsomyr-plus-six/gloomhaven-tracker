@@ -16,8 +16,9 @@ Keeps only what the tracker needs and writes three files:
   spends or consumes it (and after how many uses). No item text.
 - data/gloomhaven-quests.json: each personal quest card: its name, its steps
   (a short label, the count, which step must come first, and how the source
-  tracks it), and the class box or envelope it opens. Characters' quests are
-  secret: campaign.json never says which card anyone holds.
+  tracks it), and the class box or envelope it opens; and each battle goal
+  card's name and checkmarks (no text). Characters' quests and battle goals
+  are secret: campaign.json never says which card anyone holds.
 
 Each scenario also notes whether it has a boss (from the monster files), as
 a personal quest counts boss scenarios, and the treasure tiles on its map.
@@ -436,6 +437,9 @@ def main():
         "license": "AGPL-3.0",
         "retrieved": date.today().isoformat(),
         "quests": quests,
+        # Battle goal cards: the name and the checkmarks each gives. No text.
+        "battleGoals": {str(int(g["cardId"])): {"name": g["name"], "checks": int(g.get("checks", 1))}
+                        for g in fetch(f"{RAW}/battle-goals.json")},
     })
     print(f"Wrote {len(quests)} personal quests to {QUESTS_OUTPUT}")
 

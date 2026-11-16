@@ -386,5 +386,103 @@
    ],
    "unlockClass": "squidface"
   }
+ },
+ "battleGoals": {
+  "474": {
+   "name": "Aggressor",
+   "checks": 2
+  },
+  "478": {
+   "name": "Diehard",
+   "checks": 1
+  },
+  "475": {
+   "name": "Dynamo",
+   "checks": 1
+  },
+  "479": {
+   "name": "Executioner",
+   "checks": 1
+  },
+  "467": {
+   "name": "Explorer",
+   "checks": 1
+  },
+  "463": {
+   "name": "Fast Healer",
+   "checks": 1
+  },
+  "468": {
+   "name": "Hoarder",
+   "checks": 1
+  },
+  "472": {
+   "name": "Hunter",
+   "checks": 1
+  },
+  "469": {
+   "name": "Indigent",
+   "checks": 2
+  },
+  "459": {
+   "name": "Layabout",
+   "checks": 2
+  },
+  "462": {
+   "name": "Masochist",
+   "checks": 1
+  },
+  "464": {
+   "name": "Neutralizer",
+   "checks": 1
+  },
+  "477": {
+   "name": "Opener",
+   "checks": 1
+  },
+  "470": {
+   "name": "Pacifist",
+   "checks": 1
+  },
+  "465": {
+   "name": "Plunderer",
+   "checks": 1
+  },
+  "473": {
+   "name": "Professional",
+   "checks": 1
+  },
+  "466": {
+   "name": "Protector",
+   "checks": 1
+  },
+  "476": {
+   "name": "Purist",
+   "checks": 2
+  },
+  "471": {
+   "name": "Sadist",
+   "checks": 1
+  },
+  "481": {
+   "name": "Scrambler",
+   "checks": 1
+  },
+  "480": {
+   "name": "Straggler",
+   "checks": 1
+  },
+  "458": {
+   "name": "Streamliner",
+   "checks": 1
+  },
+  "460": {
+   "name": "Workhorse",
+   "checks": 1
+  },
+  "461": {
+   "name": "Zealot",
+   "checks": 1
+  }
  }
 }
