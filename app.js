@@ -291,9 +291,9 @@ function priceText(modifier) {
 function ledgerFoot(t, unit) {
   if (!t?.entries.length) return null;
   return h("details", { class: "ledger" },
+    // The track draws what it could be; the fold says how many are open.
     h("summary", {}, isExact(t.range) ? `From ${plural(t.entries.length, "source")}`
-      : `Could be ${rangeText(t.range)}: ${[t.unsure.length ? `${t.unsure.join(", ")} not settled` : null,
-                                           t.unknown?.length ? `${t.unknown.join(", ")} not known` : null].filter(Boolean).join("; ")}`),
+      : `Could be ${rangeText(t.range)} · ${t.unsure.length + (t.unknown?.length || 0)} open`),
     h("ul", {}, t.entries.map(e => h("li", {},
       h("span", {}, e.label),
       h("span", { class: "num" }, `${rangeText(e.range)}${unit}`)))));
@@ -349,7 +349,7 @@ function reputationTile(party, ledger) {
     else zones.push({ from: r, to: r, modifier: shopModifier(r) });
   }
   const range = ledger?.reputation?.range;
-  return h("div", { class: "card tile" },
+  return h("div", { class: "card tile rep-tile" },
     h("div", { class: "tile-top" }, h("span", { class: "label" }, "Reputation"), h("span", { class: "figure" }, signed(rep))),
     stepTrack({
       zones: zones.map(z => ({ from: edge(z.from), to: edge(z.to + 1),
@@ -358,7 +358,7 @@ function reputationTile(party, ledger) {
       maybe: range && !isExact(range) ? [edge(clamp(range.lo)), edge(clamp(range.hi) + 1)] : null,
       step: next ? { at: edge(next.at), text: next.modifier === 0 ? "Normal" : `${signed(next.modifier)} gold` } : null,
       ends: ["−20", "+20"],
-      said: `Reputation ${signed(rep)}: shop ${modifier === 0 ? "prices normal" : priceText(modifier)}${next ? `, ${priceText(next.modifier)} from ${signed(next.at)}` : ""}.`,
+      said: `Reputation ${signed(rep)}${range && !isExact(range) ? `, could be ${rangeText(range)}` : ""}: shop ${modifier === 0 ? "prices normal" : priceText(modifier)}${next ? `, ${priceText(next.modifier)} from ${signed(next.at)}` : ""}.`,
     }),
     h("div", { class: "tile-foot" },
       h("strong", {}, modifier === 0 ? "Prices normal" : `Prices ${signed(modifier)} gold`)),
@@ -394,7 +394,7 @@ function prosperityTile(city, ledger) {
     return (l - 1 + (m - lo) / (hi - lo)) / levels * 100;
   };
   const range = ledger?.prosperity?.range;
-  return h("div", { class: "card tile" },
+  return h("div", { class: "card tile prosp-tile" },
     h("div", { class: "tile-top" }, h("span", { class: "label" }, "Prosperity"), h("span", { class: "figure" }, level)),
     stepTrack({
       zones: Array.from({ length: levels }, (_, i) => ({ from: i / levels * 100, to: (i + 1) / levels * 100,
@@ -466,8 +466,14 @@ function levelTile(data) {
     playing.length
       ? [h("div", { class: "level-now" },
           h("span", { role: "img", "aria-label": `Scenario level ${level}` }, hex(level, "now")),
-          h("p", { class: "level-why" }, `Average character level ${average}, halved and rounded up`,
-            shift ? `: ${recommended}, ${signed(shift)} on ${diffLabel}` : null)),
+          // How it was reached, as a sum: the average of the levels picked
+          // below, halved and rounded up, and the difficulty's step.
+          h("p", { class: "level-why", role: "img",
+                   "aria-label": `Average character level ${average}, halved and rounded up${shift ? `: ${recommended}, ${signed(shift)} on ${diffLabel}` : ""}` },
+            h("span", { class: "eq" }, h("small", {}, "avg"), average),
+            h("span", { class: "op", title: "Halved, rounded up" }, "÷ 2 ↑ ="),
+            h("span", { class: "eq" }, recommended),
+            shift ? [h("span", { class: "op" }, `${signed(shift)} ${diffLabel} =`), h("span", { class: "eq" }, level)] : null)),
         // Monster level is the scenario level, which the hex shows.
         h("div", { class: "level-stats" }, stat("Gold per coin", st.gold), stat("Trap damage", st.trap), stat("Bonus XP", st.xp))]
       : h("p", { class: "small muted" }, "Pick who is playing."),
@@ -1012,6 +1018,13 @@ function partyList(data) {
 
 // --- Event decks -------------------------------------------------------------
 
+// The option an event was resolved with, as a badge: "?" when it wasn't
+// recorded, or can't be known.
+function optionBadge(e) {
+  const said = e.option ? `Option ${e.option}` : e.unknown ? "Option not known" : "Option not recorded";
+  return h("span", { class: `opt${e.option ? "" : " unknown"}`, title: said, "aria-label": said }, e.option || "?");
+}
+
 function renderEvents(data) {
   const ev = data.eventState;
   if (!ev) return null;
@@ -1055,17 +1068,16 @@ function renderEvents(data) {
 
   const drawn = e => {
     const detail = [
-      e.option ? `Option ${e.option}` : null,
       e.effects.length ? capitalize(e.effects.join(", ")) : null,
       !e.effects.length && e.adds.length ? `added ${e.adds.map(([d, n]) => eventLabel(d, n)).join(", ")}` : null,
       e.scenario ? `before #${e.scenario}` : null,
     ].filter(Boolean).join(" · ");
     return h("li", {},
-      h("strong", {}, e.label),
-      // What was recorded at full strength; notes, and what's missing, quietly,
-      // so a list of unrecorded draws doesn't shout its gaps.
+      h("strong", {}, e.label, optionBadge(e)),
+      // What was recorded at full strength, and notes quietly; the badge
+      // says when the option is missing, so a list of unrecorded draws
+      // doesn't spell out its gaps.
       h("span", {}, detail || null,
-        !detail && !e.notes ? h("div", { class: "small muted" }, e.unknown ? "Option not known" : "Option not recorded") : null,
         e.notes ? h("div", { class: "small muted" }, e.notes) : null,
         (asks.get(e) || []).map(text => h("div", { class: "ask" }, icon("question"), text))),
       h("span", { class: `fate ${e.fate || (e.unknown ? "unknown" : "open")}` },
@@ -1116,9 +1128,12 @@ function renderRecord(data) {
     (data.draws || []).map(d => nudge("question", `Draw ${d.what}`, [
       `From ${d.from}. Not drawn yet.`,
       d.how ? h("span", { class: "how" }, codeText(`Once drawn, record it in \`campaign.json\`: ${d.how}.`)) : null])),
-    (data.claims || []).map(c => nudge("question", `Who looted ${c.item}?`, [
+    // The form settles it; without the form, say what to write.
+    (data.claims || []).map((c, i) => nudge("question", `Who looted ${c.item}?`, [
       `Treasure ${c.treasure} in ${c.where} gave it, but no one is written down as looting it, and no sheet has it.`,
-      h("span", { class: "how" }, codeText(`Record it in \`campaign.json\`: ${c.how}.`))])),
+      rawCampaign
+        ? h("div", { class: "nudge-do" }, h("button", { type: "button", class: "todo-do", "data-key": `claim-${i}`, onclick: () => recordClaim(data, i) }, "Record it"))
+        : h("span", { class: "how" }, codeText(`Record it in \`campaign.json\`: ${c.how}.`))])),
     h("div", { class: "record" },
       card("Party achievements", recordRows(party.achievements, data)),
       card("Global achievements", recordRows(city.globalAchievements, data)),
@@ -2173,7 +2188,7 @@ function renderScenarios(data) {
     const layout = treeLayout(all);
     return [
       head,
-      h("p", { class: "aside" }, "Each scenario sits under the one that unlocked it."),
+      h("p", { class: "sr-only" }, "Each scenario sits under the one that unlocked it."),
       h("div", { class: "legend" },
         counts.available ? h("span", {}, h("i", { "aria-hidden": "true" }), `${counts.available} available`) : null,
         counts.completed ? h("span", {}, h("span", { class: "ink-completed" }, icon("check")), `${counts.completed} completed`) : null,
@@ -2448,6 +2463,16 @@ function goalBoxes(checkmarks) {
     }));
 }
 
+// What a modifier card does, for its colour: Null and the 2×, worse or
+// better than +0, or +0 (an element or effect on a +0 is still +0).
+function cardKind(label) {
+  if (label === "Null") return "null";
+  if (label === "2×") return "crit";
+  const n = /^([+−])(\d)/.exec(label);
+  if (!n || n[2] === "0") return "zero";
+  return n[1] === "−" ? "bad" : "good";
+}
+
 // The deck as counts, with the perks' icons; any perk it couldn't read is
 // listed, so nothing is silently left out.
 function attackDeckBlock(c, rows) {
@@ -2457,14 +2482,25 @@ function attackDeckBlock(c, rows) {
   const { cards, total, unread } = attackDeck(inOrder.flatMap(r => Array(r.count).fill(r.match ? r.match.text : r.written)));
   // Sanctuary blessings in the session being recorded: for the next scenario.
   const blessed = c.blessNext || (draft?.donations || []).some(x => x.character === c.name);
+  // Worst to best, a segment per card, so a deck's quality reads at a glance
+  // and decks compare side by side. The chips under it are its legend.
+  const KINDS = ["null", "bad", "zero", "good", "crit", "bless"];
+  const segments = [...cards.flatMap(([label, n]) => Array(n).fill(cardKind(label))), ...(blessed ? ["bless", "bless"] : [])]
+    .sort((a, b) => KINDS.indexOf(a) - KINDS.indexOf(b));
+  const tally = k => segments.filter(x => k.includes(x)).length;
   return h("div", { class: "block deck-block" },
     h("div", { class: "block-head" }, h("span", { class: "label" }, "Attack modifier deck"),
       h("span", {}, `${total} cards${blessed ? " + 2 Bless" : ""}`)),
+    h("div", { class: "deck-bar", role: "img",
+               "aria-label": `${tally(["null", "bad"])} below +0, ${tally(["zero"])} at +0, ${tally(["good", "crit", "bless"])} above` },
+      segments.map(k => h("i", { class: `k-${k}` }))),
     // Worst to best, the bad cards quieter; each count in a badge of its own,
     // so the 2× card doesn't read "2× ×1".
     h("ul", { class: "deck-cards" }, cards.map(([label, n]) => h("li", { class: /^(Null|−)/.test(label) ? "bad" : label === "+0" ? null : "good" },
+        h("i", { class: `swatch k-${cardKind(label)}`, "aria-hidden": "true" }),
         h("span", {}, perkText(label)), h("span", { class: "sr-only" }, ", "), h("b", { "aria-label": plural(n, "card") }, String(n)))),
       blessed ? h("li", { class: "bless", title: "From a Sanctuary donation, for the next scenario only" },
+        h("i", { class: "swatch k-bless", "aria-hidden": "true" }),
         h("span", {}, "Bless"), h("span", { class: "sr-only" }, ", "), h("b", { "aria-label": "2 cards, next scenario only" }, "2")) : null),
     unread.length ? h("p", { class: "small muted" }, `Not counted, as written: ${unread.join("; ")}`) : null);
 }
@@ -2935,7 +2971,8 @@ function renderShop(data) {
         // What it sells for: on the shopper's own items that's their Sell button.
         !shopper && item.held.length ? `sells for ${item.sells}` : null,
       ].filter(Boolean).join(" · "))),
-    h("span", { class: "price-col" }, h("span", { class: "price num" }, `${item.price} `, h("span", { class: "unit" }, "gold")), action(item)));
+    h("span", { class: "price-col" }, h("span", { class: "price num" }, `${item.price} `, h("span", { class: "unit" }, "gold"),
+        doubt ? h("span", { class: "price-doubt", title: doubt.why, "aria-label": doubt.why }, doubt.text) : null), action(item)));
 
   // One mark per copy of the item: empty while it's in the shop, the
   // holder's class icon once someone carries it.
@@ -2952,6 +2989,7 @@ function renderShop(data) {
   const showing = item => shopFilter !== "can" || !shopper || canBuy(item) || bought(item);
   const groups = SLOTS.map(([slot, label]) => [slot, label, shop.stock.filter(i => i.slot === slot && showing(i))]).filter(([, , list]) => list.length);
   const priceNote = shop.modifier === 0 ? "normal prices" : `${signed(shop.modifier)} gold per item`;
+  const doubt = priceDoubt(shop, data.ledger?.reputation);
   const pick = name => () => { shopFor = shopper?.name === name ? "" : name; render(data, "shop"); };
 
   return [
@@ -2988,12 +3026,21 @@ function pricesNote(shop, rep) {
     return nudge("question", "Prices may be off",
       `Reputation could be ${rangeText(shop.range)}, which would change prices. Settle the open events on the Overview.`);
   }
+  // What can never be known needs no box: each price carries its tag.
+  return null;
+}
+
+// How far a price could be off while reputation isn't certain: "−1?", with
+// the reason on hover. null when prices are sure.
+function priceDoubt(shop, rep) {
+  if (!shop.pricesUnsure) return null;
   const lower = shop.modifier - shopModifier(shop.range.hi);
   const higher = shopModifier(shop.range.lo) - shop.modifier;
+  if (lower <= 0 && higher <= 0) return null;
+  const open = [...(rep?.unsure || []), ...(rep?.unknown || [])].join(", ").replace(/, ([^,]*)$/, " and $1");
   const could = [lower > 0 ? `${lower} gold lower` : null, higher > 0 ? `${higher} gold higher` : null].filter(Boolean).join(" or ");
-  const names = rep.unknown.join(", ").replace(/, ([^,]*)$/, " and $1");
-  return nudge("question", "Prices could differ",
-    `Reputation could be ${rangeText(shop.range)}, as ${names} ${rep.unknown.length === 1 ? "isn't" : "aren't"} known, so prices may be ${could}.`, "note");
+  return { text: `${[lower > 0 ? `−${lower}` : null, higher > 0 ? `+${higher}` : null].filter(Boolean).join("/")}?`,
+           why: `Reputation could be ${rangeText(shop.range)}${open ? ` (${open} open)` : ""}: may be ${could}.` };
 }
 
 // A character's item slots, as on the sheet: head, body, legs, two hands and
@@ -3041,18 +3088,19 @@ function enhancer(data) {
 
   const key = enhancing.sticker;
   const cost = enhancementCost(enhancing);
-  const afford = data.characters.filter(c => !c.retired && c.gold >= cost.total).map(c => c.name);
+  // The active party, lit if they can pay.
+  const payers = characterOrder(data).filter(c => !c.retired && !c.inactive);
 
   return h("div", { class: "enhancer-wrap" },
     h("h3", { class: "subtitle" }, "Enhancing a card"),
     h("div", { class: "card enhancer" },
       h("div", { class: "enhancer-form" },
-        h("p", { class: "small muted" }, "Read it off the card: its level, whether the ability targets more than one, and how many stickers that action has already."),
         h("div", { class: "rec-row" },
           field("Sticker", h("select", { "data-key": "enh-sticker", onchange: set("sticker") },
             ENHANCEMENTS.map(([group, list]) => h("optgroup", { label: group },
               list.map(([k, label]) => h("option", { value: k, selected: k === key }, label)))))),
-          field("Card level", select("level", counting(1, 9))),
+          // A level X card counts as level 1.
+          field("Card level", select("level", [["1", "1 or X"], ...counting(2, 9)])),
           field("Already on it", select("previous", counting(0, 3))),
           key === "hex" ? field("Hexes it has", select("hexes", counting(1, 12))) : null),
         canDouble(key) ? h("label", { class: "rec-check" },
@@ -3067,13 +3115,15 @@ function enhancer(data) {
         !enhancing.already && num(enhancing.classCards) >= stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY)
           ? nudge("question", "Over the limit", `A class can have only as many enhanced cards as the prosperity level (${stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY)}), counting every character of the class, retired ones too.`)
           : null,
-        h("p", { class: "small muted" }, "A level X card counts as level 1.")),
+      ),
       h("div", { class: "enhancer-cost" },
         h("div", { class: "enhancer-total", "aria-live": "polite" }, h("span", { class: "figure" }, cost.total), h("span", {}, "gold")),
         h("ul", { class: "rows" }, cost.steps.map(([text, gold]) => h("li", {}, h("span", {}, text), h("span", { class: "num" }, `+${gold}`)))),
-        h("p", { class: "small muted" }, afford.length
-          ? `${afford.join(", ").replace(/, ([^,]*)$/, " and $1")} ${afford.length === 1 ? "has" : "have"} enough gold.`
-          : "No one has enough gold yet."),
+        payers.length ? h("ul", { class: "afford", "aria-label": "Who has the gold" }, payers.map(c => {
+          const ok = c.gold >= cost.total;
+          return h("li", { class: ok ? "ok" : "short", "aria-label": `${c.name}, ${c.gold} gold${ok ? "" : ", not enough"}` },
+            classIcon(c.class), h("span", {}, c.name), h("span", { class: "afford-gold" }, c.gold));
+        })) : null,
         rawCampaign ? h("button", { type: "button", class: "todo-do enhancer-record", "data-key": "enh-record",
           onclick: () => recordEnhancement(data, enhancementText(key), cost.total) }, "Record it") : null)));
   function enhancementText(k) {
@@ -3867,7 +3917,7 @@ function renderRecorder(data) {
   // What a character's row adds up to, kept current as the boxes are typed in.
   const gainText = (s, r) => {
     const g = scenarioGain(s, r, data);
-    return `Comes to ${g.xp} XP and ${g.gold} gold`;
+    return `= ${g.xp} XP, ${g.gold} gold`;
   };
   const reward = n => scenarioRef?.scenarios?.[String(n)]?.rewards;
   const scenarioBlock = (s, i) => {
@@ -3901,19 +3951,19 @@ function renderRecorder(data) {
           icon("replay"), "Replay a completed one") : null) : null,
       party.length ? h("div", { class: "rec-results" },
         h("span", { class: "label" }, "What each character gained there"),
-        h("p", { class: "small muted" }, s.result === "success"
-          ? `XP as on the dial, and coins picked up. The page adds ${st.xp} bonus XP each, and makes each coin ${st.gold} gold.`
-          : `XP as on the dial, and coins picked up: each coin is ${st.gold} gold. A failure gives no bonus XP.`),
         party.map(c => {
           s.results[c.name] ||= {};
           const r = s.results[c.name];
           return h("div", { class: "rec-row" },
             h("strong", { class: "rec-who" }, c.name),
-            field("XP", text(`sc-${i}-${c.name}-xp`, r, "xp", { type: "number", min: 0, inputmode: "numeric", "aria-label": `${c.name}: XP on the dial` }), "short"),
+            // XP as on the dial, plus the bonus on a success; coins picked up, each worth the level's gold.
+            field(["XP", s.result === "success" ? h("b", { class: "field-op" }, ` +${st.xp}`) : null],
+              text(`sc-${i}-${c.name}-xp`, r, "xp", { type: "number", min: 0, inputmode: "numeric", "aria-label": `${c.name}: XP on the dial${s.result === "success" ? `, plus ${st.xp} bonus` : ""}` }), "short"),
             // A draft from before coins were asked for keeps its gold box.
             filled(r.gold) && !filled(r.coins)
               ? field("Gold", text(`sc-${i}-${c.name}-gold`, r, "gold", { type: "number", min: 0, inputmode: "numeric", "aria-label": `${c.name}: gold` }), "short")
-              : field("Coins", text(`sc-${i}-${c.name}-coins`, r, "coins", { type: "number", min: 0, inputmode: "numeric", "aria-label": `${c.name}: coins` }), "short"),
+              : field(["Coins", h("b", { class: "field-op" }, ` ×${st.gold}`)],
+                  text(`sc-${i}-${c.name}-coins`, r, "coins", { type: "number", min: 0, inputmode: "numeric", "aria-label": `${c.name}: coins, ${st.gold} gold each` }), "short"),
             s.result === "success"
               ? field("Checkmarks", text(`sc-${i}-${c.name}-cm`, r, "checkmarks", { type: "number", min: 0, max: 3, inputmode: "numeric", "aria-label": `${c.name}: battle goal checkmarks` }), "short")
               : null,
@@ -4188,10 +4238,10 @@ function renderRecorder(data) {
       // Personal quest progress, for those who track it as "n/m".
       // The current progress is a secret, as on the sheet: tap to see it.
       h("div", { class: "field" },
-        h("span", {}, "Personal quests (only what's changed, as 3/15 or 1/3, then 0/1)"),
+        h("span", {}, "Personal quests that moved"),
         h("div", { class: "rec-row" }, active.map(c => h("div", { class: "pq-field" },
           field(c.name, text(`pq-${c.name}`, d.quests, c.name,
-            { autocomplete: "off", "aria-label": `${c.name}'s personal quest progress, if it changed` })),
+            { autocomplete: "off", placeholder: "3/15", "aria-label": `${c.name}'s personal quest progress, if it changed, as 3/15, or 1/3, then 0/1` })),
           c.personalQuest ? h("button", { type: "button", class: "pq-now", "data-key": `pq-now-${c.name}`, "aria-expanded": String(questShown.has(c.name)),
               onclick: () => { toggleQuest(c.name); rerender(); focusOn(`pq-now-${c.name}`); } },
             questShown.has(c.name) || questDone(c.personalQuest) ? `Now ${c.personalQuest}` : [icon("eye"), "Now"]) : null)))),
@@ -4281,7 +4331,17 @@ let recorderOpen = false;
 
 function renderSessions(data) {
   const sorted = [...data.sessions].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
-  const eventsBefore = number => (data.eventState?.history || []).filter(e => e.scenario === number).map(e => e.label);
+  const history = data.eventState?.history || [];
+  // An event drawn on the way to a scenario, or in town around it, as a row
+  // of its own in the evening's order: a small card, then what it did.
+  const eventRow = e => h("li", { class: "played-event" },
+    h("a", { class: "played-link", href: "#events" },
+      h("span", { class: `ev-card ${e.deck}`, "aria-hidden": "true" }, h("b", {}, e.number)),
+      h("span", { class: "played-text" },
+        // The card shows the number; the words say which deck.
+        h("strong", {}, h("span", { class: "sr-only" }, `${e.label}: `), `${DECK_NAMES[e.deck]} event`),
+        e.effects.length ? h("span", {}, capitalize(e.effects.join(", "))) : null)),
+    optionBadge(e));
   const toggle = () => {
     if (!draft) draft = newDraft(data);
     recorderOpen = !recorderOpen;
@@ -4322,13 +4382,12 @@ function renderSessions(data) {
             ].filter(Boolean).join(" · "))),
           s.scenarios.length ? h("ul", { class: "card played" }, s.scenarios.map(sc => {
             const name = data.scenarios.find(x => x.number === sc.number)?.name;
-            const before = eventsBefore(sc.number);
             const won = sc.result === "success";
             const replay = won && sc.casual;
-            const meta = [sc.level != null ? `Level ${sc.level}` : null, before.length ? `${before.join(", ")} drawn before` : null].filter(Boolean);
+            const meta = [sc.level != null ? `Level ${sc.level}` : null].filter(Boolean);
             const outcome = !won ? "Failed" : replay ? "Replayed casually" : null;
             // The scenario opens on the Scenarios tab.
-            return h("li", {},
+            return [history.filter(e => e.scenario === sc.number).map(eventRow), h("li", {},
               h("a", { class: "played-link", href: "#scenarios", onclick: () => openScenario(data, sc.number) },
                 hex(sc.number, !won ? "failed" : replay ? "replay" : "completed"),
                 h("span", { class: "played-text" },
@@ -4339,7 +4398,8 @@ function renderSessions(data) {
               // Failures and replays say so in words; a plain clear says it here.
               h("span", { class: `result ${!won ? "failure" : replay ? "replay" : "success"}`,
                 ...(outcome ? { "aria-hidden": "true" } : { role: "img", "aria-label": "Success" }) },
-                icon(!won ? "cross" : replay ? "replay" : "check")));
+                icon(!won ? "cross" : replay ? "replay" : "check"))),
+              history.filter(e => e.scenario == null && e.after === sc.number).map(eventRow)];
           })) : null,
           haul.length ? h("div", { class: "haul" },
             h("h4", { class: "label" }, "The evening's haul"),

@@ -230,8 +230,9 @@ main {
 .panel { min-width: 0; display: flex; flex-direction: column; gap: 24px; scroll-margin-top: 84px; }
 .panel[hidden] { display: none; }
 .pair { display: flex; flex-wrap: wrap; gap: 72px 48px; }
-.pair > .panel { flex: 1 1 420px; }
-.pair.form-open > .panel { flex-basis: 100%; }
+.pair > * { flex: 1 1 420px; }
+.pair-side { min-width: 0; display: flex; flex-direction: column; gap: 72px; }
+.pair.form-open > * { flex-basis: 100%; }
 
 .section-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; }
 .section-head h2 { font: 700 var(--d-xl)/1 var(--display); }
@@ -293,6 +294,7 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 .nudge strong { display: block; font-weight: 600; color: var(--brass); }
 /* How to settle something the page can't record itself. */
 .nudge .how { display: block; margin-top: 4px; font-size: var(--t-sm); color: var(--fg-3); }
+.nudge-do { margin-top: 8px; }
 /* Good news rather than something to see to. */
 .nudge.saved { background: var(--surface); border-color: var(--line-strong); }
 /* Worth knowing, but nothing to do about it. */
@@ -308,9 +310,15 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 .hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
-  grid-template-areas: "head head" "tonight tonight" "tiles side";
+  grid-template-areas: "head head" "tonight tonight" "level side" "rep prosp";
   gap: 28px 48px;
   align-items: end;
+}
+/* Wide enough for three: reputation and prosperity stacked between the
+   scenario level and the side column, so no column runs on alone. */
+@media (min-width: 1200px) {
+  .hero { grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr) minmax(0, 1.15fr);
+          grid-template-areas: "head head head" "tonight tonight tonight" "level rep side" "level prosp side"; }
 }
 /* Room on the right for the honeycomb band, so the name never runs under it. */
 .hero-head { grid-area: head; position: relative; display: flex; flex-direction: column; justify-content: center; gap: 8px;
@@ -370,16 +378,21 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 .ready-from { font-size: var(--t-xs); color: var(--fg-3); }
 .ready-tried { display: block; font-size: var(--t-xs); color: var(--ember); }
 
-/* Reputation and prosperity side by side, the matching pair they are, and
-   the scenario level across both. */
-.tiles { grid-area: tiles; align-self: start; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+/* Wide screens: the tiles take places of their own in the hero's grid,
+   the scenario level beside the side column and reputation and prosperity
+   under them, the matching pair they are. Phones keep them a grid, the
+   scenario level across both (below). */
+.tiles { display: contents; }
+.level-tile { grid-area: level; align-self: start; }
+.rep-tile { grid-area: rep; align-self: stretch; }
+.prosp-tile { grid-area: prosp; align-self: stretch; }
 .tile { display: flex; flex-direction: column; gap: 12px; }
 .tile-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .tile-top .figure { font-size: var(--d-lg); line-height: 1; }
 .tile-foot { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; }
 .tile-foot strong { font-size: var(--t-base); font-weight: 600; }
 .tile-foot span { font-size: var(--t-sm); color: var(--muted); }
-.level-tile { grid-column: 1 / -1; container: level / inline-size; }
+.level-tile { container: level / inline-size; }
 .todo { display: flex; flex-direction: column; gap: 8px; }
 .todo .block-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .todo .block-head > span { font-size: var(--t-sm); color: var(--fg-3); }
@@ -408,7 +421,11 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
    what it means at the table underneath. */
 .level-now { display: flex; align-items: center; gap: 14px; }
 .level-now .hex { --w: 56px; }
-.level-why { font-size: var(--t-sm); color: var(--fg-3); }
+.level-why { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: var(--t-sm); color: var(--fg-3); }
+.level-why .eq { display: inline-flex; align-items: baseline; gap: 4px; padding: 1px 9px; border: 1px solid var(--line-strong); border-radius: var(--r-pill);
+  font-weight: 700; color: var(--fg); font-variant-numeric: lining-nums tabular-nums; }
+.level-why .eq small { font-size: var(--t-xs); font-weight: 600; color: var(--muted); }
+.level-why .op { font-size: var(--t-xs); font-weight: 600; color: var(--muted); white-space: nowrap; }
 /* Each difficulty with the level it gives. */
 .level-tile .segmented button { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; line-height: 1.15; }
 .seg-level { font-size: var(--t-xs); font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -438,8 +455,10 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 .track > i.now { background: var(--brass-edge); }
 .track > i.done { background: var(--brass-line); }
 .track > i.next { background: var(--brass-bg); box-shadow: inset 0 0 0 1px var(--brass-line); }
-/* What the value could be while events are open: a thin brass rule under the track. */
-.track > .maybe { position: absolute; bottom: -6px; height: 2px; border-radius: var(--r-pill); background: var(--brass-edge); }
+/* What the value could be while events are open: a brass bracket under
+   the stretch it spans, clear of the marker. */
+.track:has(> .maybe) { margin-bottom: 15px; }
+.track > .maybe { position: absolute; bottom: -13px; height: 7px; border: 2px solid var(--brass); border-top: 0; border-radius: 0 0 3px 3px; pointer-events: none; }
 .track > .marker {
   position: absolute;
   top: 50%;
@@ -630,6 +649,18 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .char-notes { padding-top: 14px; border-top: 1px solid var(--line-soft); }
 /* The attack modifier deck: one chip per kind of card, with its count. */
 .deck-cards { display: flex; flex-wrap: wrap; gap: 6px; }
+/* The deck, a segment per card from worst to best: ember below +0 (Null the
+   strongest), grey at +0, verdigris above, brass for the 2× and Bless. The
+   chips' swatches are its legend. */
+.deck-bar { display: flex; gap: 2px; height: 10px; margin: 2px 0 12px; }
+.deck-bar i { flex: 1; border-radius: 2px; }
+.swatch { flex: none; width: 8px; height: 8px; margin-right: -2px; border-radius: 2px; }
+.k-null { background: var(--ember); }
+.k-bad { background: var(--ember-line); }
+.k-zero { background: var(--line-strong); }
+.k-good { background: var(--verdigris); }
+.k-crit { background: var(--brass); }
+.k-bless { background: var(--brass-bg); box-shadow: inset 0 0 0 1px var(--brass); }
 .deck-cards li { display: inline-flex; align-items: center; gap: 7px; padding: 3px 4px 3px 10px; border: 1px solid var(--line); border-radius: var(--r-pill); font-size: var(--t-sm); font-weight: 600; }
 /* The count, in a badge of its own. */
 .deck-cards b { min-width: 20px; height: 20px; padding: 0 5px; display: inline-grid; place-items: center; border-radius: var(--r-pill);
@@ -812,6 +843,19 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .played > li { display: flex; align-items: center; gap: 12px; min-height: 64px; border-bottom: 1px solid var(--line-soft); }
 .played > li:last-child { border-bottom: 0; }
 .played .hex { --w: 36px; }
+/* An event drawn that evening, in its place among the scenarios: a small
+   card, in the hexes' column, kept with the scenario it leads to. */
+.played > li.played-event { min-height: 44px; border-bottom: 0; }
+.played-event .played-text strong { font-size: var(--t-md); color: var(--fg-2); }
+.ev-card { flex: none; width: 36px; display: grid; place-items: center; }
+.ev-card b { width: 22px; height: 30px; display: grid; place-items: center; border: 1px solid var(--line-strong); border-radius: 4px;
+  background: var(--surface-2); font-size: var(--t-xs); font-weight: 700; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.ev-card.city b { border-color: var(--brass-edge); }
+/* The option an event was resolved with; dashed "?" when not recorded. */
+.opt { display: inline-grid; place-items: center; min-width: 20px; height: 20px; margin-left: 8px; padding: 0 5px; border: 1px solid var(--line-strong);
+  border-radius: var(--r-xs); font-size: var(--t-xs); font-weight: 700; color: var(--fg); vertical-align: 1px; }
+.opt.unknown { border-style: dashed; color: var(--muted); }
+.played-event > .opt { flex: none; margin: 0 2px 0 0; }
 .played-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 /* A played scenario opens on the Scenarios tab. */
 .played-link { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; align-self: stretch; color: inherit; text-decoration: none; }
@@ -840,7 +884,7 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .deck li { font-size: var(--t-sm); padding: 3px 0; }
 /* Label, card and fate line up with the first line of the text, not its middle. */
 .drawn > li { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line-soft); font-size: var(--t-md); }
-.drawn strong { flex: none; width: 76px; font-weight: 600; }
+.drawn strong { flex: none; width: 104px; display: flex; align-items: center; justify-content: space-between; font-weight: 600; }
 /* What was recorded in full colour; notes and gaps (.small.muted) beneath it, quiet. */
 .drawn > li > span:nth-child(2) { flex: 1; min-width: 0; color: var(--fg); }
 .drawn .small.muted { margin-top: 1px; }
@@ -855,7 +899,8 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .fate.open { color: var(--brass); }
 
 /* --- Campaign record ------------------------------------------------------ */
-.record { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 16px; align-items: start; }
+/* Two across even in the column beside Sessions. */
+.record { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: 16px; align-items: start; }
 .record .card { display: flex; flex-direction: column; gap: 6px; }
 .record .chips { padding-top: 6px; }
 .record .chip { font-size: var(--t-md); }
@@ -914,6 +959,8 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .subtitle { font: 700 var(--d-sm)/1.1 var(--display); }
 .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .field > span { font-size: var(--t-xs); font-weight: 600; color: var(--muted); }
+/* What the page does with a box's number, on its label: +8 XP, ×3 gold. */
+.field-op { font-weight: 700; color: var(--brass); }
 .field.short { width: 92px; }
 /* A personal quest box, with its current progress behind a tap under it. */
 .pq-field { width: 132px; display: flex; flex-direction: column; gap: 4px; }
@@ -945,6 +992,8 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
 .shop .price { flex: none; font-weight: 600; color: var(--fg); }
 .shop .price .unit { font-weight: 500; color: var(--brass); }
 .shop .price-col { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+/* How far a price could be off while reputation isn't certain. */
+.price-doubt { margin-left: 5px; padding: 0 4px; border: 1px dashed var(--line-strong); border-radius: var(--r-xs); font-size: var(--t-xs); font-weight: 600; color: var(--muted); cursor: help; }
 /* Buy, for this phone's character: a small brass pill under the price, its
    tap area reaching past its edges. */
 .shop .buy { position: relative; padding: 2px 12px; border: 1px solid var(--brass-line); border-radius: var(--r-pill);
@@ -983,6 +1032,13 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
 .enhancer { display: grid; grid-template-columns: minmax(0, 3fr) minmax(220px, 2fr); gap: 20px 32px; align-items: start; }
 .enhancer-form { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .enhancer-cost { display: flex; flex-direction: column; gap: 8px; }
+/* Who could pay: lit with the gold to, dim and dashed without. */
+.afford { display: flex; flex-wrap: wrap; gap: 6px; }
+.afford li { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border: 1px solid var(--line-strong); border-radius: var(--r-pill); font-size: var(--t-sm); font-weight: 600; }
+.afford .afford-gold { color: var(--brass); font-variant-numeric: tabular-nums; }
+.afford .short { border-style: dashed; border-color: var(--line); color: var(--muted); }
+.afford .short .afford-gold { color: var(--muted); }
+.afford .gicon { width: 1.1em; height: 1.1em; }
 .enhancer-total { display: flex; align-items: baseline; gap: 8px; color: var(--brass); }
 .enhancer-total .figure { font-size: var(--d-lg); line-height: 1; }
 .enhancer-total span:last-child { font-weight: 600; }
@@ -1026,7 +1082,7 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
 
   main { padding: 32px 20px calc(96px + env(safe-area-inset-bottom, 0px)); gap: 32px; overflow-x: clip; }
   /* Tablets get this layout too: keep it a readable column, not stretched. */
-  main > *, .pair > * { width: 100%; max-width: 640px; margin-inline: auto; }
+  main > *, .pair > *, .pair-side > * { width: 100%; max-width: 640px; margin-inline: auto; }
   .topbar-inner { max-width: 680px; }
   /* Everything tappable is at least 44px tall, as at the table it's a thumb. */
   .segmented button { min-height: 44px; }
@@ -1043,7 +1099,7 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .ledger summary, .deck summary { padding-block: 13px; margin-block: -9px; }
   .panel { gap: 16px; scroll-margin-top: 16px; }
   .panel.off, .site-footer.off { display: none; }
-  .pair { display: contents; }
+  .pair, .pair-side { display: contents; }
   .section-head h2 { font-size: var(--d-xl); }
   #events .section-head h2, #record .section-head h2 { font-size: var(--d-md); }
   .card { padding: 14px; }
@@ -1056,7 +1112,9 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .hero-decor { display: none; }
   .hero-side { display: contents; }
   .ready { align-self: stretch; order: 1; }
-  .tiles { order: 2; }
+  .tiles { order: 2; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .level-tile { grid-area: auto; grid-column: 1 / -1; }
+  .rep-tile, .prosp-tile { grid-area: auto; }
   .todo { order: 3; }
   .party-name { font-size: var(--d-xxl); line-height: 1; }
   .party-name.long { font-size: var(--d-lg); }
@@ -1191,7 +1249,7 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   /* Event rows: the label and what became of the card on one line, the
      text under them at full width rather than squeezed between. */
   .drawn > li { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "label fate" "text text"; gap: 2px 12px; }
-  .drawn strong { grid-area: label; width: auto; }
+  .drawn strong { grid-area: label; width: auto; justify-content: flex-start; }
   .drawn > li > span:nth-child(2) { grid-area: text; }
   .drawn .fate { grid-area: fate; }
   .deck-top .figure { font-size: var(--d-md); }
