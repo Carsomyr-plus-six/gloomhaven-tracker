@@ -280,7 +280,8 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 /* Item slots, as on the character sheet. */
 .slots { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
-.slot .gicon { width: 16px; height: 16px; margin: 0; color: var(--line-strong); vertical-align: middle; }
+.slot .gicon { width: 18px; height: 18px; margin: 0; color: var(--faded); opacity: 0.55; vertical-align: middle; }
+.slot.on .gicon, .slot.over .gicon { opacity: 1; }
 .slot.on .gicon { color: var(--fg); }
 .slot.over .gicon { color: var(--ember); }
 .chip { padding: 5px 11px; border: 1px solid var(--line); border-radius: var(--r-pill); font-size: var(--t-sm); font-weight: 500; }
@@ -1092,12 +1093,12 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
 /* Sell, on the shopper's own items: quieter than Buy. */
 .shop .buy.sell { border-color: var(--line-strong); background: var(--surface-2); color: var(--fg-2); }
 .shop .buy.sell:hover { border-color: var(--fg-3); }
-/* An item the shopper carries: its name reads as theirs. */
-.shop .owned strong { color: var(--fg); }
-.shop .sold-out strong, .shop .sold-out .price, .shop .sold-out .price .unit { color: var(--muted); }
-/* This phone's character can't afford it. */
-.shop .too-dear .price, .shop .too-dear .price .unit { color: var(--muted); }
-.shop .slot-full > span:first-child { opacity: 0.6; }
+/* Under each name, its copies. Only what can't be bought (none left, too
+   dear) fades, and a too-dear row loses its Buy; a full slot is said once,
+   in the group's heading. */
+.shop .stock { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 4px; }
+.shop li.sold-out strong, .shop li.too-dear strong { color: var(--muted); }
+.shop li.sold-out .price, .shop li.sold-out .price .unit, .shop li.too-dear .price, .shop li.too-dear .price .unit { color: var(--muted); }
 .slot-note { margin-left: 8px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--muted); }
 /* Who is shopping: a row of character chips. */
 .shop-for { display: flex; flex-direction: column; gap: 8px; }
@@ -1105,17 +1106,25 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
 .shop-me { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 4px 0; font-size: var(--t-base); color: var(--fg-2); }
 .shop-me > .slots { margin-left: auto; }
 .shop-me .segmented { flex-basis: 100%; align-self: flex-start; }
+/* On its own row (phones), the filter's two halves share it evenly. */
+.shop-me .segmented button { flex: 1 1 0; }
 /* Wide screens: gold and slots together, the filter at the far end. */
 @media (min-width: 900px) {
   .shop-me > .slots { margin-left: 0; }
   .shop-me .segmented { flex-basis: auto; margin-left: auto; }
 }
 .shop-me strong { font-weight: 700; color: var(--brass); }
-/* One mark per copy: empty in the shop, the holder's class icon once carried. */
-.copies { display: inline-flex; gap: 3px; margin-right: 8px; vertical-align: -3px; }
-.copies > i { display: inline-flex; align-items: center; justify-content: center; width: 12px; height: 17px; border-radius: 2px; border: 1.5px solid var(--box); }
+/* One mark per copy, as cards on a shelf: an empty one is in the shop;
+   one carried shows its holder's class icon, the shopper's own in
+   verdigris, one bought in the draft dashed. */
+.copies { display: inline-flex; gap: 4px; }
+.copies > i { display: inline-grid; place-items: center; width: 16px; height: 22px; border-radius: var(--r-xs); border: 1.5px solid var(--fg-3); background: var(--surface-2); }
 .copies > i.held { border-color: transparent; background: var(--surface-3); }
-.copies .gicon { width: 10px; height: 10px; margin: 0; color: var(--fg-2); }
+.copies > i.mine { border-color: var(--verdigris); background: color-mix(in srgb, var(--verdigris) 16%, transparent); }
+.copies > i.drafted { border-style: dashed; border-color: var(--verdigris); }
+.copies .gicon { width: 12px; height: 12px; margin: 0; color: var(--fg-3); }
+.copies .mine .gicon { color: var(--verdigris); }
+.shop li.sold-out .copies, .shop li.too-dear .copies { opacity: 0.7; }
 .shop .tag { white-space: nowrap; margin-left: 8px; padding: 1px 8px; border-radius: var(--r-pill); background: var(--surface-2); font-size: var(--t-xs); font-weight: 600; color: var(--fg-3); }
 /* The Enhancer: the form on the left, the cost and how it adds up on the right. */
 .enhancer-wrap { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }

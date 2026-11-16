@@ -2696,7 +2696,6 @@ let shopFilter = "all";   // "all", or "can": only what the shopper can buy
 function renderShop(data) {
   const shop = data.shop;
   if (!shop) return null;
-  const copies = n => `${n} ${n === 1 ? "copy" : "copies"}`;
 
   // Whoever is shopping (this phone's character to start with, or anyone
   // picked above the list): their gold, their room, and on each item whether
@@ -2732,26 +2731,39 @@ function renderShop(data) {
     : canBuy(item) ? h("button", { type: "button", class: "buy", "data-key": `buy-${item.id}`, "aria-label": `Buy ${item.name} for ${shopper.name}`,
         onclick: () => recordBuy(data, shopper.name, item.name) }, "Buy")
     : null;
-  const row = item => h("li", { class: has(item) ? "owned" : left(item) <= 0 && !bought(item) ? "sold-out" : dear(item) && !bought(item) ? "too-dear"
-      : shopper && !bought(item) && full(item) ? "slot-full" : null },
-    h("span", {},
-      h("strong", {}, item.name, item.design ? h("span", { class: "tag" }, "design") : null,
-        item.back ? h("span", { class: "tag", title: "Not sold here otherwise: a copy sold, or left by a retired character" }, "returned") : null),
-      h("span", { class: "sub" }, copyPips(item), [
+  // Each item's row: its name, and under it a mark per copy (copyMarks). Its
+  // state shows rather than says: the shopper's own copies are verdigris,
+  // what they can't afford or the shop has none of reads faded with no Buy,
+  // and a slot already full is said once, in the group's heading.
+  const state = item => has(item) ? "owned" : bought(item) ? "bought" : left(item) <= 0 ? "sold-out"
+    : dear(item) ? "too-dear" : null;
+  const row = item => {
+    const s = state(item);
+    return h("li", { class: s && s !== "bought" ? s : null },
+      h("span", {},
+        h("strong", {}, item.name, item.design ? h("span", { class: "tag" }, "design") : null,
+          item.back ? h("span", { class: "tag", title: "Not sold here otherwise: a copy sold, or left by a retired character" }, "returned") : null),
+        h("span", { class: "sub stock" }, copyMarks(item),
+          // What it sells for: on the shopper's own items that's their Sell button.
+          !shopper && item.held.length ? h("span", {}, `sells for ${item.sells}`) : null)),
+      h("span", { class: "price-col" }, h("span", { class: "price num" }, `${item.price} `, h("span", { class: "unit" }, "gold")), action(item)));
+  };
 
-        // What it sells for: on the shopper's own items that's their Sell button.
-        !shopper && item.held.length ? `sells for ${item.sells}` : null,
-      ].filter(Boolean).join(" · "))),
-    h("span", { class: "price-col" }, h("span", { class: "price num" }, `${item.price} `, h("span", { class: "unit" }, "gold")), action(item)));
-
-  // One mark per copy of the item: empty while it's in the shop, the
-  // holder's class icon once someone carries it.
-  const copyPips = item => {
-    const holders = item.held.map(name => data.characters.find(c => c.name === name)).filter(Boolean);
-    const said = `${copies(item.count)}: ${item.left ? `${item.left} in the shop` : "none in the shop"}${item.held.length ? `, ${item.held.join(", ")} ${item.held.length === 1 ? "has" : "have"} ${item.held.length === 1 ? "one" : "them"}` : ""}`;
+  // One mark per copy of the item, as cards on a shelf: those someone
+  // carries show their class icon (the shopper's in verdigris, one bought in
+  // the draft dashed), and an empty one is still in the shop. The words are
+  // there for screen readers and on hover.
+  const copyMarks = item => {
+    const sold = new Set(sells.filter(x => sameItem(x.item, item.name)).map(x => x.character));
+    const carried = item.held.filter(name => !sold.has(name)).map(name => ({ name, drafted: false }));
+    const drafted = buys.filter(b => sameItem(b.item, item.name)).map(b => ({ name: b.character, drafted: true }));
+    const marks = [...carried, ...drafted].map(x => ({ ...x, c: data.characters.find(c => c.name === x.name) }));
+    const inShop = Math.max(0, left(item));
+    const names = marks.map(x => x.name).join(", ").replace(/, ([^,]*)$/, " and $1");
+    const said = `${inShop ? `${inShop} of ${item.count} in the shop` : "None in the shop"}${names ? `; carried by ${names}` : ""}`;
     return h("span", { class: "copies", role: "img", "aria-label": said, title: said },
-      holders.map(c => h("i", { class: "held" }, classIcon(c.class))),
-      Array.from({ length: item.left }, () => h("i")));
+      marks.map(x => h("i", { class: `held${x.name === shopper?.name ? " mine" : ""}${x.drafted ? " drafted" : ""}` }, x.c ? classIcon(x.c.class) : null)),
+      Array.from({ length: inShop }, () => h("i")));
   };
 
   // "Can buy" leaves what the shopper could buy, and what they already
