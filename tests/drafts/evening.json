@@ -1,0 +1,28 @@
+{
+ "id": "test-evening",
+ "date": "2026-11-20",
+ "title": "A test evening",
+ "party": ["Azorica", "Craig", "Flik Flak"],
+ "notes": "Made up for the tests: every part of the form at once.",
+ "advances": [],
+ "scenarios": [
+  {"number": "5", "level": "2", "result": "success", "treasures": [{"number": "4", "character": "Craig"}],
+   "results": {"Azorica": {"xp": "8", "coins": "2", "checkmarks": "1"}, "Craig": {"xp": "10", "coins": "3"}, "Flik Flak": {"xp": "6", "coins": "1", "checkmarks": "2"}}},
+  {"number": "6", "level": "2", "result": "failure", "treasures": [],
+   "results": {"Azorica": {"xp": "4", "coins": "1"}, "Craig": {"xp": "3"}, "Flik Flak": {"xp": "2"}}}
+ ],
+ "events": [
+  {"deck": "city", "number": "12", "option": "B", "scenario": "", "paid": ""},
+  {"deck": "road", "number": "4", "option": "B", "scenario": "", "paid": ""}
+ ],
+ "buys": [{"character": "Craig", "item": "Iron Helmet"}],
+ "sells": [{"character": "Azorica", "item": "Minor Power Potion"}],
+ "perks": [{"character": "Azorica", "perk": "Add one +0 STUN card"}],
+ "donations": [{"character": "Flik Flak"}],
+ "enhancements": [{"character": "Flik Flak", "what": "+1 move", "cost": "30"}],
+ "claims": {"#4:38": {"character": "Kaktus"}},
+ "quests": {"Craig": "3/4"},
+ "opened": [],
+ "retirements": [],
+ "newCharacters": [{"name": "Newbie", "class": "Brute", "level": "1", "playing": false}]
+}

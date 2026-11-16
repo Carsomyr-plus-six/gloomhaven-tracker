@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tracker tests</title>
+  <style>
+    body { margin: 24px; background: #0e1211; color: #e8e4d8; font: 15px/1.5 system-ui, sans-serif; }
+    li { margin: 4px 0; } .ok { color: #7cc0ad; } .fail { color: #e07a5f; }
+    pre { overflow: auto; max-height: 320px; padding: 8px; background: #161c1a; font-size: 12px; }
+  </style>
+  <script src="../campaign.js" defer></script>
+  <script src="snapshot.js" defer></script>
+  <script src="tests.js" defer></script>
+</head>
+<body>
+  <h1>Tracker tests</h1>
+  <p id="summary">Running…</p>
+  <ul id="results"></ul>
+  <script type="module">
+    // The same tests as node tests/run.mjs, against the files this site serves.
+    await new Promise(resolve => addEventListener("DOMContentLoaded", resolve, { once: true }));
+    const loadText = async path => (await fetch(`../${path}`, { cache: "no-cache" })).text();
+    const results = await runTests(async path => JSON.parse(await loadText(path)), loadText);
+    const list = document.getElementById("results");
+    for (const r of results) {
+      const li = document.createElement("li");
+      li.className = r.ok ? "ok" : "fail";
+      li.textContent = `${r.ok ? "ok" : "FAIL"}: ${r.name}`;
+      if (!r.ok) {
+        for (const [label, value] of [["expected", r.expected], ["actual", r.actual]]) {
+          const pre = document.createElement("pre");
+          pre.textContent = `${label}:\n${JSON.stringify(value, null, 1)}`;
+          li.append(pre);
+        }
+      }
+      list.append(li);
+    }
+    const failed = results.filter(r => !r.ok).length;
+    document.getElementById("summary").textContent = `${results.length - failed} of ${results.length} passed`;
+    document.body.dataset.failed = failed;
+  </script>
+</body>
+</html>
