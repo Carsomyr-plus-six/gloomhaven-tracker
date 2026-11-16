@@ -31,8 +31,8 @@
     },
     {
       "number": 4,
-      "treasures": ["38", "46"],
-      "notes": "First scenario without Kaktus.\nAll three completed their battle goals.\nTreasure 38 gave the Ring of Skulls design.\nTreasure 46 was a trap (3 damage and poisoned), with no lasting effect."
+      "treasures": [{ "number": "38", "character": "Azorica" }, "46"],
+      "notes": "First scenario without Kaktus.\nAll three completed their battle goals.\nTreasure 38 gave Ring of Skulls, which Azorica looted.\nTreasure 46 was a trap (3 damage and poisoned), with no lasting effect."
     },
     {
       "number": 8,
@@ -62,7 +62,7 @@
         "xp": 85,
         "gold": 22,
         "checkmarks": 6,
-        "items": ["Cloak of Invisibility", "Minor Power Potion", "Minor Stamina Potion"],
+        "items": ["Cloak of Invisibility", "Minor Power Potion", "Minor Stamina Potion", "Ring of Skulls"],
         "perks": ["Remove four +0 cards", "Replace one -1 card with one +1 card", "Replace one -1 card with one +1 card"]
       },
       "log": [],

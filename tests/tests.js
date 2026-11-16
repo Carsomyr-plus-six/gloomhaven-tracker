@@ -74,7 +74,23 @@ async function runTests(load, loadText) {
     [["Azorica", ["2026-11-20 event", "2026-11-20 event", "2026-11-20 sell", "2026-11-20 perk"]],
      ["Craig", ["2026-11-20 event", "2026-11-20 event", "2026-11-20 treasure", "2026-11-20 buy"]],
      ["Flik Flak", ["2026-11-20 event", "2026-11-20 event", "2026-11-20 donation", "2026-11-20 enhancement"]],
-     ["Kaktus", ["2026-11-20 treasure"]], ["Newbie", []]]);
+     ["Kaktus", []], ["Newbie", []]]);
+
+  // A past treasure settled in the form: who looted it, and the item onto
+  // their sheet as a treasure line, or back in the shop's supply if they've
+  // since sold it. (#4's treasure 38, made open again for the test.)
+  const open38 = copy(raw);
+  open38.scenarios.find(s => s.number === 4).treasures = ["38", "46"];
+  const azorica = open38.characters.find(c => c.name === "Azorica");
+  azorica.start.items = azorica.start.items.filter(i => i !== "Ring of Skulls");
+  const settle = x => toFile(applyDraft(fromFile(copy(open38)), { ...copy(draft), claims: { "#4:38": x } }, buildData(copy(open38))).out);
+  const kept = settle({ character: "Kaktus" }), sold = settle({ character: "Kaktus", kept: false });
+  same("claims: a past treasure settled goes to its looter, or back to the shop if sold",
+    [buildData(copy(open38)).claims.map(c => `${c.item}: treasure ${c.treasure} in ${c.where}`),
+     kept.characters.find(c => c.name === "Kaktus").log, kept.scenarios.find(s => s.number === 4).treasures[0],
+     sold.characters.find(c => c.name === "Kaktus").log, sold.city.returnedItems || [], buildData(copy(kept)).claims.length],
+    [["Ring of Skulls: treasure 38 in #4"], [{ date: "2026-11-20", for: "treasure", treasure: "38", gained: ["Ring of Skulls"] }], { number: "38", character: "Kaktus" },
+     [], ["Ring of Skulls"], 0]);
   same("evening: a purchase is one line, its gold and its item",
     file.characters.find(c => c.name === "Craig").log.find(e => e.for === "buy"),
     { date: "2026-11-20", for: "buy", gold: -10, gained: ["Iron Helmet"] });
