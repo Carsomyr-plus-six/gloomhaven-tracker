@@ -20,7 +20,7 @@
  "perks": [{"character": "Azorica", "perk": "Add one +0 STUN card"}],
  "donations": [{"character": "Flik Flak"}],
  "enhancements": [{"character": "Flik Flak", "what": "+1 move", "cost": "30"}],
- "claims": {"#4:38": {"character": "Kaktus"}},
+ "claims": {},
  "quests": {"Craig": "3/4"},
  "opened": [],
  "retirements": [],

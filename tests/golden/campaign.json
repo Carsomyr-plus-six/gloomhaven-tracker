@@ -378,7 +378,8 @@
    "items": [
     "Cloak of Invisibility",
     "Minor Power Potion",
-    "Minor Stamina Potion"
+    "Minor Stamina Potion",
+    "Ring of Skulls"
    ],
    "perks": [
     "Remove four +0 cards",
@@ -537,10 +538,8 @@
   ]
  },
  "draws": [],
- "claims": [
-  "Ring of Skulls: treasure 38 in #4"
- ],
+ "claims": [],
  "found": [
-  "Ring of Skulls from treasure 38"
+  "Ring of Skulls from treasure 38 (Azorica)"
  ]
 }
