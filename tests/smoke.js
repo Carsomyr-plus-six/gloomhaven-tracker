@@ -147,6 +147,26 @@ async function runSmoke() {
       check("phone: the deck's columns line up, and a Curse added at the end shows",
         boxes.length > 8 && new Set(boxes).size === 1 && !wide.length && added.join() === "1,1" && pips() === 0 && !errors.length,
         errors.join("; ") || `${boxes.length} columns, ${new Set(boxes).size} sizes, too wide: ${wide.join(", ") || "none"}; a Curse added: ${added[0]} pip, ${added[1]} block; taken out: ${pips()} pips`);
+      // The ability cards the same way: a small card per card in the hand,
+      // the three piles one height.
+      const cards = doc.querySelector(".char-card .card-block");
+      const piles = [...(cards?.querySelectorAll(".pile-cards") || [])].map(p => Math.round(p.getBoundingClientRect().height));
+      const drawn = cards?.querySelectorAll(".pile-cards i").length;
+      const said = cards?.querySelector(".piles output")?.textContent || "";
+      const inHand = Number(/^(\d+) in hand/.exec(said)?.[1]);
+      check("phone: the ability cards, a small card per card, the piles one height",
+        piles.length === 3 && new Set(piles).size === 1 && drawn > 0 && drawn === inHand,
+        `${piles.length} piles, heights ${piles.join("/")}, ${drawn} cards drawn, "${said}"`);
+      // Milestones on the Campaign tab: a block per step, nothing wider than
+      // its row.
+      doc.querySelector('.tabs a[data-tab="campaign"]')?.click();
+      await wait(150);
+      const miles = [...doc.querySelectorAll(".miles li")];
+      const over = miles.filter(li => li.scrollWidth > li.clientWidth + 1).map(li => li.querySelector("strong")?.innerText);
+      const envA = miles.find(li => li.querySelector("strong")?.innerText === "Envelope A")?.querySelectorAll(".mile-steps i").length;
+      check("phone: milestones, a block per step, none wider than its row",
+        miles.length && !over.length && (envA === 5 || envA === undefined),
+        `${miles.length} milestones, too wide: ${over.join(", ") || "none"}, Envelope A: ${envA ?? "open"} blocks`);
       doc.querySelector('.tabs a[data-tab="tonight"]')?.click();
       await wait(150);
     }

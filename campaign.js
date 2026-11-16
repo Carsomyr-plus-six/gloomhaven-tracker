@@ -2290,16 +2290,16 @@ const MILESTONES = [
   // Reputation, at its highest and lowest so far: once reached, it counts
   // even if reputation has since moved back (p. 49). Where that isn't where
   // it stands now, it says both.
-  { id: "sun", name: `The ${classIconName("sun")} box`, need: 10,
+  { id: "sun", name: `The ${classIconName("sun")} box`, need: 10, what: "highest reputation",
     have: m => m.peak, open: m => m.unlocked.has("sun"), says: m => reputationSays(m, m.peak, 10),
     todo: m => [`Reputation has reached ${signed(m.peak)}: open the box with the ${classIconName("sun")} icon.`, "#record"] },
-  { id: "eclipse", name: `The ${classIconName("eclipse")} box`, need: 10,
+  { id: "eclipse", name: `The ${classIconName("eclipse")} box`, need: 10, what: "lowest reputation",
     have: m => -m.low, open: m => m.unlocked.has("eclipse"), says: m => reputationSays(m, m.low, -10),
     todo: m => [`Reputation has reached ${signed(m.low)}: open the box with the ${classIconName("eclipse")} icon.`, "#record"] },
-  { id: "events-plus-20", name: "City 76, Road 67", need: 20, shown: m => m.peak >= 10,
+  { id: "events-plus-20", name: "City 76, Road 67", need: 20, what: "highest reputation", shown: m => m.peak >= 10,
     have: m => m.peak, open: m => m.inDecks("city", 76) && m.inDecks("road", 67), says: m => reputationSays(m, m.peak, 20),
     todo: () => ["Reputation has reached 20: add City 76 and Road 67 to the event decks.", "#events"] },
-  { id: "events-minus-20", name: "City 77, Road 68", need: 20, shown: m => m.low <= -10,
+  { id: "events-minus-20", name: "City 77, Road 68", need: 20, what: "lowest reputation", shown: m => m.low <= -10,
     have: m => -m.low, open: m => m.inDecks("city", 77) && m.inDecks("road", 68), says: m => reputationSays(m, m.low, -20),
     todo: () => ["Reputation has reached −20: add City 77 and Road 68 to the event decks.", "#events"] },
   // Listed only once it's ready: its two achievements would spoil it.

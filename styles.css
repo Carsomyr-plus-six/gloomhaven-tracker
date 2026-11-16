@@ -992,7 +992,13 @@ button.deck-stack { cursor: pointer; }
 .mile-state { flex: none; font-size: var(--t-sm); color: var(--muted); font-variant-numeric: tabular-nums; }
 .miles li.ready .mile-state { font-weight: 600; color: var(--brass); }
 .miles li.open .mile-state { color: var(--verdigris); }
-.miles .meter { height: 4px; }
+/* A block per step, filled as it's reached, a wider gap after each five. */
+.mile-steps { display: flex; gap: 2px; }
+.mile-steps i { flex: 0 1 16px; min-width: 0; height: 8px; border-radius: 2px; background: var(--line-soft); box-shadow: inset 0 0 0 1px var(--line); }
+.mile-steps i.five { margin-left: 4px; }
+.mile-steps.brass i.on { background: var(--brass); box-shadow: none; }
+.mile-steps.good i.on { background: var(--verdigris); box-shadow: none; }
+.mile-steps.bad i.on { background: var(--ember); box-shadow: none; }
 .miles .sub { font-size: var(--t-xs); color: var(--muted); }
 /* What was lost or replaced: quieter, struck through. */
 .rows li.lost s { color: var(--muted); text-decoration-color: var(--fg-3); }
@@ -1526,15 +1532,23 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   /* Ability cards: three piles, then what moves cards between them. */
   .card-block { display: flex; flex-direction: column; gap: 12px; }
   .pile-warn { font-weight: 700; color: var(--ember); }
-  .piles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-  .pile { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px; border: 1px solid var(--line); border-radius: var(--r-md); }
-  .pile output { font-size: var(--d-sm); font-weight: 700; line-height: 1.1; }
-  .pile.hand { border-color: var(--line-strong); }
-  .pile.stack { margin: 6px 6px 0 0; box-shadow: 3px -3px 0 -1px var(--surface), 3px -3px 0 0 var(--line), 6px -6px 0 -1px var(--surface), 6px -6px 0 0 var(--line); }
-  .pile.none { border-style: dashed; }
-  .pile.none output { color: var(--muted); }
-  .pile.lost:not(.none) { border-color: var(--ember-line); background: repeating-linear-gradient(135deg, var(--ember-bg) 0 6px, var(--surface) 6px 12px); }
-  .pile.lost:not(.none) output { color: var(--ember); }
+  /* The piles as the attack modifier deck is drawn: a column each, a small
+     card per card in rows of five from the bottom, the columns one height. */
+  .pile-rounds { display: inline-flex; align-items: center; gap: 6px; color: var(--fg-3); }
+  .pile-rounds .icon { width: 16px; height: 16px; }
+  .pile-rounds b { font-size: var(--t-base); color: var(--fg); }
+  .card-block .block-head { align-items: center; }
+  .piles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .pile { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .pile-cards { display: flex; flex-wrap: wrap-reverse; align-content: flex-start; gap: 3px;
+    height: calc(var(--rows) * 28px + (var(--rows) - 1) * 3px); }
+  .pile-cards i { width: calc((100% - 12px) / 5); height: 28px; box-sizing: border-box; border-radius: 3px; }
+  .pile.hand i { background: var(--surface-3); border: 1px solid var(--muted); }
+  .pile.discard i { border: 1px dashed var(--line-strong); }
+  .pile.lost i { background: var(--ember-bg); border: 1px solid var(--ember-line); }
+  .pile .label { text-align: center; }
+  .pile.none .label { color: var(--line-strong); }
+  .pile.lost:not(.none) .label { color: var(--ember); }
   .pile-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .pile-row > .label { width: 3.2em; flex: none; }
   .pile-move { flex: 1 1 0; min-width: 0; flex-direction: column; justify-content: center; gap: 0; min-height: 44px; padding-inline: 10px; line-height: 1.2; }
