@@ -1754,8 +1754,21 @@ function cardKind(label) {
   return n[1] === "−" ? "bad" : "good";
 }
 
-// The deck as counts, with the perks' icons; any perk it couldn't read is
-// listed, so nothing is silently left out.
+// The deck as a row of columns, one per card value from worst to best, each
+// a stack of one block per card, counted in fives as tally marks are; Curse
+// and Bless, shuffled in for a while, are the columns at either end, added
+// and taken out there on a phone. A card with an effect (+1 WOUND) stacks in
+// its number's column, hollow, and is listed under the columns with its
+// icon, as the deck is built at the table; rolling cards share a column. Any
+// perk it couldn't read is listed, so nothing is silently left out.
+const DECK_VALUES = ["Null", "−2", "−1", "+0", "+1", "+2", "+3", "+4", "2×", "rolling"];
+// The standard deck's values: a column each even when perks took every card
+// of one out, as that's worth seeing.
+const DECK_BASE = new Set(["Null", "−2", "−1", "+0", "+1", "+2", "2×"]);
+const deckValue = label => /^rolling\b/.test(label) ? "rolling" : label === "Null" || label === "2×" ? label : /^[+−]\d/.exec(label)?.[0] ?? label;
+// A rolling card's colour is its number's (a rolling +1 is above +0).
+const deckKind = label => cardKind(label.replace(/^rolling\s*/, ""));
+
 function attackDeckBlock(c, rows) {
   const sheet = classPerks(c.class);
   const inOrder = [...rows].sort((a, b) => (a.match ? sheet.indexOf(a.match) : sheet.length) - (b.match ? sheet.indexOf(b.match) : sheet.length));
@@ -1764,45 +1777,30 @@ function attackDeckBlock(c, rows) {
   // Bless and Curse cards in the deck now, as counted under Conditions; with
   // none counted, Sanctuary blessings in the session being recorded, for the
   // next scenario.
-  const live = tableState(c.name).conds || {};
-  const curses = live.curse || 0;
-  const donated = !live.bless && (c.blessNext || (draft?.donations || []).some(x => x.character === c.name));
-  const blesses = live.bless || (donated ? 2 : 0);
-  const blessed = blesses > 0;
-  // Worst to best, a segment per card, so a deck's quality reads at a glance
-  // and decks compare side by side. The chips under it are its legend.
-  const KINDS = ["curse", "null", "bad", "zero", "good", "crit", "bless"];
-  const segments = [...cards.flatMap(([label, n]) => Array(n).fill(cardKind(label))), ...Array(blesses).fill("bless"), ...Array(curses).fill("curse")]
-    .sort((a, b) => KINDS.indexOf(a) - KINDS.indexOf(b));
-  const tally = k => segments.filter(x => k.includes(x)).length;
-  return h("div", { class: "block deck-block" },
-    h("div", { class: "block-head" }, h("h4", { class: "label" }, "Attack modifier deck"),
-      h("span", {}, `${total} cards${blesses ? ` + ${blesses} Bless` : ""}${curses ? ` + ${curses} Curse` : ""}`)),
-    h("div", { class: "deck-bar", role: "img",
-               "aria-label": `${tally(["curse", "null", "bad"])} below +0, ${tally(["zero"])} at +0, ${tally(["good", "crit", "bless"])} above` },
-      segments.map(k => h("i", { class: `k-${k}` }))),
-    // Worst to best, the bad cards quieter; each count in a badge of its own,
-    // so the 2× card doesn't read "2× ×1".
-    h("ul", { class: "deck-cards" }, cards.map(([label, n]) => h("li", { class: { null: "bad", bad: "bad", good: "good", crit: "good" }[cardKind(label)] || null },
-        h("i", { class: `swatch k-${cardKind(label)}`, "aria-hidden": "true" }),
-        h("span", {}, perkText(label)), h("span", { class: "sr-only" }, ", "), h("b", { role: "img", "aria-label": plural(n, "card") }, String(n)))),
-      blessed ? h("li", { class: "bless", title: donated ? "From a Sanctuary donation, for the next scenario only" : "In the deck now, as counted under Conditions" },
-        h("i", { class: "swatch k-bless", "aria-hidden": "true" }),
-        h("span", {}, "Bless"), h("span", { class: "sr-only" }, ", "),
-        h("b", { role: "img", "aria-label": donated ? "2 cards, next scenario only" : plural(blesses, "card") }, String(blesses))) : null,
-      curses ? h("li", { class: "bad", title: "In the deck now, as counted under Conditions" },
-        h("i", { class: "swatch k-curse", "aria-hidden": "true" }),
-        h("span", {}, "Curse"), h("span", { class: "sr-only" }, ", "), h("b", { role: "img", "aria-label": plural(curses, "card") }, String(curses))) : null),
-    unread.length ? h("p", { class: "small muted" }, `Not counted, as written: ${unread.join("; ")}`) : null,
-    // Phones: Bless and Curse cards shuffled in during a scenario, counted here.
-    c.retired ? null : deckCounters(c));
-}
-
-// Bless and Curse cards in the deck now, each with − and +: kept with the
-// tracker's conditions, as the dock shows them too. Each is removed once drawn
-// (rulebook pp. 22-23).
-function deckCounters(c) {
   const conds = tableState(c.name).conds || {};
+  const curses = conds.curse || 0;
+  const donated = !conds.bless && Boolean(c.blessNext || (draft?.donations || []).some(x => x.character === c.name));
+  const blesses = conds.bless || (donated ? 2 : 0);
+  // Added and taken out on a phone, at the table; elsewhere they're shown.
+  const playing = phone.matches && !c.retired;
+
+  const columns = DECK_VALUES
+    .map(v => ({ v, cards: cards.filter(([label]) => deckValue(label) === v) }))
+    .filter(col => DECK_BASE.has(col.v) || col.cards.length)
+    // The plain cards at the bottom, those with an effect above them.
+    .map(col => ({ ...col, cards: [...col.cards].sort(([a], [b]) => (a !== col.v) - (b !== col.v)) }));
+  const count = list => list.reduce((sum, [, n]) => sum + n, 0);
+  // Every column as tall as the tallest stack, so they share a top and a
+  // bottom; on a phone, room above it for the + of Curse and Bless.
+  const most = Math.max(curses, blesses, ...columns.map(col => count(col.cards)));
+  const height = Math.max(1, most) * 10 - 2 + Math.floor(Math.max(0, most - 1) / 5) * 4 + (playing ? 18 : 0);
+  // One block a card, a wider gap after each five.
+  const blocks = list => list.flatMap(([kind, fx, n]) => Array(n).fill([kind, fx]))
+    .map(([kind, fx], i, all) => h("i", { class: `k-${kind}${fx ? " fx" : ""}${i % 5 === 4 && i < all.length - 1 ? " five" : ""}` }));
+  const cardsText = list => list.map(([label, n]) => `${n} ${label}`).join(", ");
+
+  // Bless and Curse, kept with the tracker's conditions as the dock shows
+  // them too; each is removed once drawn (rulebook pp. 22-23).
   const change = (key, fn) => () => {
     fn();
     saveTable(c.name, { conds });
@@ -1812,17 +1810,55 @@ function deckCounters(c) {
     sheetEl?.querySelector(".deck-block")?.replaceWith(deck);
     deck.querySelector(`[data-key="${CSS.escape(key)}"]`)?.focus({ preventScroll: true });
   };
-  return h("div", { class: "deck-counters" }, DECK_CONDITIONS.map(([id, name, kind]) => {
+  const side = id => {
+    const [, name] = DECK_CONDITIONS.find(([x]) => x === id);
+    const n = id === "bless" ? blesses : curses;
+    const said = donated && id === "bless" ? `${name}: 2 cards, from a Sanctuary donation, for the next scenario only` : `${name}: ${plural(n, "card")}`;
+    const stack = [blocks([[id, false, n]]), playing ? icon("plus") : null];
+    return h("div", { class: `deck-col side ${id}${n ? " on" : ""}`, title: said },
+      playing
+        ? h("button", { type: "button", class: "deck-stack", style: `height: ${height}px`, "data-key": `cond-${id}-up-${c.name}`,
+            "aria-label": `${said}. Add 1`, "aria-disabled": String(n >= 10),
+            onclick: change(`cond-${id}-up-${c.name}`, () => { if (n < 10) conds[id] = n + 1; }) }, stack)
+        : h("div", { class: "deck-stack", style: `height: ${height}px`, role: "img", "aria-label": said }, stack),
+      h("span", { class: "deck-label", "aria-hidden": "true" }, condIcon(id)));
+  };
+  const less = id => {
+    const [, name] = DECK_CONDITIONS.find(([x]) => x === id);
     const n = conds[id] || 0;
-    return h("div", { class: `cond-count ${kind}${n ? " on" : ""}`, title: `Each ${name} card is removed once drawn` },
-      condIcon(id),
-      h("span", { class: "cond-count-name" }, name),
-      h("button", { type: "button", class: "dock-step", "data-key": `cond-${id}-down-${c.name}`, "aria-label": `1 less ${name} card`,
-        "aria-disabled": String(!n), onclick: change(`cond-${id}-down-${c.name}`, () => { if (n > 1) conds[id] = n - 1; else delete conds[id]; }) }, icon("minus")),
-      h("output", { class: "num", "aria-live": "polite" }, String(n), h("span", { class: "sr-only" }, ` ${name} ${n === 1 ? "card" : "cards"}`)),
-      h("button", { type: "button", class: "dock-step", "data-key": `cond-${id}-up-${c.name}`, "aria-label": `1 more ${name} card`,
-        "aria-disabled": String(n >= 10), onclick: change(`cond-${id}-up-${c.name}`, () => { if (n < 10) conds[id] = n + 1; }) }, icon("plus")));
-  }));
+    return h("button", { type: "button", class: `deck-less ${id}`, "data-key": `cond-${id}-down-${c.name}`, "aria-label": `1 less ${name} card`,
+      "aria-disabled": String(!n), onclick: change(`cond-${id}-down-${c.name}`, () => { if (n > 1) conds[id] = n - 1; else delete conds[id]; }) }, icon("minus"));
+  };
+
+  const below = count(cards.filter(([l]) => ["null", "bad"].includes(deckKind(l)))) + curses;
+  const at = count(cards.filter(([l]) => deckKind(l) === "zero"));
+  const effects = cards.filter(([label]) => label !== deckValue(label));
+  const extra = [...Array(curses).fill("curse"), ...Array(blesses).fill("bless")];
+  const said = `${plural(total, "card")}${blesses ? ` + ${blesses} Bless` : ""}${curses ? ` + ${curses} Curse` : ""}`;
+  return h("div", { class: "block deck-block" },
+    // The deck's size, and a pip for each Curse and Bless shuffled in.
+    h("div", { class: "block-head" }, h("h4", { class: "label" }, "Attack modifier deck"),
+      h("span", { class: "deck-size", role: "img", "aria-label": said, title: said },
+        icon("cards"), h("b", { class: "num" }, String(total)),
+        extra.length ? h("span", { class: "deck-pips" }, extra.map(k => h("i", { class: `k-${k}` }))) : null)),
+    h("div", { class: "deck-cols", role: "group", "aria-label": `${below} below +0, ${at} at +0, ${total + curses + blesses - below - at} above`,
+               style: `grid-template-columns: repeat(${columns.length + 2}, minmax(0, 1fr))` },
+      side("curse"),
+      columns.map(col => {
+        const n = count(col.cards);
+        const said = `${col.v === "rolling" ? "Rolling" : col.v}: ${plural(n, "card")}${col.cards.some(([l]) => l !== col.v) ? ` (${cardsText(col.cards)})` : ""}`;
+        return h("div", { class: `deck-col${["null", "bad"].includes(deckKind(col.v)) ? " dim" : ""}`, title: said },
+          h("div", { class: "deck-stack", style: `height: ${height}px`, role: "img", "aria-label": said },
+            blocks(col.cards.map(([label, k]) => [deckKind(label), label !== col.v, k]))),
+          h("span", { class: "deck-label", "aria-hidden": "true" }, col.v === "rolling" ? h("img", { class: "glyph", src: "icons/rolling.svg", alt: "", width: 16, height: 16 }) : col.v));
+      }),
+      side("bless"),
+      playing ? [less("curse"), less("bless")] : null),
+    // The cards with an effect, as they're found to build the deck.
+    effects.length ? h("ul", { class: "deck-cards" }, effects.map(([label, n]) => h("li", { class: { null: "bad", bad: "bad", good: "good", crit: "good" }[deckKind(label)] || null },
+        h("i", { class: `swatch k-${deckKind(label)} fx`, "aria-hidden": "true" }),
+        h("span", {}, perkText(label)), h("span", { class: "sr-only" }, ", "), h("b", { role: "img", "aria-label": plural(n, "card") }, String(n))))) : null,
+    unread.length ? h("p", { class: "small muted" }, `Not counted, as written: ${unread.join("; ")}`) : null);
 }
 
 // Personal quest progress written as "2/15" gets a thin bar under it, one
