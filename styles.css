@@ -627,9 +627,9 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .perks > li.open { color: var(--fg-3); }
 .item-list > li { gap: 10px; }
 .item-list .gicon, .slot-blank { flex: none; width: 1.15em; height: 1.15em; margin: 0; color: var(--fg-3); }
-/* Cards, items and conditions to track at the table, tonight's scenario to
-   set up and what it gave: phones only. */
-.item-track, .cond-block, .card-block, .scen-ref, .summary { display: none; }
+/* Cards, items and conditions to track at the table, tonight's scenario and
+   battle goal to set up by and what it gave: phones only. */
+.item-track, .cond-block, .card-block, .scen-ref, .goal-card, .summary { display: none; }
 .perks .perk-text { flex: 1; }
 .perks .icon { font-size: var(--t-md); color: var(--verdigris); stroke-width: 2.8; }
 .perks .unsure .icon { color: var(--brass); stroke-width: 2.2; }
@@ -1151,6 +1151,13 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .ref-players li span { color: var(--fg-2); }
   .ref-more { display: inline-flex; align-items: center; min-height: 44px; align-self: flex-start; font-weight: 600; color: var(--fg-2); }
   .ready-card.picked { border-color: var(--brass); }
+  /* The battle goal kept: hidden behind Show, as the personal quest is. */
+  .goal-card { order: 1; display: flex; flex-direction: column; gap: 10px; }
+  .goal-change { min-height: 44px; margin: -12px -8px -12px 0; }
+  .goal-reveal { align-self: stretch; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 44px; }
+  .goal-checks { font-size: var(--t-sm); color: var(--muted); }
+  .goal-card select { min-height: 44px; }
+  .sum-made { flex: none; }
 
   /* Town: what the scenario gave, above the Shop. */
   .summary { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
