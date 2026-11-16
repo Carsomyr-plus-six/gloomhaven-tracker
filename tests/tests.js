@@ -139,6 +139,24 @@ async function runTests(load, loadText) {
      afterIt.characters.find(c => c.name === "Azorica").log.find(e => e.for === "donation"), blessOf(afterIt, "Azorica"),
      blessOf(flagged, "Kaktus"), fileQuestions(stale).filter(q => q.includes("blessNext")).length],
     [false, true, false, false, { date: "2026-11-20", for: "donation", after: true, gold: -10 }, true, true, 1]);
+  // Town rules the form checks: a donation once per character per visit (one
+  // before tonight's scenario and one after are two visits); a retiree's
+  // Bless cards are theirs, so a donation with no scenario after it goes
+  // unused (errata); a class's enhanced cards are at most the prosperity level.
+  const warnsOf = extra => applyDraft(fromFile(copy(raw)), { ...copy(draft), scenarios: [], events: [], buys: [], sells: [], perks: [],
+    donations: [], enhancements: [], claims: {}, quests: {}, newCharacters: [], retirements: [], ...extra }, buildData(copy(raw))).warnings;
+  const scenario6 = [{ number: "6", level: "2", result: "failure", treasures: [], results: { Azorica: { xp: "1" }, Craig: { xp: "1" }, "Flik Flak": { xp: "1" } } }];
+  const says = (warns, text) => warns.some(w => w.includes(text));
+  const prosperity = stepFor(buildData(copy(raw)).city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
+  const enhance = n => Array.from({ length: n }, () => ({ character: "Azorica", what: "Move", cost: "0" }));
+  same("town: donating once per visit, a retiree's blessings, the enhancement limit",
+    [says(warnsOf({ donations: [{ character: "Azorica" }, { character: "Azorica" }] }), "twice in one visit"),
+     says(warnsOf({ scenarios: scenario6, donations: [{ character: "Azorica" }, { character: "Azorica", when: "after" }] }), "twice in one visit"),
+     says(warnsOf({ donations: [{ character: "Azorica" }], retirements: [{ character: "Azorica", unlocks: "envelope-x" }] }), "go unused"),
+     says(warnsOf({ scenarios: scenario6, donations: [{ character: "Azorica" }], retirements: [{ character: "Azorica", unlocks: "envelope-x" }] }), "go unused"),
+     says(warnsOf({ enhancements: enhance(prosperity) }), "can be enhanced"),
+     says(warnsOf({ enhancements: enhance(prosperity + 1) }), "can be enhanced")],
+    [true, false, true, false, false, true]);
   // Who passed a level at a session is worked out from XP over time, as the
   // evening's summary says it; the file stores none. A list written in on a
   // session whose plays have no level (the record can't tell) stands; one

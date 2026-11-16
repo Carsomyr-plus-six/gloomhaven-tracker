@@ -60,8 +60,10 @@ function scenarioStats(level) {
   };
 }
 
-// The Sanctuary of the Great Oak: a donation is 10 gold, once per player per
-// visit to the city, for two blessings in that player's next scenario. When
+// The Sanctuary of the Great Oak: a donation is 10 gold, once per character
+// per visit to the city, for two blessings in that character's next scenario
+// (p. 45, where the errata reads "character" for "player": a retiring
+// character's blessings don't pass to the player's next one). When
 // the city's donations reach 100 gold in all, Envelope B may be opened.
 const DONATION = 10;
 const ENVELOPE_B_DONATIONS = 100;
@@ -87,7 +89,7 @@ const startingGold = level => 15 * (level + 1);
 // each card level above 1 and 75 gold for each enhancement already on that
 // action. Costs as Gloomhaven Secretariat's EnhancementsManager has them for
 // the 1st edition. An attack hex costs 200 gold shared by the hexes the
-// attack has now, rounded up.
+// attack has now, rounded down (p. 47).
 const ENHANCEMENTS = [
   ["+1 to a number", [["move", "Move", 30], ["attack", "Attack", 50], ["range", "Range", 30], ["target", "Target", 50],
                       ["shield", "Shield", 100], ["retaliate", "Retaliate", 100], ["pierce", "Pierce", 30], ["heal", "Heal", 30],
@@ -1741,8 +1743,18 @@ function applyDraft(raw, d, data) {
     // play one after this; otherwise their next (blessPending).
     log.push(`${x.character} donates ${goldText(DONATION)} to the Sanctuary: two Bless cards in their next scenario`);
   }
+  // Once per visit (p. 45): a visit follows each scenario (p. 42), so one
+  // before tonight's scenarios and one back in town after are two visits.
   for (const name of new Set(donors.map(x => x.character))) {
-    if (donors.filter(x => x.character === name).length > 1) warnings.push(`${name} donates more than once: it's once per visit to the city.`);
+    for (const when of ["", "after"]) {
+      if (donors.filter(x => x.character === name && (x.when === "after" ? "after" : "") === when).length > 1) {
+        warnings.push(`${name} donates twice in one visit to the city: it's once per visit.`);
+      }
+    }
+    // Blessings are the donor's (errata): one who retires tonight with no
+    // scenario after the donation never uses them.
+    const used = played.length && party.includes(name) && donors.some(x => x.character === name && x.when !== "after");
+    if (retiring.has(name) && !used) warnings.push(`${name} donates, then retires: the two Bless cards are theirs, so they go unused (they don't pass to a next character).`);
   }
   if (before < ENVELOPE_B_DONATIONS && (out.city.donations || 0) >= ENVELOPE_B_DONATIONS && !d.envelopeB) {
     log.push(`Donations reach ${goldText(out.city.donations)}: Envelope B can be opened`);
@@ -1751,13 +1763,25 @@ function applyDraft(raw, d, data) {
     out.city.envelopeB = true;
     log.push("Envelope B opened");
   }
+  const enhancedClasses = new Set();
   for (const x of (d.enhancements || []).filter(x => x.character)) {
     const c = who(x.character);
     if (!c) continue;
     c.gold = (c.gold || 0) - num(x.cost);
     line(x.character, { gold: -num(x.cost) }, { for: "enhancement", what: x.what });
     c.enhanced = (c.enhanced || 0) + 1;
+    enhancedClasses.add(c.class);
     log.push(`${x.character} enhances a card (${x.what}) for ${goldText(num(x.cost))}`);
+  }
+  // A class's deck can have no more enhanced cards than the prosperity level
+  // (p. 46), and its stickers stay on through every character of the class.
+  // The sheets count stickers, not cards (a card can carry several), so
+  // past the limit it can only ask.
+  for (const cls of enhancedClasses) {
+    const stickers = out.characters.filter(c => c.class === cls).reduce((n, c) => n + (c.enhanced || 0), 0);
+    if (stickers > prosperityTonight) {
+      warnings.push(`The ${cls} cards have ${plural(stickers, "enhancement")}: at prosperity ${prosperityTonight}, no more than ${prosperityTonight} of its cards can be enhanced. Check they're on that many cards or fewer.`);
+    }
   }
   for (const p of d.perks.filter(p => p.character && p.perk)) {
     who(p.character).perks.push(p.perk);

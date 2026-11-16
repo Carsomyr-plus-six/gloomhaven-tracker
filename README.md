@@ -45,7 +45,7 @@ At the table, open **Sessions** and choose **Record a session** (or **Record the
 - the treasures looted and who looted them, and who takes any item the scenario gives as a reward
 - the events drawn, with the option
 - characters retiring, with what their personal quest opens worked out from their quest card (a class box shown by its icon, so nothing is spoiled), and new characters joining
-- items bought or sold, perks taken, and donations to the Sanctuary (10 gold each, once per player per visit)
+- items bought or sold, perks taken, and donations to the Sanctuary (10 gold each, once per character per visit: the errata reads "character" for the rulebook's "player", so a retiring character's Bless cards don't pass on)
 - whether you opened Envelope B, once donations reach 100 gold
 
 The page does the end-of-scenario sums itself:
