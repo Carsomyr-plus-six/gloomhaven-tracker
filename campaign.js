@@ -1164,13 +1164,15 @@ function applyDraft(raw, d, data) {
   const who = name => out.characters.find(c => c.name === name);
   // Handing someone an item (bought, looted or a reward): one of each item
   // per character, and whoever's items change gets the slot check below.
+  // why: what it was for, as a log line (below); what: any gold it cost.
   const changed = new Set();
-  const giveItem = (name, item) => {
+  const giveItem = (name, item, why, what = {}) => {
     const c = who(name);
     if (!c) return;
     if (c.items.some(i => sameItem(i, item))) warnings.push(`${name} already has ${item}: a character can own only one of each item.`);
     c.items.push(item);
     changed.add(name);
+    line(name, { ...what, gained: [item] }, why);
   };
   // Every copy of an item already owned by someone still adventuring.
   const noCopyLeft = item => {
@@ -1198,20 +1200,26 @@ function applyDraft(raw, d, data) {
     g[key] += amount;
     gainFor.set(name, g);
   };
-  // Every change to a sheet's XP, gold or checkmarks other than what a
-  // scenario's results give (those the play keeps) is a line in the
-  // character's log, dated with the evening, saying what it was for: the
-  // one record of it. what: { xp, gold, checkmarks }; why: { for, ... }.
+  // Every change to a sheet other than what a scenario's results give
+  // (those the play keeps) is a line in the character's log, dated with the
+  // evening, saying what it was for: the one record of it. what: { xp,
+  // gold, checkmarks, gained, lost, perks }; why: { for, ... }.
   const when = d.date || today();
-  // Two changes for the same thing (an event's gold and checkmark) are one line.
+  const LISTS = ["gained", "lost", "perks"];
+  // Two parts of one thing (an event's gold and checkmark, a treasure's
+  // gold and item) are one line; a purchase or sale is always its own.
   const line = (name, what, why) => {
     const c = who(name);
-    const amounts = Object.fromEntries(SHEET_SUMS.filter(k => what[k]).map(k => [k, what[k]]));
+    const amounts = Object.fromEntries([...SHEET_SUMS.filter(k => what[k]).map(k => [k, what[k]]),
+      ...LISTS.filter(k => what[k]?.length).map(k => [k, [...what[k]]])]);
     if (!c || !Object.keys(amounts).length) return;
     const last = (c.log ||= []).at(-1);
-    const cause = e => JSON.stringify(Object.entries(e).filter(([k]) => k !== "date" && !SHEET_SUMS.includes(k)));
-    if (last && last.date === when && last.for && cause(last) === cause(why)) {
-      for (const [k, v] of Object.entries(amounts)) { last[k] = (last[k] || 0) + v; if (!last[k]) delete last[k]; }
+    const cause = e => JSON.stringify(Object.entries(e).filter(([k]) => k !== "date" && !SHEET_SUMS.includes(k) && !LISTS.includes(k)));
+    if (last && last.date === when && ["event", "treasure", "reward"].includes(why.for) && cause(last) === cause(why)) {
+      for (const [k, v] of Object.entries(amounts)) {
+        if (LISTS.includes(k)) last[k] = [...(last[k] || []), ...v];
+        else { last[k] = (last[k] || 0) + v; if (!last[k]) delete last[k]; }
+      }
     } else c.log.push({ date: when, ...why, ...amounts });
   };
   // A gain that counts with the evening's (for levels reached tonight).
@@ -1459,16 +1467,16 @@ function applyDraft(raw, d, data) {
             // supply (p. 27).
             if (who(t.character)?.items.some(i => sameItem(i, item))) {
               const value = Math.floor((Object.values(itemsRef?.items || {}).find(x => sameItem(x.name, item))?.cost || 0) / 2);
-              credit(t.character, { gold: value }, { for: "treasure", treasure: t.number, item });
+              credit(t.character, { gold: value }, { for: "treasure", treasure: t.number });
               returnItem(item);
               log.push(`${t.character} already has ${item}, so the one from treasure ${t.number} is sold at once for ${goldText(value)}`);
             } else if (noCopyLeft(item)) {
               // Every copy is someone's: the looter gains its sell value instead (FAQ).
               const value = Math.floor((Object.values(itemsRef?.items || {}).find(x => sameItem(x.name, item))?.cost || 0) / 2);
-              credit(t.character, { gold: value }, { for: "treasure", treasure: t.number, item });
+              credit(t.character, { gold: value }, { for: "treasure", treasure: t.number });
               log.push(`No copy of ${item} is left, so ${t.character} gains its sell value from treasure ${t.number}: ${goldText(value)}`);
             } else {
-              giveItem(t.character, item);
+              giveItem(t.character, item, { for: "treasure", treasure: t.number });
               log.push(`${t.character} takes ${item} from treasure ${t.number}`);
             }
           }
@@ -1525,7 +1533,7 @@ function applyDraft(raw, d, data) {
     if (s.result === "success") rewardCopies(info).forEach((item, k) => {
       const taker = (s.rewardTakers || [])[k];
       if (!taker) { warnings.push(`${label} gives ${item}: who takes it?`); return; }
-      giveItem(taker, item);
+      giveItem(taker, item, { for: "reward", scenario: n });
       log.push(`${taker} takes ${item}, a reward of ${label}`);
     });
     if (r.chooseLocation) {
@@ -1589,7 +1597,7 @@ function applyDraft(raw, d, data) {
     if (k < 0) continue;
     const t = sc.treasures[k];
     sc.treasures[k] = { ...(typeof t === "object" ? t : { number: t }), character: x.character };
-    if (x.kept !== false) giveItem(x.character, c.item); else returnItem(c.item);
+    if (x.kept !== false) giveItem(x.character, c.item, { for: "treasure", treasure: c.treasure }); else returnItem(c.item);
     log.push(`Treasure ${c.treasure} in ${c.where}: ${x.character} looted ${c.item}${x.kept !== false ? "" : ", and has since sold it"}`);
   }
 
@@ -1681,8 +1689,7 @@ function applyDraft(raw, d, data) {
     const c = who(b.character);
     const price = priceOf(b.item) ?? 0;
     c.gold = (c.gold || 0) - price;
-    line(b.character, { gold: -price }, { for: "buy", item: b.item });
-    giveItem(b.character, b.item);
+    giveItem(b.character, b.item, { for: "buy" }, { gold: -price });
     takeReturned(b.item);
     log.push(`${b.character} buys ${b.item} for ${goldText(price)}`);
   }
@@ -1700,13 +1707,13 @@ function applyDraft(raw, d, data) {
     const c = who(sale.character);
     const i = c.items.findIndex(x => sameItem(x, sale.item));
     if (i < 0) { warnings.push(`${sale.character} doesn't carry ${sale.item}.`); continue; }
-    c.items.splice(i, 1);
+    const [sold] = c.items.splice(i, 1);
     changed.add(sale.character);
     returnItem(sale.item);
     const item = Object.values(itemsRef?.items || {}).find(x => sameItem(x.name, sale.item));
     const value = item ? Math.floor(item.cost / 2) : 0;
     c.gold = (c.gold || 0) + value;
-    line(sale.character, { gold: value }, { for: "sell", item: sale.item });
+    line(sale.character, { gold: value, lost: [sold] }, { for: "sell" });
     log.push(`${sale.character} sells ${sale.item} for ${goldText(value)}`);
   }
   out.city ||= {};
@@ -1743,6 +1750,7 @@ function applyDraft(raw, d, data) {
   }
   for (const p of d.perks.filter(p => p.character && p.perk)) {
     who(p.character).perks.push(p.perk);
+    line(p.character, { perks: [p.perk] }, { for: "perk" });
     log.push(`${p.character} takes "${p.perk}"`);
   }
   for (const c of out.characters) if (c.gold < 0) warnings.push(`${c.name} would have ${goldText(c.gold)}.`);
