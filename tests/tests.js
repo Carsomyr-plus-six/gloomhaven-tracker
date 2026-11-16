@@ -119,6 +119,26 @@ async function runTests(load, loadText) {
      buildData(copy(ringBought)).characters.find(c => c.name === "Craig").items.includes("Ring of Skulls"),
      ["returnedItems" in ringSold.city, "returnedItems" in ringBought.city]],
     [0, 1, 0, 1, true, [false, false]]);
+  // Two Bless cards from a donation wait for the donor's next scenario: that
+  // evening's, unless the donation was made after it; worked out from the
+  // donation line and the plays since, so the file keeps no flag. A flag
+  // with no donation line (before the logs) stands; one the log contradicts
+  // is asked about.
+  const blessOf = (file, name) => Boolean(buildData(copy(file)).characters.find(c => c.name === name).blessNext);
+  const town = evening(raw, { donations: [{ character: "Azorica" }] });   // a visit to town, no scenario
+  const next = evening(town, { date: "2026-11-27", party: ["Azorica", "Craig", "Flik Flak"],
+    scenarios: [{ number: "6", level: "2", result: "failure", treasures: [], results: { Azorica: { xp: "1" }, Craig: { xp: "1" }, "Flik Flak": { xp: "1" } } }] });
+  const afterIt = evening(raw, { donations: [{ character: "Azorica", when: "after" }],
+    scenarios: [{ number: "6", level: "2", result: "failure", treasures: [], results: { Azorica: { xp: "1" }, Craig: { xp: "1" }, "Flik Flak": { xp: "1" } } }] });
+  const flagged = copy(raw);
+  flagged.characters.find(c => c.name === "Kaktus").blessNext = true;
+  const stale = copy(next);
+  stale.characters.find(c => c.name === "Azorica").blessNext = true;
+  same("bless: waits for the donor's next scenario, worked out from the log",
+    [blessOf(file, "Flik Flak"), blessOf(town, "Azorica"), "blessNext" in town.characters.find(c => c.name === "Azorica"), blessOf(next, "Azorica"),
+     afterIt.characters.find(c => c.name === "Azorica").log.find(e => e.for === "donation"), blessOf(afterIt, "Azorica"),
+     blessOf(flagged, "Kaktus"), fileQuestions(stale).filter(q => q.includes("blessNext")).length],
+    [false, true, false, false, { date: "2026-11-20", for: "donation", after: true, gold: -10 }, true, true, 1]);
   // Who passed a level at a session is worked out from XP over time, as the
   // evening's summary says it; the file stores none. A list written in on a
   // session whose plays have no level (the record can't tell) stands; one

@@ -1681,7 +1681,6 @@ function applyDraft(raw, d, data) {
     }
   }
   // Bless cards kept from an earlier donation are used in tonight's scenario.
-  if (playedTonight) for (const name of party) if (who(name)?.blessNext && !(d.donations || []).some(x => x.character === name && x.when === "after")) delete who(name).blessNext;
   // Who retired tonight leaves with nothing: their gold is gone (p. 48),
   // and their items go back to the shop.
   for (const name of retiring) {
@@ -1732,12 +1731,11 @@ function applyDraft(raw, d, data) {
   for (const x of donors) {
     const c = who(x.character);
     c.gold = (c.gold || 0) - DONATION;
-    line(x.character, { gold: -DONATION }, { for: "donation" });
+    line(x.character, { gold: -DONATION }, { for: "donation", ...(x.when === "after" ? { after: true } : {}) });
     out.city.donations = (out.city.donations || 0) + DONATION;
     c.donated = (c.donated || 0) + DONATION;
     // Two Bless cards for their next scenario (p. 45): tonight's, if they
-    // play one after this; otherwise kept on the sheet until they do.
-    if (x.when === "after" || !(playedTonight && party.includes(c.name))) c.blessNext = true;
+    // play one after this; otherwise their next (blessPending).
     log.push(`${x.character} donates ${goldText(DONATION)} to the Sanctuary: two Bless cards in their next scenario`);
   }
   for (const name of new Set(donors.map(x => x.character))) {
@@ -1900,6 +1898,18 @@ function levelUpsBy(m, plays) {
   return out;
 }
 const sameUps = (a, b) => JSON.stringify((a || []).map(u => `${u.character}:${u.level}`).sort()) === JSON.stringify((b || []).map(u => `${u.character}:${u.level}`).sort());
+
+// Two Bless cards waiting for a character's next scenario, from a donation
+// (p. 45): their last donation line, with no scenario of theirs after it.
+// One that evening counts, unless the donation was made back in town after
+// it ("after"). null when no donation line says (one before the logs began
+// is written on the character as "blessNext").
+function blessPending(c, plays) {
+  const gift = [...(c.log || [])].reverse().find(e => e.for === "donation");
+  if (!gift) return null;
+  return !plays.some(p => p.session?.date && (p.session.date > gift.date || (p.session.date === gift.date && !gift.after))
+    && playedBy(p).includes(c.name));
+}
 
 // A character's retirement line, if their log has one.
 const retirementOf = c => (c.log || []).find(e => e.for === "retirement") || null;
@@ -2440,6 +2450,11 @@ function fromFile(json) {
     // before the logs began) as written on the character.
     const retiring = retirementOf(c);
     if (retiring) Object.assign(m, { retired: true, retiredOn: retiring.date });
+    // Two Bless cards pending, from their last donation line; with none (a
+    // donation before the logs began) as written on the character.
+    const bless = blessPending(c, byPlay);
+    if (bless === true) m.blessNext = true;
+    if (bless === false) delete m.blessNext;
     if (t.donated) m.donated = t.donated;
     if (t.enhanced) m.enhanced = t.enhanced;
     return m;
@@ -2534,6 +2549,8 @@ function toFile(m, when = m.updated || today()) {
     const change = sheetChange(withTook(sheetTotals({ start, log }), took), after);
     if (Object.keys(change).length) log.push({ date: when, ...change });
     const { name, class: cls, xp, gold, checkmarks, items, perks, donated, enhanced, start: _s, log: _l, ...rest } = c;
+    // A pending Bless, where a donation line says it, is left to the log.
+    if (blessPending({ log }, []) !== null) delete rest.blessNext;
     // Retired, and when, as the retirement line says: left to the log.
     const retiring = retirementOf({ log });
     if (retiring && rest.retired === true) delete rest.retired;
@@ -2625,6 +2642,14 @@ function fileQuestions(json) {
   const q = [];
   const completing = completions(json.sessions || []);
   const revealed = revealedByReference(scenarioRef, [...completing.keys()]);
+  // A pending Bless is worked out from the last donation line; a flag it contradicts is asked about.
+  if (json.characters?.some(c => "blessNext" in c && c.log?.some(e => e.for === "donation"))) {
+    const plays = readPlays(fromFile(json));
+    for (const c of json.characters) {
+      const pending = "blessNext" in c ? blessPending(c, plays) : null;
+      if (pending !== null && pending !== Boolean(c.blessNext)) q.push(`${c.name}'s "blessNext" says ${c.blessNext ? "a Bless is waiting" : "none is"}, but their last donation and the scenarios since say ${pending ? "one is" : "it's been used"}. Remove "blessNext" to go by the log.`);
+    }
+  }
   // Who passed a level is worked out; a list the record contradicts is asked about.
   if (json.sessions?.some(s => s.levelUps)) {
     const model = fromFile(json);
