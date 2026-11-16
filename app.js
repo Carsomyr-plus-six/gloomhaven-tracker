@@ -2973,7 +2973,7 @@ function tableState(name) {
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(tableKey(name))); } catch {}
   // hp null: at full health, whatever the maximum is by then.
-  return { hp: null, xp: 0, coins: 0, items: {}, conds: {}, cards: null, ...(saved && typeof saved === "object" ? saved : {}) };
+  return { hp: null, xp: 0, coins: 0, items: {}, conds: {}, cards: null, goal: 0, ...(saved && typeof saved === "object" ? saved : {}) };
 }
 // The tracker and the items each save their own part over what's stored.
 function saveTable(name, part) {
@@ -3246,7 +3246,7 @@ function tableDock(c) {
       }
       disarm();
       Object.assign(state, { hp: null, xp: 0, coins: 0 });
-      saveTable(c.name, { hp: null, xp: 0, coins: 0, items: {}, conds: {}, cards: null });
+      saveTable(c.name, { hp: null, xp: 0, coins: 0, items: {}, conds: {}, cards: null, goal: 0 });
       cardUndo.delete(c.name);
       paint();
       // Every item ready again, on the sheet above.
@@ -3279,6 +3279,76 @@ function tableDock(c) {
       max ? null : reset));
   paint();
   return dock;
+}
+
+// --- After the scenario (phones) ---------------------------------------------
+// At the top of the Town tab: what each character this phone tracked takes
+// from the scenario, to read out to whoever records the evening. XP is the
+// dial's plus, on a success, the bonus for tonight's level; gold is the coins
+// at that level's rate; a battle goal's checkmarks count on a success only.
+// Then where that leaves them: XP, gold and any new level. The result is
+// this phone's; the checkmarks are kept with the tracker.
+const RESULT_KEY = storeKey("tonightResult");
+let tonightResult = "success";
+try { tonightResult = localStorage.getItem(RESULT_KEY) || "success"; } catch {}
+
+function scenarioSummary(data) {
+  const t = tonight(data);
+  const shown = characterOrder(data).filter(c => !c.retired).filter(c => {
+    const st = tableState(c.name);
+    return c.name === me || st.xp || st.coins || st.goal;
+  });
+  if (!shown.length) return null;
+  const won = tonightResult === "success";
+  const sc = tonightScenario(data);
+  const setResult = r => () => {
+    tonightResult = r;
+    try { localStorage.setItem(RESULT_KEY, r); } catch {}
+    render(data, "shop");
+  };
+  const row = (label, sum, total) => h("div", { class: "sum-row" },
+    h("span", { class: "label" }, label), h("span", { class: "sum-how" }, sum), h("b", { class: "num" }, total));
+
+  return h("section", { class: "summary", "aria-labelledby": "summary-title" },
+    h("div", { class: "section-head" }, h("h2", { id: "summary-title" }, "After the scenario"),
+      h("span", { class: "aside" }, [sc ? scenarioLabel(data, sc.number) : null, t ? `level ${t.level}` : null].filter(Boolean).join(" · "))),
+    h("div", { class: "segmented", role: "group", "aria-label": "Result" },
+      [["success", "Success"], ["failure", "Failure"]].map(([key, label]) =>
+        h("button", { type: "button", "data-key": `result-${key}`, "aria-pressed": String(tonightResult === key), onclick: setResult(key) }, label))),
+    t ? null : h("p", { class: "small muted" }, "Pick who is playing under Scenario level, on Tonight, for the bonus XP and the gold a coin is worth."),
+    shown.map(c => {
+      const st = tableState(c.name);
+      const bonus = won && t ? t.xp : 0;
+      const xp = st.xp + bonus;
+      const gold = t ? st.coins * t.gold : null;
+      const goal = won ? st.goal || 0 : 0;
+      const before = characterStats(c);
+      const after = characterStats({ ...c, xp: c.xp + xp, checkmarks: c.checkmarks + goal });
+      // A new level brings an ability card and a perk; three checkmarks, a perk.
+      const perks = after.earned - before.earned;
+      const gains = [after.level > before.level ? `level ${after.level}: a new ability card` : null,
+                     perks ? `${plural(perks, "perk")} to choose` : null].filter(Boolean).join(" and ");
+      const setGoal = n => () => { saveTable(c.name, { goal: n }); render(data, "shop"); };
+      return h("div", { class: "card sum-card" },
+        h("h3", {}, c.name),
+        row("XP", `${st.xp} on the dial${bonus ? ` + ${bonus} bonus` : ""}`, `+${xp}`),
+        row("Gold", t ? `${plural(st.coins, "coin")} × ${t.gold}` : plural(st.coins, "coin"), gold != null ? `+${gold}` : "?"),
+        won ? h("div", { class: "sum-row" },
+          h("span", { class: "label sum-goal-label" }, "Battle goal checkmarks"),
+          h("span", { class: "sum-goal" },
+            h("button", { type: "button", class: "dock-step", "data-key": `goal-down-${c.name}`, "aria-label": "1 less checkmark",
+              "aria-disabled": String(!st.goal), onclick: st.goal ? setGoal(st.goal - 1) : null }, icon("minus")),
+            h("b", { class: "num", "aria-live": "polite" }, String(st.goal || 0), h("span", { class: "sr-only" }, " checkmarks")),
+            h("button", { type: "button", class: "dock-step", "data-key": `goal-up-${c.name}`, "aria-label": "1 more checkmark",
+              "aria-disabled": String((st.goal || 0) >= 3), onclick: (st.goal || 0) < 3 ? setGoal((st.goal || 0) + 1) : null }, icon("plus"))))
+          : h("p", { class: "small muted" }, "A failure gives no bonus XP and no battle goal checkmarks."),
+        h("p", { class: "sum-after" },
+          `Then ${c.xp + xp} XP`,
+          after.level === before.level && after.toNext ? ` · ${after.toNext.remaining} to level ${after.level + 1}` : "",
+          gold != null ? ` · ${c.gold + gold} gold` : "",
+          gains ? h("strong", { class: "sum-gains" }, capitalize(gains)) : null));
+    }),
+    h("p", { class: "small muted" }, "Read these to whoever records the evening; on the phone that records it, the form fills them in."));
 }
 
 // --- Shop -----------------------------------------------------------------------
@@ -4367,7 +4437,7 @@ function renderRecorder(data) {
   const reward = n => scenarioRef?.scenarios?.[String(n)]?.rewards;
   const tracked = name => {
     const t = tableState(name);
-    return t.xp || t.coins ? `${t.xp} XP, ${plural(t.coins, "coin")}` : null;
+    return t.xp || t.coins || t.goal ? [`${t.xp} XP`, plural(t.coins, "coin"), t.goal ? plural(t.goal, "checkmark") : null].filter(Boolean).join(", ") : null;
   };
   const scenarioBlock = (s, i) => {
     const n = num(s.number);
@@ -4416,7 +4486,7 @@ function renderRecorder(data) {
             // What this phone tracked at the table, to fill in with a tap.
             tracked(c.name) && !filled(r.xp) && !filled(r.coins) && !filled(r.gold)
               ? h("button", { type: "button", class: "chip rec-tracked", "data-key": `sc-${i}-${c.name}-tracked`,
-                  onclick: () => { const t = tableState(c.name); r.xp = String(t.xp); r.coins = String(t.coins); rerender(); focusOn(`sc-${i}-${c.name}-xp`); } },
+                  onclick: () => { const t = tableState(c.name); r.xp = String(t.xp); r.coins = String(t.coins); if (t.goal) r.checkmarks = String(t.goal); rerender(); focusOn(`sc-${i}-${c.name}-xp`); } },
                   `From this phone: ${tracked(c.name)}`)
               : null,
             s.result === "success"
@@ -4905,7 +4975,7 @@ function renderSessions(data) {
 const RENDERERS = {
   overview: renderOverview,
   characters: renderCharacters,
-  shop: renderShop,
+  shop: data => [scenarioSummary(data), renderShop(data)],
   scenarios: renderScenarios,
   sessions: renderSessions,
   events: renderEvents,
@@ -5181,6 +5251,9 @@ async function start() {
       if (location.hash === "#characters") window.scrollTo({ top: 0, behavior: "instant" });
     });
     window.addEventListener("hashchange", onNavigate);
+    // Town's summary reads the tracker, which the Play tab changes: drawn
+    // afresh on the way there.
+    window.addEventListener("hashchange", () => { if (phone.matches && currentTab() === "town") render(data, "shop"); });
     // Skip to content: to the page itself, without changing the address (which
     // on a phone would change the tab).
     document.querySelector(".skip")?.addEventListener("click", e => {
