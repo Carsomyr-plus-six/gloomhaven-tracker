@@ -18,6 +18,8 @@
   --fg-2: #d6d0c2;
   --fg-3: #c5cbc4;
   --muted: #9ca69f;
+  /* Blocked scenarios: further back than muted, still 5:1 on the page. */
+  --faded: #7d8781;
   --brass: #e2b04a;
   --brass-ink: #1a1408;
   --brass-bg: #1f1b12;
@@ -139,7 +141,7 @@ button { font: inherit; color: inherit; }
   padding-bottom: 0.26em;
 }
 .hex.completed { --ring: var(--verdigris); --fill: var(--under); --ink: var(--verdigris); }
-.hex.blocked { --ring: var(--line-strong); --fill: var(--under); --ink: var(--muted); }
+.hex.blocked { --ring: var(--line); --fill: var(--under); --ink: var(--faded); }
 .hex.level { --ring: var(--verdigris); --fill: var(--under); --ink: var(--fg); }
 .hex.quiet { --ring: var(--line-strong); --fill: var(--under); --ink: var(--fg-3); }
 /* Sessions: a failed attempt, and a casual replay of one already completed
@@ -778,6 +780,7 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .row-name { font-size: var(--t-lg); font-weight: 600; line-height: 1.25; }
 .row-meta { font-size: var(--t-sm); color: var(--muted); }
 .row-meta b { font-weight: 600; }
+.row.blocked .row-name { color: var(--faded); font-weight: 500; }
 .row-head > .icon { font-size: 20px; color: var(--muted); stroke-width: 2; transition: transform 0.15s; }
 .row.open .row-head > .icon { transform: rotate(180deg); }
 /* The unlock tree as indented rows. A rail is a line through the whole row
@@ -850,7 +853,8 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .node .hex { --w: 30px; }
 .node .icon { font-size: var(--t-md); }
 .node.available { border-color: var(--brass-edge); background: var(--brass-bg); }
-.node.blocked { --under: var(--bar); border-color: var(--line); background: var(--bar); color: var(--muted); }
+/* Blocked: an outline only, dashed, and everything but its lock faded. */
+.node.blocked { --under: var(--bg); border-style: dashed; border-color: var(--line-strong); background: transparent; color: var(--faded); font-weight: 500; }
 .node:hover { border-color: var(--fg-3); }
 .node[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--fg); }
 .map-detail { display: flex; flex-wrap: wrap; gap: 28px 48px; padding: 28px; border-top: 1px solid var(--line); }
