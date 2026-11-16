@@ -188,8 +188,8 @@ function needsRoadEvent(number) {
 // ("1/3, then 0/1": three of something, then one more thing): each step's
 // count and target. Any other wording ("2? (noted as II)") gives null.
 function questSteps(text) {
-  const parts = String(text || "").trim().split(/\s*(?:,\s*then\b|\bthen\b|,|\+)\s*/i);
-  const steps = parts.map(p => p.match(/^(\d+)\s*\/\s*(\d+)$/));
+  const parts = String(text || "").trim().split(", then ");
+  const steps = parts.map(p => p.match(/^(\d+)\/(\d+)$/));
   if (!parts[0] || steps.some(m => !m || !Number(m[2]))) return null;
   return steps.map(m => [Number(m[1]), Number(m[2])]);
 }
@@ -217,10 +217,8 @@ function isCasual(s, data) {
 // scenario unlocks, blocks, requires and rewards. campaign.json only records
 // what happened; everything else is worked out here.
 
-// "Jekserah's Plans" -> "jekserahs-plans", the ids the reference data uses.
-function slug(name) {
-  return String(name).toLowerCase().replace(/['’]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-}
+// Global achievements of which the party holds one at a time, by id prefix.
+const ACHIEVEMENT_GROUPS = ["city-rule-", "artifact-"];
 
 function achievementName(ref, kind, id) {
   return ref?.achievements?.[kind]?.[id] || id;
@@ -229,8 +227,9 @@ function achievementName(ref, kind, id) {
 // data/gloomhaven-items.json, once loaded: item names by number.
 let itemsRef = null;
 function itemName(id) { return itemsRef?.items?.[String(id)]?.name || `item ${id}`; }
-// Item names as the sheets write them: capitals don't matter.
-const sameItem = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
+// Item names are the item list's, letter for letter: a name written any
+// other way is a different (unknown) item, which the page asks about.
+const sameItem = (a, b) => String(a) === String(b);
 // A scenario's reward items, one entry per copy ("27:2" is two copies).
 function rewardCopies(info) {
   return (info?.rewards?.items || []).flatMap(id => {
@@ -239,7 +238,7 @@ function rewardCopies(info) {
   });
 }
 function itemInfo(name) {
-  return Object.values(itemsRef?.items || {}).find(i => i.name.toLowerCase() === String(name).toLowerCase()) || null;
+  return Object.values(itemsRef?.items || {}).find(i => i.name === String(name)) || null;
 }
 function itemSlot(name) { return itemInfo(name)?.slot || null; }
 
@@ -270,8 +269,7 @@ function achievementCounts(data) {
   const count = list => {
     const counts = new Map();
     for (const a of list) {
-      const id = a.id || slug(a.name);
-      counts.set(id, (counts.get(id) || 0) + (a.count || 1));
+      counts.set(a.id, (counts.get(a.id) || 0) + (a.count || 1));
     }
     return counts;
   };
@@ -373,7 +371,9 @@ function eventParty(data, evRef, e) {
   let complete = true;
   for (const name of names) {
     const cls = data.characters.find(c => c.name === name)?.class;
-    const id = cls && (ids.find(([, n]) => n.toLowerCase() === cls.toLowerCase())?.[0] || slug(cls));
+    // A class name not in the list is a class not known: who was there
+    // isn't complete, so the event asks rather than guessing.
+    const id = cls && ids.find(([, n]) => n === cls)?.[0];
     if (id) classes.add(id); else complete = false;
   }
   return { classes, complete };
@@ -614,9 +614,10 @@ function deriveCampaign(data, ref, evRef) {
     const id = String(rawId).split(":")[0];
     const name = achievementName(ref, kind, id);
     const list = record[kind];
-    // "City Rule: Economic" replaces any other City Rule; likewise Artifact.
-    const type = kind === "global" && name.includes(": ") ? name.split(": ")[0] + ": " : null;
-    if (type) for (const [other, a] of list) if (other !== id && a.name.startsWith(type)) {
+    // "City Rule: Economic" replaces any other City Rule; likewise Artifact:
+    // a group by its ids (city-rule-economic), not by how its name reads.
+    const group = kind === "global" ? ACHIEVEMENT_GROUPS.find(g => id.startsWith(g)) : null;
+    if (group) for (const [other, a] of list) if (other !== id && other.startsWith(group)) {
       list.delete(other);
       record.lost.push({ ...a, kind, where: a.where.join(", "), how: `replaced by ${name}`, at: where });
     }
@@ -625,15 +626,12 @@ function deriveCampaign(data, ref, evRef) {
     note(entry, where);
     list.set(id, entry);
   };
-  // The source sometimes names the achievement instead of giving its id.
+  // By id: the update script turns the source's names into ids.
   const loseAchievement = (kind, id, at) => {
-    for (const key of [String(id), slug(id)]) {
-      const a = record[kind].get(key);
-      if (!a) continue;
-      record[kind].delete(key);
-      record.lost.push({ ...a, kind, where: a.where.join(", "), how: "lost", at });
-      return;
-    }
+    const a = record[kind].get(String(id));
+    if (!a) return;
+    record[kind].delete(String(id));
+    record.lost.push({ ...a, kind, where: a.where.join(", "), how: "lost", at });
   };
   const isNumber = v => /^\d+$/.test(String(v));
   const addDesign = (item, where) => {
@@ -643,7 +641,7 @@ function deriveCampaign(data, ref, evRef) {
     record.designs.set(name, entry);
   };
   const classInfo = id => evRef?.classEvents?.[id];
-  const classIdOf = name => Object.entries(evRef?.classes || {}).find(([, n]) => n.toLowerCase() === String(name).toLowerCase())?.[0];
+  const classIdOf = name => Object.entries(evRef?.classes || {}).find(([, n]) => n === String(name))?.[0];
   const unlockClass = (id, where) => {
     if (record.classes.has(id)) return;
     record.classes.set(id, { id, name: className(evRef, id), count: 1, where: where ? [where] : [] });
@@ -871,9 +869,15 @@ function deriveCampaign(data, ref, evRef) {
   const byHand = (list, entries, kind) => {
     for (const a of entries) {
       const item = typeof a === "string" ? { name: a } : a;
-      const id = kind === "classes" ? classIdOf(item.name) || slug(item.name)
-               : kind === "designs" ? item.name : item.id || slug(item.name);
+      // By the reference data's id or its exact name; anything else keeps
+      // its own name as its id, so it can't pass for one the data has (and
+      // the Campaign record asks about it).
+      const named = kind === "party" || kind === "global"
+        ? Object.entries(ref?.achievements?.[kind] || {}).find(([, n]) => n === item.name)?.[0] : null;
+      const id = kind === "classes" ? classIdOf(item.name)
+               : kind === "designs" ? item.name : item.id || named || item.name;
       const where = item.scenario != null ? `#${item.scenario}` : "added by hand";
+      if (kind === "classes" && !id) continue;
       if (list.has(id)) {
         const known = list.get(id);
         questions.push(`Record: ${known.name} is already worked out (${known.where.join(", ")}). Remove it from campaign.json.`);
@@ -994,7 +998,7 @@ let classRef = null;   // data/gloomhaven-events.json, once loaded
 // A class's id in the reference data: its name, or for a locked class the
 // spoiler-free name of its icon.
 function classId(cls) {
-  return Object.entries(classRef?.classes || {}).find(([, n]) => n.toLowerCase() === String(cls).toLowerCase())?.[0] || null;
+  return Object.entries(classRef?.classes || {}).find(([, n]) => n === String(cls))?.[0] || null;
 }
 
 function classPerks(cls) {
@@ -1017,18 +1021,18 @@ function deriveShop(data, items, ledger) {
   const level = stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
   const modifier = shopModifier(data.party.reputation);
   const all = Object.entries(items.items).map(([id, item]) => ({ id: Number(id), ...item }));
-  const byName = new Map(all.map(item => [item.name.toLowerCase(), item]));
-  const designs = new Set(data.city.itemDesigns.map(d => d.name.toLowerCase()));
-  const inShop = item => (item.prosperity && item.prosperity <= level) || designs.has(item.name.toLowerCase());
+  const byName = new Map(all.map(item => [item.name, item]));
+  const designs = new Set(data.city.itemDesigns.map(d => d.name));
+  const inShop = item => (item.prosperity && item.prosperity <= level) || designs.has(item.name);
   const questions = [];
 
   // Who carries what.
   const owners = new Map();
   for (const c of data.characters.filter(c => !c.retired)) {
     for (const name of c.items) {
-      const item = byName.get(name.toLowerCase());
+      const item = byName.get(name);
       if (!item) {
-        questions.push(`${c.name} carries ${name}, which isn't in the item list. Check the spelling against the card.`);
+        questions.push(`${c.name} carries ${name}, which isn't in the item list. ${spelledAs(name, all.map(i => i.name)) || "Check the spelling against the card."}`);
         continue;
       }
       // An item found (treasure or reward) or bought back is carried legitimately.
@@ -1048,7 +1052,7 @@ function deriveShop(data, items, ledger) {
   // or carried by a character who retired (rulebook p. 43).
   const returned = new Map();
   for (const name of data.city.returnedItems || []) {
-    const item = byName.get(String(name).toLowerCase());
+    const item = byName.get(String(name));
     if (item && !inShop(item)) returned.set(item.id, (returned.get(item.id) || 0) + 1);
   }
 
@@ -1063,7 +1067,7 @@ function deriveShop(data, items, ledger) {
              design: !back && !(item.prosperity && item.prosperity <= level), back };
   }).sort((a, b) => a.id - b.id);
   // Names the shop sells anyway, so a sale or retirement needn't put them back.
-  const normal = new Set(all.filter(inShop).map(item => item.name.toLowerCase()));
+  const normal = new Set(all.filter(inShop).map(item => item.name));
 
   // Reputation that isn't settled may mean other prices.
   const range = ledger?.reputation?.range;
@@ -1080,7 +1084,27 @@ function today() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-const num = v => { const n = parseInt(v, 10); return Number.isFinite(n) ? n : 0; };
+// A whole number as written ("12", "-3"), or 0 for anything else: "12abc"
+// and "12.5" aren't read as 12. applyDraft says when a field isn't one.
+const num = v => /^\s*-?\d+\s*$/.test(String(v ?? "")) ? Number(v) : 0;
+const NUMBER_FIELDS = { number: "number", level: "level", xp: "XP", coins: "coins", gold: "gold", checkmarks: "checkmarks",
+                        cost: "cost", bonusPerks: "extra perks", chosen: "chosen scenario" };
+// Every number box in a draft that's filled with something that isn't a
+// whole number, as a warning each.
+function notWholeNumbers(d) {
+  const out = [];
+  const walk = (value, key) => {
+    if (Array.isArray(value)) return value.forEach(v => walk(v, key));
+    if (value && typeof value === "object") {
+      for (const [k, v] of Object.entries(value)) walk(v, key === "shares" || key === "rewardShares" ? "share" : k);
+      return;
+    }
+    const field = key === "share" ? "share" : NUMBER_FIELDS[key];
+    if (field && filled(value) && !/^\s*-?\d+\s*$/.test(String(value))) out.push(`"${value}" (${field}) isn't a whole number: check it.`);
+  };
+  for (const [k, v] of Object.entries(d)) if (k !== "id" && k !== "date") walk(v, k);
+  return out;
+}
 
 const filled = v => String(v ?? "").trim() !== "";
 
@@ -1115,7 +1139,7 @@ function applyDraft(raw, d, data) {
   out.events ||= [];
   out.characters ||= [];
   const log = [];
-  const warnings = [];
+  const warnings = notWholeNumbers(d);
   for (const c of out.characters) { c.items ||= []; c.perks ||= []; }
   if (String(d.partyName || "").trim()) {
     out.party ||= {};
@@ -1140,7 +1164,7 @@ function applyDraft(raw, d, data) {
   };
   // A copy of an item the shop doesn't otherwise sell goes back into its
   // supply when sold or when its owner retires; buying it takes it out.
-  const normal = name => data.shop?.normal?.has(String(name).toLowerCase()) ?? true;
+  const normal = name => data.shop?.normal?.has(String(name)) ?? true;
   const returnItem = name => {
     if (normal(name)) return;
     out.city ||= {};
@@ -1176,9 +1200,9 @@ function applyDraft(raw, d, data) {
   const joinLog = [];
   // How many characters a player has retired, tonight's retirements included
   // (with the player named on the retirement row, if not already known).
-  const playerOf = c => String((d.retirements || []).find(x => x.character === c.name)?.player || c.player || "").trim().toLowerCase();
+  const playerOf = c => String((d.retirements || []).find(x => x.character === c.name)?.player || c.player || "").trim();
   const retiredBy = player => {
-    const name = String(player || "").trim().toLowerCase();
+    const name = String(player || "").trim();
     if (!name) return 0;
     return out.characters.filter(c => playerOf(c) === name && (c.retired || (d.retirements || []).some(x => x.character === c.name))).length;
   };
@@ -1732,6 +1756,123 @@ function completedBy(data) {
   return who;
 }
 
+// --- Perks --------------------------------------------------------------------
+
+// A perk is the class's perk only when it's written word for word as the
+// character sheet (the reference data) has it: anything else is flagged, with
+// the closest perk as a hint, never taken for one. The form writes the
+// sheet's wording, so only a hand edit can differ.
+function matchPerk(text, perks) {
+  return perks.find(p => p.text === text) || null;
+}
+
+// For the hint only: a perk's telling words, with what says little about
+// which perk it is taken out (counts, "rolling", "+0", "card").
+const NUMBER_WORDS = { "1": "one", "2": "two", "3": "three", "4": "four" };
+const PLAIN_WORDS = new Set(["add", "remove", "replace", "with", "and", "one", "two", "three", "four"]);
+function perkWords(text) {
+  return String(text).toLowerCase().replace(/[−–]/g, "-").replace(/\([^)]*\)/g, " ")
+    .replace(/(^|\s)([1-4])(?=\s|$)/g, (m, pre, d) => pre + NUMBER_WORDS[d])
+    .replace(/\bcards?\b/g, " ").replace(/[^a-z0-9+\- ]/g, " ")
+    .replace(/\brolling\b/g, " ").replace(/(^|\s)\+0(?=\s|$)/g, " ")
+    .split(/\s+/).filter(w => w && !PLAIN_WORDS.has(w));
+}
+
+// The class perk sharing the most telling words with a written one, for the
+// hint beside a perk that isn't on the sheet.
+function closestPerk(text, perks) {
+  const words = new Set(perkWords(text));
+  let best = null, score = 0;
+  for (const p of perks) {
+    const theirs = perkWords(p.text);
+    const shared = theirs.filter(w => words.has(w)).length / (new Set([...words, ...theirs]).size || 1);
+    if (shared > score) { best = p; score = shared; }
+  }
+  return score >= 0.3 ? best : null;
+}
+
+// The perks a character has taken, matched to the class's list, and the ones
+// still open.
+function perkCheck(c) {
+  const perks = classPerks(c.class);
+  const rows = [];
+  for (const text of c.perks) {
+    const match = perks ? matchPerk(text, perks) : null;
+    const key = match ? match.text : text;
+    const row = rows.find(r => r.key === key);
+    if (row) row.count++;
+    else rows.push({ key, text: match ? match.text : text, written: text, match, count: 1 });
+  }
+  for (const r of rows) {
+    if (!perks) continue;
+    if (!r.match) {
+      const near = closestPerk(r.written, perks);
+      r.note = `Not on the ${c.class} sheet.${near ? ` Closest: ${near.text}.` : ""}`;
+    } else if (r.count > r.match.count) {
+      r.note = `Taken ${r.count} times, but the sheet has ${plural(r.match.count, "box").replace("boxs", "boxes")}.`;
+    }
+  }
+  const open = (perks || []).map(p => ({ ...p, left: p.count - (rows.find(r => r.match === p)?.count || 0) }))
+    .filter(p => p.left > 0);
+  return { known: Boolean(perks), rows, open };
+}
+
+// A character's attack modifier deck: the standard twenty cards, changed by
+// each perk taken, as the class's data says (data/gloomhaven-events.json:
+// each perk's "deck", the cards it removes and adds). taken: the class's
+// perks, each as often as taken; unknown: perks written that aren't the
+// class's, which change nothing and are listed as such. A perk that would
+// take a card the deck hasn't got is never half applied: it's listed too.
+const BASE_DECK = [["−2", 1], ["−1", 5], ["+0", 6], ["+1", 5], ["+2", 1], ["2×", 1], ["Null", 1]];
+function attackDeck(taken, unknown = []) {
+  let deck = new Map(BASE_DECK);
+  const unread = [...unknown];
+  for (const perk of taken) {
+    if (!perk.deck) continue;
+    const next = new Map(deck);
+    let ok = true;
+    for (const [n, card] of perk.deck.remove || []) {
+      if ((next.get(card) || 0) < n) { ok = false; break; }
+      next.set(card, next.get(card) - n);
+    }
+    if (!ok) { unread.push(perk.text); continue; }
+    for (const [n, card] of perk.deck.add || []) next.set(card, (next.get(card) || 0) + n);
+    deck = next;
+  }
+  const order = ["Null", "−2", "−1", "+0", "+1", "+2", "+3", "+4", "2×"];
+  const rank = k => order.includes(k) ? order.indexOf(k) : order.length;
+  const cards = [...deck].filter(([, n]) => n > 0).sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b));
+  return { cards, total: cards.reduce((sum, [, n]) => sum + n, 0), unread };
+}
+
+// --- Item slots ----------------------------------------------------------------
+
+// Slots: one head, body and legs item; two hands (a two-handed item takes
+// both); small items up to half the character's level, rounded up.
+// What a character's items take up, and the room they have at their level.
+function slotUse(c, level) {
+  const byName = new Map(Object.values(itemsRef?.items || {}).map(i => [i.name, i]));
+  const used = { head: 0, body: 0, legs: 0, hands: 0, small: 0 };
+  for (const name of c.items) {
+    const slot = byName.get(name)?.slot;
+    if (slot === "onehand") used.hands += 1;
+    else if (slot === "twohand") used.hands += 2;
+    else if (slot in used) used[slot] += 1;
+  }
+  return { used, limits: { head: 1, body: 1, legs: 1, hands: 2, small: Math.ceil(level / 2) } };
+}
+// How much of that room an item takes, by the slot the item cards print.
+const slotNeed = slot => slot === "onehand" ? ["hands", 1] : slot === "twohand" ? ["hands", 2] : [slot, 1];
+
+// A character can own any number of items, but equip only what the slots
+// hold (rulebook p. 43): where they own more, which to take is their pick.
+function itemCheck(c, level) {
+  const { used, limits } = slotUse(c, level);
+  const names = { head: "head items", body: "body items", legs: "legs items", hands: "hands' worth of items", small: "small items" };
+  return Object.keys(limits).filter(k => used[k] > limits[k])
+    .map(k => `Owns ${used[k]} ${names[k]} and can equip ${limits[k]}${k === "small" ? ` at level ${level}` : ""}: pick which to take into a scenario.`);
+}
+
 // --- Milestones ---------------------------------------------------------------
 
 // What the campaign works towards, and what it opens when it gets there
@@ -2034,7 +2175,60 @@ function fileQuestions(json) {
     if (totals.length) q.push(`${c.name}'s ${totals.map(k => `"${k}"`).join(", ")} ${totals.length === 1 ? "is" : "are"} worked out from "start" and "log". Remove ${totals.length === 1 ? "it" : "them"}, and put any change in the log.`);
   }
   if (json.city && "donations" in json.city) q.push(`The city's "donations" are worked out from the characters' logs. Remove it, putting any made before the log in the city's "start".`);
+
+  // Names are the reference data's, letter for letter.
+  const classNames = Object.values(classRef?.classes || {});
+  const itemNames = Object.values(itemsRef?.items || {}).map(i => i.name);
+  const unknown = (what, name, names) => `${what} "${name}" isn't in the ${names === itemNames ? "item" : names === classNames ? "class" : "achievement"} list. ${spelledAs(name, names) || "Check the spelling against the card."}`;
+  for (const c of json.characters || []) {
+    if (classRef && !classNames.includes(c.class)) q.push(unknown(`${c.name}'s class`, c.class, classNames));
+  }
+  for (const n of (json.city?.unlockedClasses || []).map(x => typeof x === "string" ? x : x.name)) {
+    if (classRef && !classNames.includes(n)) q.push(unknown("The unlocked class", n, classNames));
+  }
+  if (itemsRef) {
+    const named = [...(json.city?.itemDesigns || []).map(x => typeof x === "string" ? x : x.name), ...(json.city?.returnedItems || []),
+      ...(json.scenarios || []).flatMap(s => (s.treasures || []).map(t => typeof t === "object" && typeof t.drew === "string" ? t.drew : null)),
+      ...(json.events || []).map(e => typeof e.drew === "string" ? e.drew : null),
+      ...(json.characters || []).flatMap(c => [...(c.log || []).flatMap(e => [...(e.gained || []), ...(e.lost || [])])])].filter(Boolean);
+    for (const n of new Set(named)) if (!itemNames.includes(n)) q.push(unknown("The item", n, itemNames));
+  }
+  for (const [kind, list] of [["party", json.party?.achievements], ["global", json.city?.globalAchievements]]) {
+    const ids = Object.keys(scenarioRef?.achievements?.[kind] || {});
+    const names = Object.values(scenarioRef?.achievements?.[kind] || {});
+    for (const a of (list || []).map(x => typeof x === "string" ? { name: x } : x)) {
+      if (!scenarioRef || (a.id ? ids.includes(a.id) : names.includes(a.name))) continue;
+      q.push(`${kind === "party" ? "The party achievement" : "The global achievement"} "${a.id || a.name}" isn't in the scenario data, so no scenario or event counts it. ${spelledAs(a.name, names) || "Check it against the scenario book."}`);
+    }
+  }
+  // One player, one spelling: their retirements are counted by it.
+  const players = [...new Set((json.characters || []).map(c => String(c.player || "").trim()).filter(Boolean))];
+  for (const p of players) {
+    const other = players.find(x => x !== p && x.toLowerCase() === p.toLowerCase());
+    if (other && p < other) q.push(`The player "${p}" is also written "${other}": write them one way, as their retired characters are counted by it.`);
+  }
+  // Treasure numbers as printed on the tile: digits only.
+  for (const s of json.scenarios || []) {
+    for (const t of s.treasures || []) {
+      const n = typeof t === "object" ? t.number : t;
+      if (!/^\d+$/.test(String(n))) q.push(`#${s.number}'s treasure "${n}" isn't a tile number: write it as printed on the tile, like "07".`);
+    }
+  }
+  // Quest progress as counts, so it can be counted.
+  for (const c of json.characters || []) {
+    if (c.personalQuest && !questSteps(c.personalQuest)) {
+      q.push(`${c.name}'s personal quest progress "${c.personalQuest}" can't be read: write it as counts, like "2/15", or "1/3, then 0/1" for a quest in steps.`);
+    }
+  }
   return q;
+}
+
+// A name written almost as one the reference data has (only capitals or
+// spaces differ): how to write it, or "" if none is that close.
+function spelledAs(name, names) {
+  const flat = t => String(t).toLowerCase().replace(/\s+/g, " ").trim();
+  const match = names.find(n => flat(n) === flat(name));
+  return match ? `Write it "${match}".` : "";
 }
 
 // --- Building it all ------------------------------------------------------

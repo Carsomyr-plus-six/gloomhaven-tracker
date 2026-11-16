@@ -256,6 +256,30 @@ def cards_text(card):
     return " ".join(words)
 
 
+def card_label(card):
+    """A card as the deck lists it: "+1", "rolling MUDDLE", "−1" (a real minus)."""
+    am = card["attackModifier"]
+    words = ["rolling"] if am.get("rolling") else []
+    if not (am.get("rolling") and am["type"] == "plus0" and am.get("effects")):
+        words.append(MODIFIERS.get(am["type"], am["type"]).replace("-", "−"))
+    words += [effect_text(e) for e in am.get("effects", []) or []]
+    return " ".join(words)
+
+
+def perk_deck(perk):
+    """What a perk does to the attack modifier deck, as data: the cards it
+    removes and adds, [count, card] each. None for a perk that changes no
+    card ("Ignore negative scenario effects")."""
+    cards = [[c.get("count", 1), card_label(c)] for c in perk.get("cards", [])]
+    if not cards:
+        return None
+    if perk["type"] == "remove":
+        return {"remove": cards}
+    if perk["type"] == "replace":
+        return {"remove": cards[:1], "add": cards[1:]}
+    return {"add": cards}
+
+
 def perk_text(perk):
     """A perk as the character sheet words it."""
     if perk["type"] == "custom":
@@ -283,7 +307,8 @@ def class_events(class_ids):
         for key, name in (("unlockEvent", "unlockEvent"), ("retireEvent", "retireEvent")):
             if data.get(key):
                 info[name] = int(data[key])
-        info["perks"] = [{"text": perk_text(p), "count": p.get("count", 1)} for p in data.get("perks", [])]
+        info["perks"] = [{"text": perk_text(p), "count": p.get("count", 1)}
+                         | ({"deck": perk_deck(p)} if perk_deck(p) else {}) for p in data.get("perks", [])]
         # Hit points at levels 1 to 9 and the hand size, for the table tracker.
         stats = sorted(data.get("stats", []), key=lambda x: x["level"])
         if stats:

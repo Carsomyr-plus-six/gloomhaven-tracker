@@ -95,47 +95,145 @@
    "perks": [
     {
      "text": "Remove two -1 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        2,
+        "−1"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one -1 card with one +1 card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "−1"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+1"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two +1 cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        2,
+        "+1"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +3 card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+3"
+       ]
+      ]
+     }
     },
     {
      "text": "Add three rolling PUSH 1 cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        3,
+        "rolling PUSH 1"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling PIERCE 3 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling PIERCE 3"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one rolling STUN card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        1,
+        "rolling STUN"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one rolling DISARM card and one rolling MUDDLE card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "rolling DISARM"
+       ],
+       [
+        1,
+        "rolling MUDDLE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one rolling ADD TARGET card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        1,
+        "rolling ADD TARGET"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +1 SHIELD 1, self card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+1 SHIELD 1, self"
+       ]
+      ]
+     }
     },
     {
      "text": "Ignore negative item effects and add one +1 card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+1"
+       ]
+      ]
+     }
     }
    ],
    "health": [
@@ -157,35 +255,109 @@
    "perks": [
     {
      "text": "Remove four +0 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        4,
+        "+0"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one -1 card with one +1 card",
-     "count": 3
+     "count": 3,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "−1"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+1"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one -2 card and two +2 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "−2"
+       ],
+       [
+        2,
+        "+2"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +1 IMMOBILIZE card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+1 IMMOBILIZE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +2 MUDDLE card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+2 MUDDLE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling PUSH 2 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling PUSH 2"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling EARTH cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling EARTH"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling AIR cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling AIR"
+       ]
+      ]
+     }
     },
     {
      "text": "Ignore negative item effects",
@@ -215,47 +387,151 @@
    "perks": [
     {
      "text": "Remove two -1 cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "remove": [
+       [
+        2,
+        "−1"
+       ]
+      ]
+     }
     },
     {
      "text": "Remove four +0 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        4,
+        "+0"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace two +1 cards with two +2 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        2,
+        "+1"
+       ]
+      ],
+      "add": [
+       [
+        2,
+        "+2"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one -2 card with one +0 card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "−2"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+0"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +2 ICE card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+2 ICE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling +1 cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling +1"
+       ]
+      ]
+     }
     },
     {
      "text": "Add three rolling PULL 1 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        3,
+        "rolling PULL 1"
+       ]
+      ]
+     }
     },
     {
      "text": "Add three rolling MUDDLE cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        3,
+        "rolling MUDDLE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling IMMOBILIZE cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling IMMOBILIZE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one rolling STUN card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "rolling STUN"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one rolling DISARM card and one rolling MUDDLE card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "rolling DISARM"
+       ],
+       [
+        1,
+        "rolling MUDDLE"
+       ]
+      ]
+     }
     },
     {
      "text": "Ignore negative scenario effects",
@@ -281,43 +557,141 @@
    "perks": [
     {
      "text": "Remove two -1 cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "remove": [
+       [
+        2,
+        "−1"
+       ]
+      ]
+     }
     },
     {
      "text": "Remove four +0 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        4,
+        "+0"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one -2 card with one +0 card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "−2"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+0"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one -1 card with one +1 card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "−1"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+1"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one +0 card with one +2 card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "+0"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+2"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling +1 cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling +1"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling PIERCE 3 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling PIERCE 3"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling POISON cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling POISON"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling MUDDLE cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling MUDDLE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one rolling INVISIBLE card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "rolling INVISIBLE"
+       ]
+      ]
+     }
     },
     {
      "text": "Ignore negative scenario effects",
@@ -343,47 +717,149 @@
    "perks": [
     {
      "text": "Remove four +0 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        4,
+        "+0"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one -1 card with one +1 card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "−1"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+1"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two +1 cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        2,
+        "+1"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +0 STUN card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+0 STUN"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +1 WOUND card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+1 WOUND"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +1 IMMOBILIZE card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+1 IMMOBILIZE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +1 CURSE card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+1 CURSE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +2 FIRE card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+2 FIRE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +2 ICE card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+2 ICE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one rolling EARTH card and one rolling AIR card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "rolling EARTH"
+       ],
+       [
+        1,
+        "rolling AIR"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one rolling LIGHT card and one rolling DARK card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "rolling LIGHT"
+       ],
+       [
+        1,
+        "rolling DARK"
+       ]
+      ]
+     }
     }
    ],
    "health": [
@@ -405,43 +881,129 @@
    "perks": [
     {
      "text": "Remove two -1 cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "remove": [
+       [
+        2,
+        "−1"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one -2 card with one +0 card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "−2"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+0"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two +1 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        2,
+        "+1"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +3 card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+3"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling FIRE cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling FIRE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add three rolling MUDDLE cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        3,
+        "rolling MUDDLE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +1 WOUND card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+1 WOUND"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +1 IMMOBILIZE card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+1 IMMOBILIZE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +1 HEAL 2, self card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+1 HEAL 2, self"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +0 ADD TARGET card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+0 ADD TARGET"
+       ]
+      ]
+     }
     },
     {
      "text": "Ignore negative scenario effects",
@@ -468,39 +1030,117 @@
    "perks": [
     {
      "text": "Remove two -1 cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "remove": [
+       [
+        2,
+        "−1"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace two +0 cards with two +1 cards",
-     "count": 3
+     "count": 3,
+     "deck": {
+      "remove": [
+       [
+        2,
+        "+0"
+       ]
+      ],
+      "add": [
+       [
+        2,
+        "+1"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling +1 cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling +1"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +2 MUDDLE card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+2 MUDDLE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +1 POISON card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+1 POISON"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +1 WOUND card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+1 WOUND"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +1 IMMOBILIZE card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+1 IMMOBILIZE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +0 STUN card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+0 STUN"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one rolling ADD TARGET card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        1,
+        "rolling ADD TARGET"
+       ]
+      ]
+     }
     },
     {
      "text": "Ignore negative scenario effects",
@@ -527,43 +1167,143 @@
    "perks": [
     {
      "text": "Remove two -1 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        2,
+        "−1"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one -2 card with one +0 card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "−2"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+0"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one -1 card with one +1 card",
-     "count": 3
+     "count": 3,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "−1"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+1"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +2 card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+2"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling WOUND cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling WOUND"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling POISON cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling POISON"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling HEAL 1, self cards",
-     "count": 3
+     "count": 3,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling HEAL 1, self"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one rolling FIRE card and one rolling AIR card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "rolling FIRE"
+       ],
+       [
+        1,
+        "rolling AIR"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one rolling DARK card and one rolling EARTH card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "rolling DARK"
+       ],
+       [
+        1,
+        "rolling EARTH"
+       ]
+      ]
+     }
     },
     {
      "text": "Ignore negative scenario effects and add two +1 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        2,
+        "+1"
+       ]
+      ]
+     }
     }
    ],
    "health": [
@@ -586,43 +1326,129 @@
    "perks": [
     {
      "text": "Remove two -1 cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "remove": [
+       [
+        2,
+        "−1"
+       ]
+      ]
+     }
     },
     {
      "text": "Remove four +0 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        4,
+        "+0"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one -1 DARK card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        1,
+        "−1 DARK"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one -1 DARK card with one +1 DARK card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "−1 DARK"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+1 DARK"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +1 INVISIBLE card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+1 INVISIBLE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add three rolling MUDDLE cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        3,
+        "rolling MUDDLE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling HEAL 1, self cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling HEAL 1, self"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling CURSE cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling CURSE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one rolling ADD TARGET card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "rolling ADD TARGET"
+       ]
+      ]
+     }
     },
     {
      "text": "Ignore negative scenario effects and add two +1 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        2,
+        "+1"
+       ]
+      ]
+     }
     }
    ],
    "health": [
@@ -645,39 +1471,123 @@
    "perks": [
     {
      "text": "Remove two -1 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        2,
+        "−1"
+       ]
+      ]
+     }
     },
     {
      "text": "Remove four +0 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        4,
+        "+0"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one -1 card with one +1 card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "−1"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+1"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one +0 card with one rolling +2 card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "+0"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "rolling +2"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling WOUND cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling WOUND"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one rolling STUN card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        1,
+        "rolling STUN"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one rolling +1 DISARM card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "rolling +1 DISARM"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling HEAL 1, self cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling HEAL 1, self"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +2 FIRE card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+2 FIRE"
+       ]
+      ]
+     }
     },
     {
      "text": "Ignore negative item effects",
@@ -704,51 +1614,195 @@
    "perks": [
     {
      "text": "Remove two -1 cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "remove": [
+       [
+        2,
+        "−1"
+       ]
+      ]
+     }
     },
     {
      "text": "Remove one -2 card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "−2"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace two +1 cards with one +4 card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "remove": [
+       [
+        2,
+        "+1"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+4"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one +0 card with one +1 IMMOBILIZE card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "+0"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+1 IMMOBILIZE"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one +0 card with one +1 DISARM card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "+0"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+1 DISARM"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one +0 card with one +2 WOUND card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "+0"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+2 WOUND"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one +0 card with one +2 POISON card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "+0"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+2 POISON"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one +0 card with one +2 CURSE card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "+0"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+2 CURSE"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one +0 card with one +3 MUDDLE card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "+0"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+3 MUDDLE"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one -1 card with one +0 STUN card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "−1"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+0 STUN"
+       ]
+      ]
+     }
     },
     {
      "text": "Add three rolling +1 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        3,
+        "rolling +1"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling CURSE cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling CURSE"
+       ]
+      ]
+     }
     }
    ],
    "health": [
@@ -771,39 +1825,117 @@
    "perks": [
     {
      "text": "Remove two -1 cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "remove": [
+       [
+        2,
+        "−1"
+       ]
+      ]
+     }
     },
     {
      "text": "Remove four +0 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        4,
+        "+0"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one +0 card with one +2 card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "+0"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+2"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one rolling +2 card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        1,
+        "rolling +2"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +1 IMMOBILIZE card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+1 IMMOBILIZE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling WOUND cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling WOUND"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one rolling STUN card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "rolling STUN"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one rolling HEAL 3, self card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        1,
+        "rolling HEAL 3, self"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +0 REFRESH AN ITEM card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+0 REFRESH AN ITEM"
+       ]
+      ]
+     }
     }
    ],
    "health": [
@@ -826,43 +1958,141 @@
    "perks": [
     {
      "text": "Replace one -2 card with one +0 card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "−2"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+0"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one -1 card with one +1 card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "−1"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+1"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one +0 card with one +2 card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "+0"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+2"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two +1 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        2,
+        "+1"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +1 AIR card",
-     "count": 3
+     "count": 3,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+1 AIR"
+       ]
+      ]
+     }
     },
     {
      "text": "Add three rolling POISON cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        3,
+        "rolling POISON"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling CURSE cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling CURSE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling IMMOBILIZE cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling IMMOBILIZE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one rolling STUN card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        1,
+        "rolling STUN"
+       ]
+      ]
+     }
     },
     {
      "text": "Ignore negative scenario effects and add one +1 card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+1"
+       ]
+      ]
+     }
     }
    ],
    "health": [
@@ -885,43 +2115,135 @@
    "perks": [
     {
      "text": "Remove two -1 cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "remove": [
+       [
+        2,
+        "−1"
+       ]
+      ]
+     }
     },
     {
      "text": "Remove four +0 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        4,
+        "+0"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one -2 card with one +0 card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "−2"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+0"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one +0 card with one +2 card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "+0"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+2"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling +1 cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling +1"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling HEAL 1, self cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling HEAL 1, self"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one rolling STUN card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "rolling STUN"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling LIGHT cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling LIGHT"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling SHIELD 1, self cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling SHIELD 1, self"
+       ]
+      ]
+     }
     },
     {
      "text": "Ignore negative item effects and add two +1 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        2,
+        "+1"
+       ]
+      ]
+     }
     },
     {
      "text": "Ignore negative scenario effects",
@@ -948,43 +2270,129 @@
    "perks": [
     {
      "text": "Remove two -1 cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "remove": [
+       [
+        2,
+        "−1"
+       ]
+      ]
+     }
     },
     {
      "text": "Remove four +0 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        4,
+        "+0"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one +0 card with one +2 card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "+0"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+2"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling +1 cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling +1"
+       ]
+      ]
+     }
     },
     {
      "text": "Add three rolling MUDDLE cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        3,
+        "rolling MUDDLE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling PIERCE 3 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling PIERCE 3"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one rolling STUN card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "rolling STUN"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one rolling ADD TARGET card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "rolling ADD TARGET"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +0 REFRESH AN ITEM card",
-     "count": 3
+     "count": 3,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+0 REFRESH AN ITEM"
+       ]
+      ]
+     }
     },
     {
      "text": "Ignore negative item effects and add two +1 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        2,
+        "+1"
+       ]
+      ]
+     }
     }
    ],
    "health": [
@@ -1007,55 +2415,191 @@
    "perks": [
     {
      "text": "Remove two -1 cards",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "remove": [
+       [
+        2,
+        "−1"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one -1 card with one +1 card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "−1"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+1"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one +0 card with one +2 card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "+0"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+2"
+       ]
+      ]
+     }
     },
     {
      "text": "Add three +0 FIRE cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        3,
+        "+0 FIRE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add three +0 ICE cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        3,
+        "+0 ICE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add three +0 AIR cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        3,
+        "+0 AIR"
+       ]
+      ]
+     }
     },
     {
      "text": "Add three +0 EARTH cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        3,
+        "+0 EARTH"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace two +0 cards with one +0 FIRE card and one +0 EARTH card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        2,
+        "+0"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+0 FIRE"
+       ],
+       [
+        1,
+        "+0 EARTH"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace two +0 cards with one +0 ICE card and one +0 AIR card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        2,
+        "+0"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+0 ICE"
+       ],
+       [
+        1,
+        "+0 AIR"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two +1 PUSH 1 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        2,
+        "+1 PUSH 1"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +1 WOUND card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+1 WOUND"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +0 STUN card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+0 STUN"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +0 ADD TARGET card",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+0 ADD TARGET"
+       ]
+      ]
+     }
     }
    ],
    "health": [
@@ -1078,31 +2622,99 @@
    "perks": [
     {
      "text": "Remove two -1 cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "remove": [
+       [
+        2,
+        "−1"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one -1 card with one +1 card",
-     "count": 3
+     "count": 3,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "−1"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+1"
+       ]
+      ]
+     }
     },
     {
      "text": "Replace one +0 card with one +2 card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "remove": [
+       [
+        1,
+        "+0"
+       ]
+      ],
+      "add": [
+       [
+        1,
+        "+2"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +1 WOUND card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+1 WOUND"
+       ]
+      ]
+     }
     },
     {
      "text": "Add one +1 IMMOBILIZE card",
-     "count": 2
+     "count": 2,
+     "deck": {
+      "add": [
+       [
+        1,
+        "+1 IMMOBILIZE"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling HEAL 1, self cards",
-     "count": 3
+     "count": 3,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling HEAL 1, self"
+       ]
+      ]
+     }
     },
     {
      "text": "Add two rolling EARTH cards",
-     "count": 1
+     "count": 1,
+     "deck": {
+      "add": [
+       [
+        2,
+        "rolling EARTH"
+       ]
+      ]
+     }
     },
     {
      "text": "Ignore negative scenario effects",
