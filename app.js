@@ -773,7 +773,7 @@ function todoItems(data) {
       add(`${c.name}'s personal quest opens ${scenarioLabel(data, x.opens)}.`, "#characters", go,
         rawCampaign ? { label: "Record it", run: () => recordOpened(data, x.opens) } : null, sheet);
     }
-    if (quest?.known && !quest.fits(draft?.quests?.[c.name] || c.personalQuest)) {
+    if (quest?.known && !quest.fits(questWritten(c))) {
       add(`${c.name}'s personal quest count differs from the record: see their sheet.`, "#characters", go, null, sheet);
     }
     // Below the prosperity level: they may advance to it (rulebook p. 48).
@@ -1891,128 +1891,100 @@ function setQuestCard(name, card) {
   try { if (card) localStorage.setItem(questCardKey(name), card); else localStorage.removeItem(questCardKey(name)); } catch {}
 }
 
-// A personal quest's steps, counted from what campaign.json records where it
-// can be (scenarios completed: by name, with a boss, side scenarios, any; a
-// scenario chain followed to its end; battle-goal checkmarks; gold; items).
-// Steps it can't count (kills, exhaustion, regions, donations) take the
-// count as recorded, when the record has one per step. A step that waits on
-// another counts nothing until that one is done. maybe: scenarios that would
-// count, but nothing records who played them. opens: the scenario the step
-// starts with, once it can begin.
-function questProgress(data, c, card) {
-  const quest = questRef?.quests?.[card];
-  if (!quest) return null;
-  const by = completedBy(data);
-  const recorded = questSteps(c.personalQuest);
-  const sameShape = recorded && recorded.length === quest.steps.length;
-  const refOf = n => scenarioRef?.scenarios?.[String(n)];
-  const steps = [];
-  quest.steps.forEach((step, i) => {
-    const out = { text: step.text, count: step.count, after: Boolean(step.after), n: null, auto: true, maybe: [], opens: null };
-    const ready = (step.after || []).every(k => steps[k - 1]?.n != null && steps[k - 1].n >= steps[k - 1].count);
-    const [kind, arg = ""] = (step.track || "").split(":");
-    const scenarios = test => {
-      let n = 0;
-      for (const [number, names] of by) {
-        if (!test(number)) continue;
-        if (!names) out.maybe.push(number); else if (names.has(c.name)) n++;
-      }
-      return n;
-    };
-    if (kind === "scenarioName") out.n = scenarios(n => (refOf(n)?.name || "").includes(arg));
-    else if (kind === "scenarioIn") out.n = scenarios(n => arg.split(",").map(Number).includes(n));
-    else if (kind === "bossScenarios") out.n = scenarios(n => refOf(n)?.boss);
-    else if (kind === "scenariosCompleted") out.n = scenarios(() => true);
-    else if (kind === "sideScenarios") {
-      const [lo, hi] = arg.split("-").map(Number);
-      out.n = scenarios(n => n >= lo && n <= hi);
-    } else if (kind === "scenario") {
-      const [first, last] = arg.split("|").map(Number);
-      out.n = scenarios(n => n === last);
-      if (ready) out.opens = first;
-    } else if (kind === "retiredChars") {
-      // Other characters' quests fulfilled while this one adventured: those
-      // retired since it joined; one with no date may or may not count.
-      const others = data.characters.filter(o => o.retired && o.name !== c.name);
-      const dated = others.filter(o => o.retiredOn && (!c.joined || o.retiredOn >= c.joined));
-      out.n = dated.length;
-      out.extra = others.filter(o => !o.retiredOn).length;
-      out.extraWhy = "if retirements without a date came after they joined";
-    } else if (kind === "donatedGold" || kind === "enhancements") {
-      // Counted since the page began recording them: any higher count fits.
-      out.n = kind === "donatedGold" ? c.donated || 0 : c.enhanced || 0;
-      out.extra = Math.max(0, step.count - out.n);
-      out.extraWhy = `from before the page recorded ${kind === "donatedGold" ? "donations" : "enhancements"}`;
-    } else if (kind === "battleGoals") {
-      // Only checkmarks from completed battle goals count (FAQ, quest 519),
-      // which a scenario's results record; others on the sheet may be from
-      // battle goals played before results were kept, or from treasures.
-      const fromGoals = [...data.scenarios.flatMap(s => s.results || []), ...data.sessions.flatMap(x => (x.scenarios || []).flatMap(sc => sc.results || []))]
-        .filter(r => r.character === c.name).reduce((sum, r) => sum + (r.checkmarks || 0), 0);
-      out.n = fromGoals;
-      out.extra = Math.max(0, (c.checkmarks || 0) - fromGoals);
-      out.extraWhy = "if the sheet's other checkmarks came from battle goals";
-    }
-    else if (kind === "gold") out.n = c.gold || 0;
-    else if (kind === "itemType") out.n = c.items.filter(i => arg.split("|").includes(itemSlot(i))).length;
-    else if (kind === "item") {
-      const name = itemsRef?.items?.[arg]?.name;
-      out.n = c.items.some(i => name && sameItem(i, name)) ? 1 : 0;
-    } else {
-      out.auto = false;
-      if (sameShape) out.n = recorded[i][0];
-    }
-    if (!ready) { out.n = out.auto || out.n == null ? 0 : out.n; out.maybe = []; out.extra = 0; }
-    if (out.n != null) out.n = Math.min(out.n, step.count);
-    steps.push(out);
-  });
-  // Written out, only when every step is known for certain.
-  const text = steps.every(x => x.n != null && !x.maybe.length && !x.extra)
-    ? steps.map((x, i) => `${i ? (x.after ? ", then " : " + ") : ""}${x.n}/${x.count}`).join("") : null;
-  // A recorded count agrees when each step is between what's counted and
-  // that plus the scenarios no one recorded playing.
-  const fits = written => {
-    const r = questSteps(written);
-    return Boolean(r) && r.length === steps.length && r.every(([n, m], i) => m === steps[i].count && steps[i].n != null
-      && n >= steps[i].n && n <= Math.min(steps[i].count, steps[i].n + steps[i].maybe.length + (steps[i].extra || 0)));
-  };
-  const known = steps.every(x => x.n != null);
-  return { name: quest.name, card, steps, text, known, fits, unlockClass: quest.unlockClass, openEnvelope: quest.openEnvelope };
+// The progress to check against the card: what's typed in the session being
+// recorded, if the form can read it (it warns about what it can't), or else
+// the record's.
+function questWritten(c) {
+  const typed = draft?.quests?.[c.name];
+  return filled(typed) && questSteps(typed) ? String(typed).trim() : c.personalQuest;
 }
 
-// Below a sheet's stats, once its quest is shown: which card it is (on this
-// phone only), each step as the record counts it, and a way to put the
-// count right.
-function questDetail(data, c) {
-  if (c.retired || !questRef || !questShown.has(c.name) && !questDone(c.personalQuest)) return null;
+// Progress set with the inputs below goes into the session being recorded,
+// and the page stays where it is (as Buy does). Setting it back to what the
+// record says takes it out again.
+function setQuest(data, c, progress) {
+  if (!draft) draft = newDraft(data);
+  if (progress === c.personalQuest) delete draft.quests[c.name]; else draft.quests[c.name] = progress;
+  saveDraft();
+  render(data);
+}
+
+// The picker for which card a character holds, kept on this device only.
+function questCardPick(data, c) {
   const card = questCard(c.name);
-  const pick = h("select", { "data-key": `pq-card-${c.name}`, "aria-label": `${c.name}'s personal quest card`,
+  return h("select", { class: "quest-pick", "data-key": `pq-card-${c.name}`, "aria-label": `${c.name}'s personal quest card`,
       onchange: e => { setQuestCard(c.name, e.target.value); render(data); } },
-    h("option", { value: "" }, card ? "Forget it on this phone" : "Which card? Kept on this phone only"),
+    h("option", { value: "" }, card ? "Forget it on this device" : "Which card? Kept on this device only"),
     Object.entries(questRef.quests).map(([id, q]) => {
       const o = h("option", { value: id }, `${id} ${q.name}`);
       if (id === card) o.selected = true;
       return o;
     }));
-  const p = card ? questProgress(data, c, card) : null;
-  const pending = draft?.quests?.[c.name];
-  const differs = p?.known && !p.fits(pending || c.personalQuest);
+}
+
+// A quest's steps (questInputs), each with what it takes: a count the record
+// gives, a check box for one thing, − and + for a count. notes: a line under
+// each step. With nothing to record into, each is shown as it stands.
+function questStepList(data, c, inputs, notes = [], key = `pq-${c.name}`) {
+  return h("ul", { class: "quest-steps" }, inputs.steps.map((x, i) => {
+    const what = x.text || (inputs.steps.length > 1 ? `Step ${i + 1}` : "Progress");
+    const name = `${c.name}'s personal quest: ${what}`;
+    const to = v => setQuest(data, c, questSet(inputs, i, v));
+    const kind = rawCampaign ? x.kind : "fixed";
+    const control = kind === "check"
+      ? h("label", { class: "quest-check" },
+          h("input", { type: "checkbox", "data-key": `${key}-${i}`, checked: x.value >= 1, "aria-label": name, onchange: e => to(e.target.checked ? 1 : 0) }), "Done")
+      : kind === "count"
+        ? h("span", { class: "quest-count" },
+            h("button", { type: "button", class: "quest-step-btn", "data-key": `${key}-${i}-down`, "aria-label": `1 less: ${name}`,
+              "aria-disabled": String(x.value <= x.min), onclick: () => { if (x.value > x.min) to(x.value - 1); } }, icon("minus")),
+            h("span", { class: "num" }, `${x.value}/${x.count}`),
+            h("button", { type: "button", class: "quest-step-btn", "data-key": `${key}-${i}-up`, "aria-label": `1 more: ${name}`,
+              "aria-disabled": String(x.value >= x.max), onclick: () => { if (x.value < x.max) to(x.value + 1); } }, icon("plus")))
+        : h("span", { class: "num" }, `${x.value}/${x.count}`);
+    return h("li", { class: `quest-step ${kind}` },
+      h("span", { class: "quest-step-text" }, x.after ? h("span", { class: "then" }, "then ") : null, what,
+        notes[i] ? h("span", { class: "sub" }, notes[i]) : null),
+      control);
+  }));
+}
+
+// Under each of a card's steps: where its count comes from.
+function questNotes(data, p) {
+  return p.steps.map(x => [
+    x.auto ? "counted from the record" : "kept by hand",
+    !x.ready ? "once the step before is done" : null,
+    x.maybe.length ? `${plural(x.maybe.length, "more")} if they played ${x.maybe.map(n => `#${n}`).join(", ")}` : null,
+    x.extra ? `up to ${x.extra} more, ${x.extraWhy}` : null,
+    x.opens && !data.scenarios.some(s => s.number === x.opens) ? `opens #${x.opens} ${scenarioRef?.scenarios?.[String(x.opens)]?.name || ""}`.trim() : null,
+  ].filter(Boolean).join(" · "));
+}
+
+// A character's quest as the page takes it in: the progress (as being
+// recorded, or the record's), the card's count where this device knows the
+// card, and the inputs for each step.
+function questState(data, c) {
+  const card = questCard(c.name);
+  const written = questWritten(c);
+  const p = card ? questProgress(data, { ...c, personalQuest: written }, card) : null;
+  return { card, written, p, inputs: questInputs(p, written) };
+}
+
+// Below a sheet's stats, once its quest is shown: which card it is (on this
+// device only), and each step, set with a tap; without the card, the steps
+// the record has.
+function questDetail(data, c) {
+  if (c.retired || !questRef || !questShown.has(c.name) && !questDone(c.personalQuest)) return null;
+  const { card, written, p, inputs } = questState(data, c);
+  const pending = written !== c.personalQuest ? written : null;
+  // The record has it otherwise than the card counts it: what it should say.
+  const fix = p && inputs && !p.fits(written) && inputs.text !== written ? inputs.text : null;
   return h("div", { class: "block quest-detail" },
-    h("div", { class: "block-head" }, h("span", { class: "label" }, "Quest card"), pick),
-    p ? h("ul", { class: "quest-steps" }, p.steps.map(x => h("li", {},
-      h("span", { class: "quest-step-text" }, x.after ? h("span", { class: "then" }, "then ") : null, x.text,
-        h("span", { class: "sub" }, [
-          x.auto ? "counted from the record" : "as recorded by hand",
-          x.maybe.length ? `${plural(x.maybe.length, "more")} if they played ${x.maybe.map(n => `#${n}`).join(", ")}` : null,
-          x.extra ? `up to ${x.extra} more, ${x.extraWhy}` : null,
-          x.opens && !data.scenarios.some(s => s.number === x.opens) ? `opens #${x.opens} ${scenarioRef?.scenarios?.[String(x.opens)]?.name || ""}`.trim() : null,
-        ].filter(Boolean).join(" · "))),
-      h("span", { class: "num" }, x.n == null ? `?/${x.count}` : `${x.n}/${x.count}`)))) : null,
-    p && !p.known ? h("p", { class: "small muted" }, "Some steps can't be counted from the record: write the quest as one count per step (like 1/3, then 0/1) to fill them in.") : null,
-    differs && !p.text ? h("p", { class: "small muted" }, `The record says ${pending || c.personalQuest || "nothing"}, which doesn't fit the count above.`) : null,
-    differs && p.text && rawCampaign ? h("button", { type: "button", class: "todo-do", "data-key": `pq-use-${c.name}`,
-        onclick: () => { if (!draft) draft = newDraft(data); draft.quests[c.name] = p.text; showInRecorder(data, `pq-${c.name}`); } },
-      `Record ${p.text}`) : null,
+    h("div", { class: "block-head" }, h("span", { class: "label" }, "Quest card"), questCardPick(data, c)),
+    inputs ? questStepList(data, c, inputs, p ? questNotes(data, p) : []) : null,
+    !card && !inputs ? h("p", { class: "small muted" }, "Pick the card to see its steps and keep count of them.") : null,
+    fix && rawCampaign ? h("button", { type: "button", class: "todo-do", "data-key": `pq-use-${c.name}`, onclick: () => setQuest(data, c, fix) },
+      `Record ${fix}`) : null,
     pending ? h("p", { class: "small muted" }, `${pending} is in the session being recorded.`) : null);
 }
 
@@ -3448,16 +3420,25 @@ function renderRecorder(data) {
     h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Retiring and joining"),
       d.retirements.length ? h("div", { class: "card rec-block" }, d.retirements.map(retireBlock)) : null,
       d.newCharacters.length ? h("div", { class: "card rec-block" }, d.newCharacters.map(newBlock)) : null,
-      // Personal quest progress, for those who track it as "n/m".
-      // The current progress is a secret, as on the sheet: tap to see it.
-      active.length ? h("div", { class: "field" },
+      // Personal quest progress: each step, set with a tap (questInputs), from
+      // the card on the device that knows it, or else from the steps the
+      // record has; with neither, the card to pick. A secret, as on the
+      // sheet: tap to see it.
+      active.length ? h("div", { class: "field pq-section" },
         h("span", {}, "Personal quests that moved"),
-        h("div", { class: "rec-row" }, active.map(c => h("div", { class: "pq-field" },
-          field(c.name, text(`pq-${c.name}`, d.quests, c.name,
-            { autocomplete: "off", placeholder: "3/15", "aria-label": `${c.name}'s personal quest progress, if it changed, as 3/15, or 1/3, then 0/1` })),
-          c.personalQuest ? h("button", { type: "button", class: "pq-now", "data-key": `pq-now-${c.name}`, "aria-expanded": String(questShown.has(c.name)),
-              onclick: () => { toggleQuest(c.name); rerender(); focusOn(`pq-now-${c.name}`); } },
-            questShown.has(c.name) || questDone(c.personalQuest) ? `Now ${c.personalQuest}` : [icon("eye"), "Now"]) : null)))) : null,
+        h("div", { class: "pq-list" }, active.map(c => {
+          const shown = questShown.has(c.name) || questDone(c.personalQuest);
+          const { p, inputs } = shown ? questState(data, c) : {};
+          return h("div", { class: "pq-field", "data-key": `pq-${c.name}`, tabindex: "-1" },
+            h("div", { class: "pq-head" }, h("span", { class: "pq-name" }, c.name),
+              h("button", { type: "button", class: "pq-now", "data-key": `pq-now-${c.name}`, "aria-expanded": String(shown),
+                  "aria-label": shown ? `Hide ${c.name}'s personal quest` : `Show ${c.name}'s personal quest`,
+                  onclick: () => { toggleQuest(c.name); rerender(); focusOn(`pq-now-${c.name}`); } },
+                shown ? "Hide" : [icon("eye"), "Show"])),
+            !shown ? null
+              : inputs ? questStepList(data, c, inputs, p ? questNotes(data, p) : [], `pq-rec-${c.name}`)
+              : questRef ? h("label", { class: "field" }, h("span", {}, "Their card, to count its steps"), questCardPick(data, c)) : null);
+        }))) : null,
       // Anyone below the prosperity level may advance to it (p. 48).
       behind.length ? h("div", { class: "field" },
         h("span", { id: "rec-adv-label" }, `Advance to level ${prosperity}, the prosperity level`),

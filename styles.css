@@ -603,14 +603,25 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .quest-hidden { display: inline-flex; align-items: center; gap: 6px; color: var(--fg-3); font-weight: 500; }
 .quest-hidden .icon { font-size: var(--t-lg); stroke-width: 2; }
 .quest-reveal:hover .quest-hidden { color: var(--fg); }
-/* Under a shown quest: its card (this phone only) and each step's count. */
+/* Under a shown quest: its card (this device only) and each step, with a
+   check box or − and + where it's set by hand. */
 .quest-detail { gap: 10px; }
-.quest-detail select { max-width: 60%; min-height: 36px; padding: 0 8px; border: 1px solid var(--line); border-radius: var(--r-sm);
+.quest-pick { max-width: 60%; min-height: 36px; padding: 0 8px; border: 1px solid var(--line); border-radius: var(--r-sm);
   background: var(--surface-2); color: var(--fg); font: inherit; font-size: var(--t-sm); }
 .quest-steps > li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 6px 0; border-top: 1px solid var(--line-soft); font-size: var(--t-md); }
 .quest-steps .sub { display: block; font-size: var(--t-xs); color: var(--muted); }
 .quest-steps .then { color: var(--muted); }
 .quest-steps .num { flex: none; font-weight: 700; }
+.quest-steps > li.count, .quest-steps > li.check { align-items: center; }
+.quest-step-text { min-width: 0; }
+.quest-count { flex: none; display: inline-flex; align-items: center; gap: 8px; }
+.quest-count .num { min-width: 3.2em; text-align: center; font-variant-numeric: tabular-nums; }
+.quest-step-btn { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 1px solid var(--line-strong);
+  border-radius: var(--r-md); background: var(--surface); color: var(--fg); font: inherit; cursor: pointer; touch-action: manipulation; }
+.quest-step-btn .icon { width: 18px; height: 18px; }
+.quest-step-btn[aria-disabled="true"] { color: var(--line-strong); cursor: default; }
+.quest-check { flex: none; display: inline-flex; align-items: center; gap: 8px; font-size: var(--t-sm); font-weight: 600; cursor: pointer; }
+.quest-check input { width: 20px; height: 20px; margin: 0; accent-color: var(--brass); }
 .quest-detail > .todo-do { align-self: flex-start; }
 .goals { display: flex; justify-content: space-between; gap: 6px; }
 .goals > span { display: flex; min-width: 0; gap: 3px; padding: 3px; border-radius: var(--r-sm); border: 1px solid transparent; }
@@ -1024,8 +1035,14 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 /* What the page does with a box's number, on its label: +8 XP, ×3 gold. */
 .field-op { font-weight: 700; color: var(--brass); }
 .field.short { width: 92px; }
-/* A personal quest box, with its current progress behind a tap under it. */
-.pq-field { width: 132px; display: flex; flex-direction: column; gap: 4px; }
+/* Each character's personal quest in the form: behind a tap, its steps. */
+.pq-section { align-self: stretch; max-width: 520px; }
+.pq-list { display: flex; flex-direction: column; gap: 6px; }
+.pq-field { display: flex; flex-direction: column; gap: 4px; padding: 6px 0; border-top: 1px solid var(--line-soft); }
+.pq-field:first-child { border-top: 0; }
+.pq-field .quest-pick { max-width: 100%; }
+.pq-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pq-name { font-weight: 600; }
 .pq-now { align-self: flex-start; display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 0 2px;
   border: 0; background: none; font-size: var(--t-xs); font-weight: 600; color: var(--fg-3); cursor: pointer; }
 .pq-now .icon { font-size: var(--t-md); stroke-width: 2; }
@@ -1159,6 +1176,8 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .todo-do { min-height: 44px; }
   .inactive-toggle, .party-head .inactive-toggle, .section-head .inactive-toggle,
   .pq-now, .quest-reveal, .rec-picks .chip { min-height: 44px; }
+  .quest-step-btn { width: 44px; height: 44px; }
+  .quest-check { min-height: 44px; }
   /* Before you play: the text gets the full width, the actions go under it. */
   .todo .rows > li { flex-wrap: wrap; row-gap: 0; padding-top: 10px; }
   .todo .rows > li > span:first-child { flex: 1 1 100%; }
