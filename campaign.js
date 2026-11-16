@@ -117,7 +117,7 @@ function enhancementCost(x) {
   const level = Math.max(1, Math.min(9, num(x.level) || 1));
   const previous = Math.max(0, num(x.previous));
   const steps = [
-    [e.key === "hex" ? `One more hex: 200 gold over the ${hexes} it has` : e.group === "+1 to a number" ? `${e.label} +1` : e.label, base],
+    [e.key === "hex" ? `One more hex: ${goldText(200)} over the ${hexes} it has` : e.group === "+1 to a number" ? `${e.label} +1` : e.label, base],
     doubles ? ["Targets more than one: doubled", base] : null,
     level > 1 ? [`Level ${level} card: 25 a level above 1`, 25 * (level - 1)] : null,
     previous ? [`${previous} already on the action: 75 each`, 75 * previous] : null,
@@ -131,6 +131,10 @@ function perksEarned(level, checkmarks) {
 }
 
 function signed(n) { return n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : "0"; }
+// Gold as the rulebook's tables write it (the enhancement costs, p. 47):
+// "25g", and a change as "+5g" or "−5g". Words for screen readers say "gold".
+const goldText = n => `${n}g`;
+const goldChange = n => `${signed(n)}g`;
 
 function plural(n, word) { return `${n} ${word}${n === 1 ? "" : "s"}`; }
 
@@ -254,7 +258,7 @@ function treasureParts(ref, number) {
 
 function describeTreasurePart({ type, value }) {
   switch (type) {
-    case "gold": return `${value} gold`;
+    case "gold": return goldText(value);
     case "experience": return `${value} XP`;
     case "item": return itemName(value);
     case "itemDesign": return `${itemName(value)} design`;
@@ -308,8 +312,8 @@ function describeRewards(ref, rewards, evRef) {
   if (!rewards) return [];
   const parts = [];
   const r = rewards;
-  if (r.gold) parts.push(`${r.gold} gold each`);
-  if (r.collectiveGold) parts.push(`${r.collectiveGold} gold to share`);
+  if (r.gold) parts.push(`${goldText(r.gold)} each`);
+  if (r.collectiveGold) parts.push(`${goldText(r.collectiveGold)} to share`);
   if (r.experience) parts.push(`${r.experience} XP each`);
   if (r.battleGoals) parts.push(`${plural(r.battleGoals, "battle goal checkmark")} each`);
   if (r.prosperity) parts.push(`${signed(r.prosperity)} prosperity`);
@@ -355,7 +359,7 @@ function describeCondition(c, evRef) {
   if (c.type === "reputationGT") return `reputation above ${signed(c.values[0])}`;
   if (c.type === "reputationLT") return `reputation below ${signed(c.values[0])}`;
   if (c.type === "character") return `with a ${c.values.map(id => className(evRef, id)).join(" or ")}`;
-  if (c.type === "payCollectiveGold" || c.type === "payGold") return `if you paid ${c.values[0]} gold`;
+  if (c.type === "payCollectiveGold" || c.type === "payGold") return `if you paid ${goldText(c.values[0])}`;
   if (c.type.startsWith("pay")) return "if you paid";
   return c.type;
 }
@@ -545,8 +549,8 @@ function tally(effects, ctx, ref, evRef) {
         add(e.type, exact(e.amount));
         say(`${signed(e.amount)} ${e.type}`);
         break;
-      case "gold": say(`${signed(e.amount)} gold each`); break;
-      case "collectiveGold": say(`${signed(e.amount)} gold to share`); break;
+      case "gold": say(`${goldChange(e.amount)} each`); break;
+      case "collectiveGold": say(`${goldChange(e.amount)} to share`); break;
       case "experience": say(`${signed(e.amount)} XP each`); break;
       case "checkmarks": say(`${signed(e.amount)} battle goal ${Math.abs(e.amount) === 1 ? "checkmark" : "checkmarks"} each`); break;
       case "partyAchievement":
@@ -574,7 +578,7 @@ function tally(effects, ctx, ref, evRef) {
           const ranges = e.of.map(sub => amount(sub)[key] || exact(0));
           if (ranges.some(r => r.lo || r.hi)) add(key, ranges.reduce(either));
         }
-        say(`choose: ${e.of.map(sub => sub.amount != null ? `${signed(sub.amount)} ${sub.type === "gold" ? "gold" : sub.type}` : sub.type).join(" or ")}`);
+        say(`choose: ${e.of.map(sub => sub.amount != null ? (sub.type === "gold" ? goldChange(sub.amount) : `${signed(sub.amount)} ${sub.type}`) : sub.type).join(" or ")}`);
         break;
       }
       case "nextScenario": say(nextScenarioText(e)); break;
@@ -932,7 +936,7 @@ function askAbout(c, ctx, evRef) {
   if (c?.type === "character") {
     return `who was there? It turns on having a ${c.values.map(id => className(evRef, id)).join(" or ")} in the party.`;
   }
-  if (c?.type?.startsWith("pay")) return `did you pay${c.values?.length && typeof c.values[0] === "number" ? ` ${c.values[0]} gold` : ""}?`;
+  if (c?.type?.startsWith("pay")) return `did you pay${c.values?.length && typeof c.values[0] === "number" ? ` ${goldText(c.values[0])}` : ""}?`;
   if (c?.type === "reputationGT" || c?.type === "reputationLT") {
     return `it turns on ${describeCondition(c, evRef)}, and reputation then could have been ${rangeText(ctx.reputation)}. Which outcome was it?`;
   }
@@ -1231,7 +1235,7 @@ function applyDraft(raw, d, data) {
                           log: [], personalQuest: "", retired: false, ...(bonus ? { perkBonus: bonus } : {}),
                           ...(String(x.player || "").trim() ? { player: String(x.player).trim() } : {}), joined: d.date || today(), notes: "" });
     const perks = level - 1 + bonus;
-    log.push(`${name} the ${x.class} joins at level ${level}, with ${XP_FOR_LEVEL[level - 1]} XP and ${startingGold(level)} gold${perks ? `, and ${plural(perks, "perk")} to choose` : ""}${level > 1 ? `; and ${plural(level - 1, "ability card")} to add, one for each level from 2 to ${level} (each of that level or lower)` : ""}`);
+    log.push(`${name} the ${x.class} joins at level ${level}, with ${XP_FOR_LEVEL[level - 1]} XP and ${goldText(startingGold(level))}${perks ? `, and ${plural(perks, "perk")} to choose` : ""}${level > 1 ? `; and ${plural(level - 1, "ability card")} to add, one for each level from 2 to ${level} (each of that level or lower)` : ""}`);
     for (let l = 2; l <= level; l++) newLevels.push({ character: name, level: l });
     if (x.playing !== false) joined.push(name);
   }
@@ -1315,14 +1319,14 @@ function applyDraft(raw, d, data) {
     for (const fx of outcome.effects) {
       if (fx.type === "gold" || fx.type === "experience") {
         for (const name of party) eventGain(name, fx.type === "gold" ? "gold" : "xp", fx.amount);
-        log.push(`${label}: ${signed(fx.amount)} ${fx.type === "gold" ? "gold" : "XP"} each, for ${party.join(", ")}`);
+        log.push(`${label}: ${fx.type === "gold" ? goldChange(fx.amount) : `${signed(fx.amount)} XP`} each, for ${party.join(", ")}`);
       } else if (fx.type === "collectiveGold") {
         const shares = e.shares || {};
         const total = party.reduce((sum, name) => sum + Math.max(0, num(shares[name])), 0);
         const want = Math.abs(fx.amount);
-        if (total !== want) warnings.push(`${label}: ${want} gold to ${fx.amount > 0 ? "share" : "pay"}, but the shares come to ${total}.`);
+        if (total !== want) warnings.push(`${label}: ${goldText(want)} to ${fx.amount > 0 ? "share" : "pay"}, but the shares come to ${total}.`);
         for (const name of party) if (num(shares[name]) > 0) eventGain(name, "gold", Math.sign(fx.amount) * num(shares[name]));
-        if (total) log.push(`${label}: ${total} gold ${fx.amount > 0 ? "shared" : "paid"} (${party.filter(n => num(shares[n]) > 0).map(n => `${n} ${num(shares[n])}`).join(", ")})`);
+        if (total) log.push(`${label}: ${goldText(total)} ${fx.amount > 0 ? "shared" : "paid"} (${party.filter(n => num(shares[n]) > 0).map(n => `${n} ${goldText(num(shares[n]))}`).join(", ")})`);
       } else if (fx.type === "checkmarks") {
         for (const name of party) {
           const c = who(name);
@@ -1378,7 +1382,7 @@ function applyDraft(raw, d, data) {
     // Easy to skip someone at the table; a failed scenario keeps XP and gold too.
     const blank = party.filter(name => !["xp", "coins", "gold"].some(k => filled(s.results[name]?.[k])));
     if (info && blank.length) warnings.push(`${label}: no XP or coins entered for ${blank.join(", ")}.`);
-    log.push(`${label} at level ${level}: ${st.gold} gold a coin${s.result === "success" ? `, ${st.xp} bonus XP each` : ""}`);
+    log.push(`${label} at level ${level}: ${goldText(st.gold)} a coin${s.result === "success" ? `, ${st.xp} bonus XP each` : ""}`);
     const kept = results.filter(r => r.xp || r.gold || r.checkmarks)
       .map(r => Object.fromEntries(Object.entries(r).filter(([k, v]) => k === "character" || v)));
     // What the treasures gave, looted on a success or a failure alike: a
@@ -1394,7 +1398,7 @@ function applyDraft(raw, d, data) {
           if (!t.character) { if (["gold", "experience", "item", "battleGoal"].includes(part.type)) warnings.push(`Treasure ${t.number}: who looted it?`); continue; }
           if (part.type === "gold") {
             gain(t.character, "gold", num(part.value));
-            log.push(`${t.character} gains ${num(part.value)} gold from treasure ${t.number}`);
+            log.push(`${t.character} gains ${goldText(num(part.value))} from treasure ${t.number}`);
           }
           if (part.type === "experience") {
             gain(t.character, "xp", num(part.value));
@@ -1413,12 +1417,12 @@ function applyDraft(raw, d, data) {
               const value = Math.floor((Object.values(itemsRef?.items || {}).find(x => sameItem(x.name, item))?.cost || 0) / 2);
               gain(t.character, "gold", value);
               returnItem(item);
-              log.push(`${t.character} already has ${item}, so the one from treasure ${t.number} is sold at once for ${value} gold`);
+              log.push(`${t.character} already has ${item}, so the one from treasure ${t.number} is sold at once for ${goldText(value)}`);
             } else if (noCopyLeft(item)) {
               // Every copy is someone's: the looter gains its sell value instead (FAQ).
               const value = Math.floor((Object.values(itemsRef?.items || {}).find(x => sameItem(x.name, item))?.cost || 0) / 2);
               gain(t.character, "gold", value);
-              log.push(`No copy of ${item} is left, so ${t.character} gains its sell value from treasure ${t.number}: ${value} gold`);
+              log.push(`No copy of ${item} is left, so ${t.character} gains its sell value from treasure ${t.number}: ${goldText(value)}`);
             } else {
               giveItem(t.character, item);
               log.push(`${t.character} takes ${item} from treasure ${t.number}`);
@@ -1463,14 +1467,14 @@ function applyDraft(raw, d, data) {
     const r = info?.rewards || {};
     for (const name of party) { gain(name, "gold", r.gold || 0); gain(name, "xp", r.experience || 0); gain(name, "checkmarks", r.battleGoals || 0); }
     if (r.battleGoals) log.push(`${label} reward: ${plural(r.battleGoals, "battle goal checkmark")} each`);
-    if (r.gold || r.experience) log.push(`${label} reward: ${[r.gold ? `${r.gold} gold` : null, r.experience ? `${r.experience} XP` : null].filter(Boolean).join(" and ")} each`);
+    if (r.gold || r.experience) log.push(`${label} reward: ${[r.gold ? goldText(r.gold) : null, r.experience ? `${r.experience} XP` : null].filter(Boolean).join(" and ")} each`);
     if (r.collectiveGold) {
       // Shared as the party split it in the form.
       const shares = s.rewardShares || {};
       const total = party.reduce((sum, name) => sum + Math.max(0, num(shares[name])), 0);
       for (const name of party) if (num(shares[name]) > 0) gain(name, "gold", num(shares[name]));
-      if (total !== r.collectiveGold) warnings.push(`${label} gives ${r.collectiveGold} gold to share, but the shares come to ${total}.`);
-      else log.push(`${label} reward: ${total} gold shared (${party.filter(n => num(shares[n]) > 0).map(n => `${n} ${num(shares[n])}`).join(", ")})`);
+      if (total !== r.collectiveGold) warnings.push(`${label} gives ${goldText(r.collectiveGold)} to share, but the shares come to ${total}.`);
+      else log.push(`${label} reward: ${goldText(total)} shared (${party.filter(n => num(shares[n]) > 0).map(n => `${n} ${goldText(num(shares[n]))}`).join(", ")})`);
     }
     if (r.hints?.gold) warnings.push(`${label}: ${r.hints.gold.replace(/\.?$/, "")} (the scenario book).`);
     // Reward items: one copy each, to one of the characters there (p. 49).
@@ -1607,7 +1611,7 @@ function applyDraft(raw, d, data) {
     c.xp = (c.xp || 0) + g.xp;
     c.gold = (c.gold || 0) + g.gold;
     c.checkmarks = (c.checkmarks || 0) + g.checkmarks;
-    log.push(`${name}: ${[g.xp ? `${signed(g.xp)} XP` : null, g.gold ? `${signed(g.gold)} gold` : null,
+    log.push(`${name}: ${[g.xp ? `${signed(g.xp)} XP` : null, g.gold ? goldChange(g.gold) : null,
                           g.checkmarks ? `${signed(g.checkmarks)} ${g.checkmarks === 1 ? "checkmark" : "checkmarks"}` : null].filter(Boolean).join(", ")}`);
     const now = c.retired ? was : stepFor(c.xp, XP_FOR_LEVEL);
     for (let level = was + 1; level <= now; level++) {
@@ -1631,7 +1635,7 @@ function applyDraft(raw, d, data) {
     c.gold = (c.gold || 0) - price;
     giveItem(b.character, b.item);
     takeReturned(b.item);
-    log.push(`${b.character} buys ${b.item} for ${price} gold`);
+    log.push(`${b.character} buys ${b.item} for ${goldText(price)}`);
   }
   // No more copies bought than the shop has, counting any sold back tonight.
   const bought = new Map();
@@ -1653,7 +1657,7 @@ function applyDraft(raw, d, data) {
     const item = Object.values(itemsRef?.items || {}).find(x => sameItem(x.name, sale.item));
     const value = item ? Math.floor(item.cost / 2) : 0;
     c.gold = (c.gold || 0) + value;
-    log.push(`${sale.character} sells ${sale.item} for ${value} gold`);
+    log.push(`${sale.character} sells ${sale.item} for ${goldText(value)}`);
   }
   out.city ||= {};
   const before = out.city.donations || 0;
@@ -1666,13 +1670,13 @@ function applyDraft(raw, d, data) {
     // Two Bless cards for their next scenario (p. 45): tonight's, if they
     // play one after this; otherwise kept on the sheet until they do.
     if (x.when === "after" || !(playedTonight && party.includes(c.name))) c.blessNext = true;
-    log.push(`${x.character} donates ${DONATION} gold to the Sanctuary: two Bless cards in their next scenario`);
+    log.push(`${x.character} donates ${goldText(DONATION)} to the Sanctuary: two Bless cards in their next scenario`);
   }
   for (const name of new Set(donors.map(x => x.character))) {
     if (donors.filter(x => x.character === name).length > 1) warnings.push(`${name} donates more than once: it's once per visit to the city.`);
   }
   if (before < ENVELOPE_B_DONATIONS && (out.city.donations || 0) >= ENVELOPE_B_DONATIONS && !d.envelopeB) {
-    log.push(`Donations reach ${out.city.donations} gold: Envelope B can be opened`);
+    log.push(`Donations reach ${goldText(out.city.donations)}: Envelope B can be opened`);
   }
   if (d.envelopeB && !out.city.envelopeB) {
     out.city.envelopeB = true;
@@ -1683,13 +1687,13 @@ function applyDraft(raw, d, data) {
     if (!c) continue;
     c.gold = (c.gold || 0) - num(x.cost);
     c.enhanced = (c.enhanced || 0) + 1;
-    log.push(`${x.character} enhances a card (${x.what}) for ${num(x.cost)} gold`);
+    log.push(`${x.character} enhances a card (${x.what}) for ${goldText(num(x.cost))}`);
   }
   for (const p of d.perks.filter(p => p.character && p.perk)) {
     who(p.character).perks.push(p.perk);
     log.push(`${p.character} takes "${p.perk}"`);
   }
-  for (const c of out.characters) if (c.gold < 0) warnings.push(`${c.name} would have ${c.gold} gold.`);
+  for (const c of out.characters) if (c.gold < 0) warnings.push(`${c.name} would have ${goldText(c.gold)}.`);
 
   // The draft's id, just after "updated" (replacing an earlier one).
   const marked = {};
@@ -2070,9 +2074,9 @@ const MILESTONES = [
   { id: "envelope-a", name: "Envelope A", need: ANCIENT_TECHNOLOGY_FOR_ENVELOPE_A, what: "Ancient Technology achievements",
     have: m => m.tech, open: m => Boolean(m.city.envelopeA),
     todo: () => ["Five Ancient Technology achievements: open envelope A, then set envelopeA to true in campaign.json.", "#record"] },
-  { id: "envelope-b", name: "Envelope B", need: ENVELOPE_B_DONATIONS, unit: "gold", what: "donated at the Sanctuary",
+  { id: "envelope-b", name: "Envelope B", need: ENVELOPE_B_DONATIONS, unit: "g", what: "donated at the Sanctuary",
     have: m => m.city.donations || 0, open: m => Boolean(m.city.envelopeB),
-    todo: () => ["Donations have reached 100 gold: Envelope B can be opened.", "#overview"] },
+    todo: () => [`Donations have reached ${goldText(ENVELOPE_B_DONATIONS)}: Envelope B can be opened.`, "#overview"] },
   { id: "town-records", name: "Town Records Book", need: 0, what: "At the first retirement",
     have: m => m.retired, open: m => Boolean(m.city.townRecords),
     todo: () => ["A character has retired: open the Town Records Book, then set townRecords to true in campaign.json.", "#record"] },

@@ -1137,7 +1137,7 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
 .afford .short { border-style: dashed; border-color: var(--line); color: var(--muted); }
 .afford .short .afford-gold { color: var(--muted); }
 .afford .gicon { width: 1.1em; height: 1.1em; }
-.enhancer-total { display: flex; align-items: baseline; gap: 8px; color: var(--brass); }
+.enhancer-total { display: flex; align-items: baseline; gap: 1px; color: var(--brass); }
 .enhancer-total .figure { font-size: var(--d-lg); line-height: 1; }
 .enhancer-total span:last-child { font-weight: 600; }
 .enhancer-cost .rows li { font-size: var(--t-sm); min-height: 36px; }

@@ -118,7 +118,7 @@ function nextShopStep(reputation) {
 }
 
 function priceText(modifier) {
-  return modifier === 0 ? "normal prices" : `${signed(modifier)} gold per item`;
+  return modifier === 0 ? "normal prices" : `${goldChange(modifier)} per item`;
 }
 
 // Where a total comes from, and how sure it is.
@@ -192,12 +192,12 @@ function reputationTile(party, ledger) {
                                cls: z.modifier === modifier ? "now" : next?.at === z.from ? "next" : null })),
       at: (edge(rep) + edge(rep + 1)) / 2,
       maybe: range && !isExact(range) ? [edge(clamp(range.lo)), edge(clamp(range.hi) + 1)] : null,
-      step: next ? { at: edge(next.at), text: next.modifier === 0 ? "Normal" : `${signed(next.modifier)} gold` } : null,
+      step: next ? { at: edge(next.at), text: next.modifier === 0 ? "Normal" : goldChange(next.modifier) } : null,
       ends: ["−20", "+20"],
       said: `Reputation ${signed(rep)}${range && !isExact(range) ? `, could be ${rangeText(range)}` : ""}: shop ${modifier === 0 ? "prices normal" : priceText(modifier)}${next ? `, ${priceText(next.modifier)} from ${signed(next.at)}` : ""}.`,
     }),
     h("div", { class: "tile-foot" },
-      h("strong", {}, modifier === 0 ? "Prices normal" : `Prices ${signed(modifier)} gold`)),
+      h("strong", {}, modifier === 0 ? "Prices normal" : `Prices ${goldChange(modifier)}`)),
     ledgerFoot(ledger?.reputation, ""));
 }
 
@@ -690,7 +690,7 @@ function tonightStrip(data) {
   const nav = h("nav", { class: "tonight", "data-tab": "tonight", "aria-label": "Tonight, step by step" },
     step(1, "City event", drawn("city") || (decks ? `${decks.city.size} in the deck` : "Draw one"), "#events",
       recorder ? () => recordEvent(data, "city") : null, Boolean(drawn("city"))),
-    step(2, "In town", town || (shop ? (shop.modifier === 0 ? "Normal prices" : `Prices ${signed(shop.modifier)} gold`) : "Shop, perks, Sanctuary"),
+    step(2, "In town", town || (shop ? (shop.modifier === 0 ? "Normal prices" : `Prices ${goldChange(shop.modifier)}`) : "Shop, perks, Sanctuary"),
       "#shop", null, Boolean(town)),
     step(3, "Road event", drawn("road") || (decks ? `${decks.road.size} in the deck` : "Draw one") + straightOn(data), "#events",
       recorder ? () => recordEvent(data, "road") : null, Boolean(drawn("road"))),
@@ -1035,7 +1035,7 @@ function partyList(data) {
         : h("span", { class: "party-xp" },
           h("span", { class: st.close ? "close" : null }, st.nextText),
           meter(st.toNext ? st.toNext.fraction : 1, st.close),
-          h("small", {}, `${c.gold} gold`)));
+          h("small", {}, goldText(c.gold))));
     }));
 }
 
@@ -1189,7 +1189,7 @@ function milestones(data) {
       h("span", { class: "mile-mark" }, MARKS[x.id]?.()),
       h("span", { class: "mile-text" },
         h("span", { class: "mile-name" }, h("strong", {}, x.name), h("span", { class: "mile-state" },
-          x.open ? "Open" : x.ready ? "Ready" : x.says || (x.need ? `${Math.max(0, x.have)} of ${x.need}${x.unit ? ` ${x.unit}` : ""}` : x.what))),
+          x.open ? "Open" : x.ready ? "Ready" : x.says || (x.need ? `${Math.max(0, x.have)} of ${x.need}${x.unit || ""}` : x.what))),
         x.need && !x.open ? meter(Math.max(0, Math.min(1, x.have / x.need)), x.ready) : null,
         x.need && !x.open && x.what ? h("span", { class: "sub" }, x.what) : null))));
 }
@@ -1263,7 +1263,7 @@ function designRows(data) {
     return h("li", {},
       h("span", { class: "design-name" }, item ? gameIcon(`slot-${item.slot}`) : null,
         h("span", {}, h("strong", {}, a.name),
-          item ? h("span", { class: "sub" }, `${item.price} gold · ${item.count} ${item.count === 1 ? "copy" : "copies"}`) : null)),
+          item ? h("span", { class: "sub" }, `${goldText(item.price)} · ${item.count} ${item.count === 1 ? "copy" : "copies"}`) : null)),
       a.where ? h("span", { class: "where" }, n ? scenarioLink(data, Number(n), where) : where) : null);
   }));
 }
@@ -1381,7 +1381,7 @@ function resultsList(results, sign = "") {
   return h("ul", { class: "results" }, results.map(r => h("li", {},
     h("strong", {}, r.character),
     r.xp != null ? h("span", { class: "num" }, `${sign}${r.xp} `, h("span", {}, "XP")) : null,
-    r.gold != null ? h("span", { class: `num${sign ? " gain-gold" : ""}` }, `${sign}${r.gold} `, h("span", {}, "gold")) : null,
+    r.gold != null ? h("span", { class: `num${sign ? " gain-gold" : ""}` }, `${sign}${r.gold}`, h("span", {}, "g")) : null,
     sign ? null : h("span", { class: "marks" },
       r.checkmarks ? [gameIcon("checkmark", "Battle goal checkmarks"), String(r.checkmarks)] : null),
     r.notes ? h("span", { class: "extra" }, r.notes) : null)));
@@ -1391,7 +1391,7 @@ function scenarioFacts(data, s) {
   // For a scenario you could play, what it would be tonight.
   const t = s.status === "available" ? tonight(data) : null;
   const pairs = [
-    ["Tonight", t ? `Scenario level ${t.level} (${t.difficulty.toLowerCase()}): monster level ${t.monsters}, ${t.gold} gold a coin, trap damage ${t.trap}, ${t.xp} bonus XP` : null],
+    ["Tonight", t ? `Scenario level ${t.level} (${t.difficulty.toLowerCase()}): monster level ${t.monsters}, ${goldText(t.gold)} a coin, trap damage ${t.trap}, ${t.xp} bonus XP` : null],
     ["Unlocked by", s.unlockedBy != null ? scenarioLink(data, s.unlockedBy) : s.unlockedVia],
     ["Completed", formatDate(s.completed)],
     ["Also played", attemptsOf(data, s.number).map(a => `${a.failed ? "failed" : "replayed casually"} ${formatDate(a.date)}`).join("; ")],
@@ -2614,7 +2614,7 @@ function scenarioSummary(data) {
       return h("div", { class: "card sum-card" },
         h("h3", {}, c.name),
         row("XP", [eq(st.xp, "dial"), bonus ? [op("+"), eq(bonus, "bonus")] : null, op("=")], `+${xp}`),
-        row("Gold", [eq(st.coins, st.coins === 1 ? "coin" : "coins"), t ? [op("×"), eq(t.gold)] : null, op("=")], gold != null ? `+${gold}` : "?"),
+        row("Gold", [eq(st.coins, st.coins === 1 ? "coin" : "coins"), t ? [op("×"), eq(t.gold)] : null, op("=")], gold != null ? `+${goldText(gold)}` : "?"),
         won && battleGoal(c.name) ? h("div", { class: "sum-row" },
           h("span", { class: "label sum-goal-label" }, battleGoal(c.name).name,
             h("span", { class: "goal-checks", role: "img", "aria-label": plural(battleGoal(c.name).checks, "checkmark") },
@@ -2635,7 +2635,7 @@ function scenarioSummary(data) {
         h("p", { class: "sum-after" },
           `Then ${c.xp + xp} XP`,
           after.level === before.level && after.toNext ? ` · ${after.toNext.remaining} to level ${after.level + 1}` : "",
-          gold != null ? ` · ${c.gold + gold - draftSpend(data, c.name)} gold${draftSpend(data, c.name) ? " after the draft" : ""}` : "",
+          gold != null ? ` · ${goldText(c.gold + gold - draftSpend(data, c.name))}${draftSpend(data, c.name) ? " after the draft" : ""}` : "",
           gains ? h("strong", { class: "sum-gains" }, capitalize(gains)) : null));
     }),
     null);
@@ -2652,8 +2652,8 @@ function townJobs(data) {
   // The Shop and enhancing open as sheets over the tab.
   const opener = (key, label, run) => h("button", { type: "button", class: "todo-open", "data-key": key, onclick: run }, label, icon("chevron"));
   const spent = c ? draftSpend(data, c.name) : 0;
-  jobs.push([c ? h("span", {}, `${c.name} has `, h("strong", { class: "town-gold" }, `${c.gold} gold`), " to spend",
-      spent ? `, ${c.gold - spent} after the draft` : "", ".") : "The Shop.",
+  jobs.push([c ? h("span", {}, `${c.name} has `, h("strong", { class: "town-gold" }, goldText(c.gold)), " to spend",
+      spent ? `, ${goldText(c.gold - spent)} after the draft` : "", ".") : "The Shop.",
     opener("town-shop", "Shop", () => { shopFor = undefined; shopFilter = c ? "can" : "all"; render(data, "shop"); openSheet("shop"); })]);
   if (!c) {
     jobs.push(["Enhance an ability card.", opener("town-enhance", "Enhancing", () => openSheet("enhance"))]);
@@ -2669,7 +2669,7 @@ function townJobs(data) {
     : h("a", { class: "todo-go", href: "#characters" }, "Your sheet")]);
   const donated = (draft?.donations || []).some(x => x.character === c.name);
   jobs.push([donated ? "Donated at the Sanctuary: 2 Bless in your next scenario."
-      : "The Sanctuary: 10 gold for 2 Bless in your next scenario, once a visit.",
+      : `The Sanctuary: ${goldText(DONATION)} for 2 Bless in your next scenario, once a visit.`,
     recording && !donated ? h("button", { type: "button", class: "todo-do", "data-key": "town-donate", onclick: () => recordDonation(data, c.name) }, "Record it") : null]);
   jobs.push(["Enhance an ability card.", opener("town-enhance", "Enhancing", () => openSheet("enhance"))]);
   return h("div", { class: "card todo town-jobs" },
@@ -2739,7 +2739,7 @@ function renderShop(data) {
   const action = item => !shopper || !rawCampaign || !isRecorder() ? null
     : has(item) ? (sold(item) ? h("span", { class: "in-draft" }, "Sold in the draft")
         : h("button", { type: "button", class: "buy sell", "data-key": `sell-${item.id}`, "aria-label": `Sell ${item.name} for ${item.sells} gold`,
-            onclick: () => recordSell(data, shopper.name, item.name) }, `Sell for ${item.sells}`))
+            onclick: () => recordSell(data, shopper.name, item.name) }, `Sell for ${goldText(item.sells)}`))
     : bought(item) ? h("span", { class: "in-draft" }, "In the draft")
     : canBuy(item) ? h("button", { type: "button", class: "buy", "data-key": `buy-${item.id}`, "aria-label": `Buy ${item.name} for ${shopper.name}`,
         onclick: () => recordBuy(data, shopper.name, item.name) }, "Buy")
@@ -2758,8 +2758,8 @@ function renderShop(data) {
           item.back ? h("span", { class: "tag", title: "Not sold here otherwise: a copy sold, or left by a retired character" }, "returned") : null),
         h("span", { class: "sub stock" }, copyMarks(item),
           // What it sells for: on the shopper's own items that's their Sell button.
-          !shopper && item.held.length ? h("span", {}, `sells for ${item.sells}`) : null)),
-      h("span", { class: "price-col" }, h("span", { class: "price num" }, `${item.price} `, h("span", { class: "unit" }, "gold")), action(item)));
+          !shopper && item.held.length ? h("span", {}, `sells for ${goldText(item.sells)}`) : null)),
+      h("span", { class: "price-col" }, h("span", { class: "price num" }, String(item.price), h("span", { class: "unit" }, "g")), action(item)));
   };
 
   // One mark per copy of the item, as cards on a shelf: those someone
@@ -2783,7 +2783,7 @@ function renderShop(data) {
   // have in the draft.
   const showing = item => shopFilter !== "can" || !shopper || canBuy(item) || bought(item);
   const groups = SLOTS.map(([slot, label]) => [slot, label, shop.stock.filter(i => i.slot === slot && showing(i))]).filter(([, , list]) => list.length);
-  const priceNote = shop.modifier === 0 ? "normal prices" : `${signed(shop.modifier)} gold per item`;
+  const priceNote = shop.modifier === 0 ? "normal prices" : `${goldChange(shop.modifier)} per item`;
   const doubt = priceDoubt(shop, data.ledger?.reputation);
   const pick = name => () => { shopFor = shopper?.name === name ? "" : name; render(data, "shop"); };
 
@@ -2803,7 +2803,7 @@ function renderShop(data) {
           classIcon(c.class), c.name)),
         inactiveToggle(data, everyone.length - active.length, "shop-inactive"))) : null,
     shopper ? h("div", { class: "shop-me" },
-      h("span", {}, `${shopper.name} has `, h("strong", {}, `${shopper.gold} gold`), spent ? `, ${gold} after the draft` : null),
+      h("span", {}, `${shopper.name} has `, h("strong", {}, goldText(shopper.gold)), spent ? `, ${goldText(gold)} after the draft` : null),
       slotStrip({ ...shopper, items: owned }, characterStats(shopper).level),
       h("div", { class: "segmented", role: "group", "aria-label": "Show" }, [["all", "Everything"], ["can", "Can buy"]].map(([key, label]) =>
         h("button", { type: "button", "data-key": `shop-show-${key}`, "aria-pressed": String(shopFilter === key),
@@ -2841,7 +2841,7 @@ function priceDoubt(shop, rep) {
   const higher = shopModifier(shop.range.lo) - shop.modifier;
   if (lower <= 0 && higher <= 0) return null;
   const open = [...(rep?.unsure || []), ...(rep?.unknown || [])].join(", ").replace(/, ([^,]*)$/, " and $1");
-  const could = [lower > 0 ? `${lower} gold lower` : null, higher > 0 ? `${higher} gold higher` : null].filter(Boolean).join(" or ");
+  const could = [lower > 0 ? `${goldText(lower)} lower` : null, higher > 0 ? `${goldText(higher)} higher` : null].filter(Boolean).join(" or ");
   return { text: `${[lower > 0 ? `−${lower}` : null, higher > 0 ? `+${higher}` : null].filter(Boolean).join("/")}?`,
            why: `Reputation could be ${rangeText(shop.range)}${open ? ` (${open} open)` : ""}: may be ${could}.` };
 }
@@ -2922,8 +2922,8 @@ function enhancer(data) {
           : null,
       ),
       h("div", { class: "enhancer-cost" },
-        h("div", { class: "enhancer-total", "aria-live": "polite" }, h("span", { class: "figure" }, cost.total), h("span", {}, "gold")),
-        h("ul", { class: "rows" }, cost.steps.map(([text, gold]) => h("li", {}, h("span", {}, text), h("span", { class: "num" }, `+${gold}`)))),
+        h("div", { class: "enhancer-total", "aria-live": "polite" }, h("span", { class: "figure" }, cost.total), h("span", {}, "g")),
+        h("ul", { class: "rows" }, cost.steps.map(([text, gold]) => h("li", {}, h("span", {}, text), h("span", { class: "num" }, `+${goldText(gold)}`)))),
         payers.length ? h("ul", { class: "afford", "aria-label": "Who has the gold" }, payers.map(c => {
           const ok = c.gold >= cost.total;
           return h("li", { class: ok ? "ok" : "short", "aria-label": `${c.name}, ${c.gold} gold${ok ? "" : ", not enough"}` },
@@ -3128,7 +3128,7 @@ function renderRecorder(data) {
   // What a character's row adds up to, kept current as the boxes are typed in.
   const gainText = (s, r) => {
     const g = scenarioGain(s, r, data);
-    return `= ${g.xp} XP, ${g.gold} gold`;
+    return `= ${g.xp} XP, ${goldText(g.gold)}`;
   };
   const reward = n => scenarioRef?.scenarios?.[String(n)]?.rewards;
   const tracked = name => {
@@ -3206,7 +3206,7 @@ function renderRecorder(data) {
         h("span", { class: "label" }, "Rewards to settle"),
         reward(n)?.hints?.gold ? h("p", { class: "small muted" }, reward(n).hints.gold) : null,
         reward(n)?.collectiveGold ? h("div", { class: "rec-row" },
-          h("strong", { class: "rec-who" }, `${reward(n).collectiveGold} gold to share`),
+          h("strong", { class: "rec-who" }, `${goldText(reward(n).collectiveGold)} to share`),
           party.map(c => field(c.name, text(`sc-${i}-rs-${c.name}`, (s.rewardShares ||= {}), c.name,
             { type: "number", min: 0, inputmode: "numeric", placeholder: "0", "aria-label": `${c.name}'s share` }), "short"))) : null,
         reward(n)?.chooseLocation ? field("New location", select(`sc-${i}-loc`, s, "chosen",
@@ -3268,7 +3268,7 @@ function renderRecorder(data) {
     if (!fx || !party.length) return null;
     e.shares ||= {};
     return h("div", { class: "rec-row" },
-      h("strong", { class: "rec-who" }, `${Math.abs(fx.amount)} gold to ${fx.amount > 0 ? "share" : "pay"}`),
+      h("strong", { class: "rec-who" }, `${goldText(Math.abs(fx.amount))} to ${fx.amount > 0 ? "share" : "pay"}`),
       party.map(c => field(c.name, text(`ev-${i}-share-${c.name}`, e.shares, c.name,
         { type: "number", min: 0, inputmode: "numeric", placeholder: "0", "aria-label": `${c.name}'s share` }), "short")));
   };
@@ -3277,7 +3277,7 @@ function renderRecorder(data) {
     // Anyone in town can shop, playing tonight or not; newcomers too.
     field("Who", select(`buy-${i}-c`, b, "character", activeOptions)),
     field("Item", select(`buy-${i}-i`, b, "item", [["", "Pick an item"],
-      ...(data.shop?.stock || []).filter(x => x.left > 0).map(x => [x.name, `${x.name} · ${x.price} gold`])], false)),
+      ...(data.shop?.stock || []).filter(x => x.left > 0).map(x => [x.name, `${x.name} · ${goldText(x.price)}`])], false)),
     remove(d.buys, i, "purchase", "add-buy"));
   const sellBlock = (b, i) => h("div", { class: "rec-row" },
     field("Who", select(`sell-${i}-c`, b, "character", activeOptions)),
@@ -3346,7 +3346,7 @@ function renderRecorder(data) {
       field("Perks from retirements", text(`new-${i}-b`, x, "bonusPerks", { type: "number", min: 0, inputmode: "numeric",
         placeholder: String(retiredByPlayer(x.player)),
         "aria-label": "Extra perks: one for each character this player has retired" }), "short"),
-      h("span", { class: "small muted rec-note" }, `Starts at level ${level} with ${XP_FOR_LEVEL[level - 1]} XP and ${startingGold(level)} gold`),
+      h("span", { class: "small muted rec-note" }, `Starts at level ${level} with ${XP_FOR_LEVEL[level - 1]} XP and ${goldText(startingGold(level))}`),
       remove(d.newCharacters, i, "new character", "add-new"));
   };
 
@@ -3513,14 +3513,14 @@ function renderRecorder(data) {
       d.buys.length || d.sells.length || d.perks.length || d.donations.length || d.enhancements.length
         ? h("div", { class: "card rec-block" }, d.buys.map(buyBlock), d.sells.map(sellBlock), d.perks.map(perkBlock),
             d.donations.map((x, i) => h("div", { class: "rec-row" },
-              field(`Donates ${DONATION} gold, for 2 Bless next scenario`, select(`don-${i}-c`, x, "character", partyOptions)),
+              field(`Donates ${goldText(DONATION)}, for 2 Bless next scenario`, select(`don-${i}-c`, x, "character", partyOptions)),
               // Before tonight's scenario the Bless is used in it; after, it waits.
               firstPlayed ? field("When", select(`don-${i}-w`, x, "when", [["", `In town, before ${scenarioLabel(data, firstPlayed)}`], ["after", "Back in town, after it"]])) : null,
               remove(d.donations, i, "donation", "add-donation"))),
             // Enhancements, from the calculator's Record it.
             d.enhancements.map((x, i) => h("div", { class: "rec-row" },
               field("Who enhances", select(`enr-${i}-c`, x, "character", activeOptions)),
-              h("span", { class: "small muted rec-note" }, `${x.what}: ${x.cost} gold`),
+              h("span", { class: "small muted rec-note" }, `${x.what}: ${goldText(x.cost)}`),
               remove(d.enhancements, i, "enhancement", "add-buy")))) : null,
       h("div", { class: "rec-buttons" },
         // On a phone, for its own character to start with; the next box is
