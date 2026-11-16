@@ -237,7 +237,7 @@
     "outcome": 1,
     "effects": [
      "−1 battle goal checkmark each",
-     "+10 gold each",
+     "+10g each",
      "+1 reputation"
     ]
    },
@@ -247,7 +247,7 @@
     "fate": "removed",
     "outcome": 1,
     "effects": [
-     "+10 gold each",
+     "+10g each",
      "−2 reputation"
     ]
    }
@@ -602,27 +602,27 @@
   ]
  },
  "log": [
-  "Newbie the Brute joins at level 1, with 0 XP and 30 gold",
+  "Newbie the Brute joins at level 1, with 0 XP and 30g",
   "City 12 drawn, option B, before #5",
   "City 12, option B: −1 battle goal checkmark each, for Azorica, Craig, Flik Flak (never one that would cost a perk)",
-  "City 12, option B: +10 gold each, for Azorica, Craig, Flik Flak",
+  "City 12, option B: +10g each, for Azorica, Craig, Flik Flak",
   "Road 4 drawn, option B, before #5",
-  "Road 4, option B: +10 gold each, for Azorica, Craig, Flik Flak",
-  "#5 Ruinous Crypt at level 2: 3 gold a coin, 8 bonus XP each",
+  "Road 4, option B: +10g each, for Azorica, Craig, Flik Flak",
+  "#5 Ruinous Crypt at level 2: 3g a coin, 8 bonus XP each",
   "#5 Ruinous Crypt completed",
-  "Craig gains 15 gold from treasure 4",
-  "#6 Decaying Crypt at level 2: 3 gold a coin",
+  "Craig gains 15g from treasure 4",
+  "#6 Decaying Crypt at level 2: 3g a coin",
   "#6 Decaying Crypt: failed",
   "Craig's personal quest: 3/4",
   "Treasure 38 in #4: Kaktus looted Ring of Skulls",
-  "Azorica: +20 XP, +29 gold, +1 checkmark",
+  "Azorica: +20 XP, +29g, +1 checkmark",
   "Azorica reaches level 4: add an ability card of level 4 or lower, and take a perk",
-  "Craig: +21 XP, +44 gold",
-  "Flik Flak: +16 XP, +23 gold, +2 checkmarks",
-  "Craig buys Iron Helmet for 10 gold",
-  "Azorica sells Minor Power Potion for 5 gold",
-  "Flik Flak donates 10 gold to the Sanctuary: two Bless cards in their next scenario",
-  "Flik Flak enhances a card (+1 move) for 30 gold",
+  "Craig: +21 XP, +44g",
+  "Flik Flak: +16 XP, +23g, +2 checkmarks",
+  "Craig buys Iron Helmet for 10g",
+  "Azorica sells Minor Power Potion for 5g",
+  "Flik Flak donates 10g to the Sanctuary: two Bless cards in their next scenario",
+  "Flik Flak enhances a card (+1 move) for 30g",
   "Azorica takes \"Add one +0 STUN card\""
  ],
  "warnings": [],
