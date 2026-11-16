@@ -627,6 +627,8 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .perks > li.open { color: var(--fg-3); }
 .item-list > li { gap: 10px; }
 .item-list .gicon, .slot-blank { flex: none; width: 1.15em; height: 1.15em; margin: 0; color: var(--fg-3); }
+/* Items to mark as used at the table: phones only. */
+.item-track { display: none; }
 .perks .perk-text { flex: 1; }
 .perks .icon { font-size: var(--t-md); color: var(--verdigris); stroke-width: 2.8; }
 .perks .unsure .icon { color: var(--brass); stroke-width: 2.2; }
@@ -1239,6 +1241,43 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .goals > span { padding: 4px; }
   .goals i { width: 11px; height: 16px; }
   .perks > li, .item-list > li { min-height: 44px; font-size: var(--t-base); }
+
+  /* Items at the table: the list to tap replaces the plain one. A spent item
+     turns its slot icon sideways, as the card is turned; a consumed one is
+     face down, its name struck through. */
+  .item-block.tracking > .item-list { display: none; }
+  .item-track { display: flex; flex-direction: column; gap: 10px; }
+  .item-track .item-list > li:has(> .item-use) { padding: 0; }
+  .item-use {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--fg);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .item-use .gicon { transition: transform 0.15s; }
+  .item-name { flex: 1; min-width: 0; }
+  .item-state { flex: none; padding: 3px 10px; border: 1px solid var(--line); border-radius: var(--r-pill); font-size: var(--t-xs); font-weight: 600; color: var(--muted); }
+  .item-use.spent .gicon { transform: rotate(90deg); color: var(--brass); }
+  .item-use.spent .item-name { color: var(--fg-3); }
+  .item-use.spent .item-state { border-color: var(--brass-line); background: var(--brass-bg); color: var(--brass); }
+  .item-use.consumed .gicon { color: var(--ember); opacity: 0.6; }
+  .item-use.consumed .item-name { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--ember-line); }
+  .item-use.consumed .item-state { border-color: var(--ember-line); background: var(--ember-bg); color: var(--ember); }
+  .use-dots { flex: none; display: flex; gap: 4px; }
+  .use-dots i { width: 10px; height: 10px; border: 1.5px solid var(--box); border-radius: 50%; }
+  .use-dots i.on { border-color: var(--fg-2); background: var(--fg-2); }
+  .item-rest { align-self: flex-start; min-height: 44px; }
+  .item-rest .icon { width: 16px; height: 16px; }
   .perks .icon { font-size: var(--t-lg); }
   .perk-nudge { padding: 12px 14px; border-radius: var(--r-md); }
   .char-notes .notes { font-size: var(--t-md); color: var(--fg-2); }

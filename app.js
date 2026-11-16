@@ -1187,9 +1187,10 @@ function rewardCopies(info) {
     return Array.from({ length: Number(copies) || 1 }, () => itemName(n));
   });
 }
-function itemSlot(name) {
-  return Object.values(itemsRef?.items || {}).find(i => i.name.toLowerCase() === String(name).toLowerCase())?.slot || null;
+function itemInfo(name) {
+  return Object.values(itemsRef?.items || {}).find(i => i.name.toLowerCase() === String(name).toLowerCase()) || null;
 }
+function itemSlot(name) { return itemInfo(name)?.slot || null; }
 
 // What a treasure tile gives, from the reference data ("gold:10|...").
 function treasureParts(ref, number) {
@@ -2802,13 +2803,15 @@ function renderCharacters(data) {
       // The attack modifier deck those perks make, to build at the table.
       attackDeckBlock(c, check.rows),
       // Items as a plain list, each with its slot: they aren't buttons.
-      c.items.length ? h("div", { class: "block item-block" },
+      c.items.length ? h("div", { class: `block item-block${c.retired ? "" : " tracking"}` },
         h("div", { class: "block-head" }, h("h4", { class: "label" }, "Items"), slotStrip(c, st.level)),
         itemProblems.map(text => nudge("question", "More than can be equipped", text, "note")),
         h("ul", { class: "item-list" }, c.items.map(i => {
           const slot = itemSlot(i);
           return h("li", {}, slot ? gameIcon(`slot-${slot}`) : h("span", { class: "slot-blank", "aria-hidden": "true" }), i);
-        }))) : null,
+        })),
+        // Phones: the same items, to mark as used at the table.
+        c.retired ? null : itemTrack(c)) : null,
       c.notes ? h("div", { class: "block char-notes" }, h("h4", { class: "label" }, "Notes"), notes(c.notes)) : null,
       // Last, so it docks at the foot of the screen from the top of the sheet.
       c.retired ? null : tableDock(c));
@@ -2862,10 +2865,11 @@ function renderCharacters(data) {
 
 // --- At the table ---------------------------------------------------------------
 // While a scenario is played, a phone keeps its character's hit points, the
-// XP on their dial and the coins they've picked up, as the dials and tokens
-// do. Kept in this browser only, per character, so a locked screen or a
-// reload loses nothing; New scenario starts again at full health. Hit points
-// by class and level: data/gloomhaven-events.json.
+// XP on their dial, the coins they've picked up and which items are used, as
+// the dials, tokens and cards do. Kept in this browser only, per character,
+// so a locked screen or a reload loses nothing; New scenario starts again at
+// full health with every item ready. Hit points by class and level:
+// data/gloomhaven-events.json; how items are used: data/gloomhaven-items.json.
 
 function maxHealth(c) {
   const id = classId(c.class);
@@ -2877,10 +2881,62 @@ function tableState(name) {
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(tableKey(name))); } catch {}
   // hp null: at full health, whatever the maximum is by then.
-  return { hp: null, xp: 0, coins: 0, ...(saved && typeof saved === "object" ? saved : {}) };
+  return { hp: null, xp: 0, coins: 0, items: {}, ...(saved && typeof saved === "object" ? saved : {}) };
 }
-function saveTable(name, state) {
-  try { localStorage.setItem(tableKey(name), JSON.stringify(state)); } catch {}
+// The tracker and the items each save their own part over what's stored.
+function saveTable(name, part) {
+  try { localStorage.setItem(tableKey(name), JSON.stringify({ ...tableState(name), ...part })); } catch {}
+}
+
+// Items at the table (phones): tapping one marks it used, as its card is
+// turned sideways (spent) or face down (consumed); one with circles takes a
+// tap for each use, the last one using it up. Tapping a used item readies
+// it again, as a refresh does. A long rest refreshes every spent item.
+// Items that are never used up are listed, not buttons.
+const USED_WORDS = { spent: "Spent", consumed: "Consumed" };
+
+function itemTrack(c) {
+  const marks = tableState(c.name).items || {};
+  const spent = c.items.filter(n => marks[n]?.down && itemInfo(n)?.use === "spent");
+  // One change, saved, and the list drawn again with focus where it was.
+  const change = (key, fn) => () => {
+    fn();
+    saveTable(c.name, { items: marks });
+    const next = itemTrack(c);
+    box.replaceWith(next);
+    (next.querySelector(`[data-key="${CSS.escape(key)}"]`) || next.querySelector(".item-use"))?.focus({ preventScroll: true });
+  };
+  const box = h("div", { class: "item-track" },
+    h("ul", { class: "item-list" }, c.items.map((name, i) => {
+      const info = itemInfo(name);
+      const slot = info?.slot;
+      const glyph = slot ? gameIcon(`slot-${slot}`) : h("span", { class: "slot-blank", "aria-hidden": "true" });
+      if (!info?.use) return h("li", {}, glyph, name);
+      const m = marks[name] || {};
+      const marked = m.down ? info.uses || 0 : m.uses || 0;
+      const status = m.down ? USED_WORDS[info.use] : marked ? `${marked} of ${info.uses} uses marked` : "Ready";
+      const next = m.down ? "ready it" : info.uses ? (marked + 1 === info.uses ? `mark the last use (${info.use})` : "mark a use") : info.use === "spent" ? "spend it" : "consume it";
+      const key = `item-${c.name}-${i}`;
+      return h("li", {},
+        h("button", {
+          type: "button", class: `item-use${m.down ? ` ${info.use}` : ""}`, "data-key": key,
+          "aria-label": `${name}, ${status.toLowerCase()}: tap to ${next}`,
+          onclick: change(key, () => {
+            if (m.down) delete marks[name];
+            else if (info.uses && marked + 1 < info.uses) marks[name] = { uses: marked + 1 };
+            else marks[name] = { down: true };
+          }),
+        },
+        glyph,
+        h("span", { class: "item-name" }, name),
+        info.uses ? h("span", { class: "use-dots", "aria-hidden": "true" },
+          Array.from({ length: info.uses }, (_, k) => h("i", { class: k < marked ? "on" : null }))) : null,
+        h("span", { class: "item-state", "aria-hidden": "true" }, m.down ? USED_WORDS[info.use] : "Ready")));
+    })),
+    spent.length ? h("button", { type: "button", class: "btn item-rest", "data-key": `item-rest-${c.name}`,
+      onclick: change(`item-rest-${c.name}`, () => { for (const n of spent) delete marks[n]; }) },
+      icon("replay"), `Long rest: refresh ${spent.length === 1 ? "the spent item" : `${spent.length} spent items`}`) : null);
+  return box;
 }
 
 // Docked at the foot of the screen, above the tabs, while the sheet scrolls
@@ -2900,7 +2956,7 @@ function tableDock(c) {
   const steps = [];
   const step = (key, iconName, words, can, change) => {
     const b = h("button", { type: "button", class: "dock-step", "data-key": `dock-${key}-${c.name}`, "aria-label": words,
-      onclick: () => { if (!can()) return; change(); saveTable(c.name, state); paint(); } }, icon(iconName));
+      onclick: () => { if (!can()) return; change(); saveTable(c.name, { hp: state.hp, xp: state.xp, coins: state.coins }); paint(); } }, icon(iconName));
     steps.push([b, can]);
     return b;
   };
@@ -2920,7 +2976,7 @@ function tableDock(c) {
   // Starting over asks twice: a slip of the thumb would lose the evening.
   let armed = null;
   const reset = h("button", { type: "button", class: "dock-reset", "data-key": `dock-reset-${c.name}`,
-    "aria-label": "New scenario: full hit points, no XP or coins",
+    "aria-label": "New scenario: full hit points, no XP or coins, every item ready",
     onclick: () => {
       if (!armed) {
         reset.classList.add("armed");
@@ -2930,8 +2986,11 @@ function tableDock(c) {
       }
       disarm();
       Object.assign(state, { hp: null, xp: 0, coins: 0 });
-      saveTable(c.name, state);
+      saveTable(c.name, { hp: null, xp: 0, coins: 0, items: {} });
       paint();
+      // Every item ready again, on the sheet above.
+      const items = document.querySelector(`.char-card[data-char="${CSS.escape(c.name)}"] .item-track`);
+      items?.replaceWith(itemTrack(c));
     } }, icon("replay"));
   const disarm = () => { clearTimeout(armed); armed = null; reset.classList.remove("armed"); reset.replaceChildren(icon("replay")); };
 
