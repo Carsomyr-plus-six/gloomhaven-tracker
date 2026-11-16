@@ -2972,7 +2972,7 @@ function renderShop(data) {
         !shopper && item.held.length ? `sells for ${item.sells}` : null,
       ].filter(Boolean).join(" · "))),
     h("span", { class: "price-col" }, h("span", { class: "price num" }, `${item.price} `, h("span", { class: "unit" }, "gold"),
-        doubt ? h("span", { class: "price-doubt", title: doubt.why, "aria-label": doubt.why }, doubt.text) : null), action(item)));
+      ), action(item)));
 
   // One mark per copy of the item: empty while it's in the shop, the
   // holder's class icon once someone carries it.
@@ -2993,7 +2993,9 @@ function renderShop(data) {
   const pick = name => () => { shopFor = shopper?.name === name ? "" : name; render(data, "shop"); };
 
   return [
-    sectionHead("Shop", `Prosperity ${shop.level} · ${priceNote}`),
+    // How far prices could be off, said once beside them all.
+    sectionHead("Shop", [`Prosperity ${shop.level} · ${priceNote}`,
+      doubt ? h("span", { class: "price-doubt", title: doubt.why, "aria-label": doubt.why }, doubt.text) : null]),
     active.length ? h("div", { class: "shop-for" },
       h("span", { class: "label", id: "shop-for-label" }, "Shopping for"),
       h("div", { class: "filters", role: "group", "aria-labelledby": "shop-for-label" }, active.map(c =>
@@ -3856,7 +3858,7 @@ function renderRecorder(data) {
   // Adding something puts focus on its first box; removing it, on the button
   // that adds another. Otherwise the redraw would drop focus to the page.
   const focusOn = key => document.querySelector(`[data-key="${CSS.escape(key)}"]`)?.focus();
-  const remove = (list, i, what, addKey) => h("button", { type: "button", class: "btn quiet",
+  const remove = (list, i, what, addKey) => h("button", { type: "button", class: "btn quiet flush",
     onclick: () => { list.splice(i, 1); rerender(); focusOn(addKey); } }, `Remove ${what}`);
   const addButton = (key, label, onclick, firstKey, quiet = false) => h("button", { type: "button", class: quiet ? "chip quiet-chip" : "btn", "data-key": key,
     onclick: () => { onclick(); rerender(); focusOn(firstKey()); } }, icon("plus"), label);

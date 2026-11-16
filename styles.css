@@ -27,6 +27,7 @@
   --ember: #e9a18c;
   --ember-bg: #241815;
   --ember-line: #5a3328;
+  --ember-mid: #a8604c;   /* below +0 on the deck bar: 3:1 on a card, short of Null's ember */
   --display: "Grenze Gotisch", Georgia, "Times New Roman", serif;
   --text: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   /* Type: text sizes, then display (headings and big figures). */
@@ -319,6 +320,12 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 @media (min-width: 1200px) {
   .hero { grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr) minmax(0, 1.15fr);
           grid-template-areas: "head head head" "tonight tonight tonight" "level rep side" "level prosp side"; }
+  /* The side column is narrow here: each line gets the full width and its
+     actions go under it, as on phones. */
+  .todo .rows > li { flex-wrap: wrap; row-gap: 0; padding-top: 10px; }
+  .todo .rows > li > span:first-child { flex: 1 1 100%; }
+  .todo-acts { gap: 16px; }
+  .todo-go { padding-left: 0; }
 }
 /* Room on the right for the honeycomb band, so the name never runs under it. */
 .hero-head { grid-area: head; position: relative; display: flex; flex-direction: column; justify-content: center; gap: 8px;
@@ -387,6 +394,7 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
 .rep-tile { grid-area: rep; align-self: stretch; }
 .prosp-tile { grid-area: prosp; align-self: stretch; }
 .tile { display: flex; flex-direction: column; gap: 12px; }
+.tile > .ledger { margin-top: auto; }
 .tile-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .tile-top .figure { font-size: var(--d-lg); line-height: 1; }
 .tile-foot { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; }
@@ -656,7 +664,7 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .deck-bar i { flex: 1; border-radius: 2px; }
 .swatch { flex: none; width: 8px; height: 8px; margin-right: -2px; border-radius: 2px; }
 .k-null { background: var(--ember); }
-.k-bad { background: var(--ember-line); }
+.k-bad { background: var(--ember-mid); }
 .k-zero { background: var(--line-strong); }
 .k-good { background: var(--verdigris); }
 .k-crit { background: var(--brass); }
@@ -876,7 +884,7 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .haul .results .num { width: 76px; }
 
 /* --- Event decks ---------------------------------------------------------- */
-.decks { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: 16px; align-items: start; }
+.decks { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: 16px; align-items: stretch; }
 .deck { display: flex; flex-direction: column; gap: 6px; }
 .deck-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .deck-top .figure { font-size: var(--d-lg); line-height: 1; }
@@ -916,6 +924,8 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 .btn .icon { font-size: var(--t-lg); }
 .btn.primary { background: var(--brass); border-color: var(--brass); color: var(--brass-ink); }
 .btn.quiet { border-color: transparent; background: none; color: var(--muted); }
+/* A quiet button under content: its words line up with the content's edge. */
+.btn.quiet.flush { margin-left: -16px; }
 .recorder { display: flex; flex-direction: column; gap: 20px; }
 /* Pinned under the top bar while the form scrolls (at the very top on phones). */
 .rec-pin { position: sticky; top: 53px; z-index: 5; margin: -8px 0; padding: 8px 0; background: var(--bg); }
@@ -1243,7 +1253,7 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .facts dt { width: 92px; }
   .results .num { width: 58px; }
   .legend, .map { display: none; }
-  .tree-rows { display: flex; flex-direction: column; }
+  .tree-rows { display: flex; flex-direction: column; align-items: stretch; }
 
   .decks { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   /* Event rows: the label and what became of the card on one line, the
