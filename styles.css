@@ -922,10 +922,44 @@ dialog.who > .btn { width: 100%; justify-content: center; }
 /* Two across even in the column beside Sessions. */
 .record { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: 16px; align-items: start; }
 .record .card { display: flex; flex-direction: column; gap: 6px; }
-.record .chips { padding-top: 6px; }
-.record .chip { font-size: var(--t-md); }
 .rows .sub { display: block; font-size: var(--t-sm); color: var(--muted); }
 .rows .where { flex: none; font-size: var(--t-sm); color: var(--muted); }
+/* The campaign at a glance; five numbers in rows of three. */
+.record-stats { margin-bottom: 16px; }
+.record-stats > div:last-child:nth-child(3n+2) { grid-column: span 2; }
+.record-stats small { font-size: var(--t-sm); font-weight: 600; letter-spacing: 0; color: var(--muted); }
+.record-miles, .record-classes, .record-wide { grid-column: 1 / -1; }
+/* Milestones: a mark, the name and how far, a thin meter under. */
+.miles { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.miles li { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line-soft); }
+.miles li:last-child { border-bottom: 0; }
+.mile-mark { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); color: var(--fg-3); }
+.mile-mark .gicon, .mile-mark .icon { width: 20px; height: 20px; margin: 0; }
+.mile-env { font: 700 var(--t-md)/1 var(--text); }
+.miles li.ready .mile-mark { border-color: var(--brass-edge); background: var(--brass-bg); color: var(--brass); }
+.miles li.open .mile-mark { border-color: var(--verdigris); color: var(--verdigris); }
+.mile-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.mile-name { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.mile-name strong { font-weight: 600; }
+.mile-state { flex: none; font-size: var(--t-sm); color: var(--muted); font-variant-numeric: tabular-nums; }
+.miles li.ready .mile-state { font-weight: 600; color: var(--brass); }
+.miles li.open .mile-state { color: var(--verdigris); }
+.miles .meter { height: 4px; }
+.miles .sub { font-size: var(--t-xs); color: var(--muted); }
+/* What was lost or replaced: quieter, struck through. */
+.rows li.lost s { color: var(--muted); text-decoration-color: var(--fg-3); }
+.rows .sub a { color: inherit; }
+/* The class boxes, as on the shelf: closed ones by their icon alone. */
+.class-boxes { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; margin: 0; padding: 6px 0 0; list-style: none; }
+.class-boxes li { min-width: 0; min-height: 68px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; padding: 10px 4px 8px; border: 1px solid var(--line); border-radius: var(--r-md); color: var(--fg-2); text-align: center; }
+.class-boxes .gicon { width: 26px; height: 26px; margin: 0; }
+.class-boxes .box-name { max-width: 100%; font-size: var(--t-xs); font-weight: 600; hyphens: auto; overflow-wrap: break-word; }
+.class-boxes .box-how { font-size: var(--t-xs); color: var(--brass); }
+.class-boxes .unlocked { border-color: var(--brass-edge); background: var(--brass-bg); color: var(--brass); }
+.class-boxes .unlocked .box-name { color: var(--fg); }
+.class-boxes .locked { justify-content: center; border-style: dashed; color: var(--line-strong); }
+.design-name { min-width: 0; display: flex; align-items: center; gap: 10px; }
+.design-name > .gicon { width: 20px; height: 20px; margin: 0; color: var(--fg-3); }
 
 /* Recording a session. */
 .btn {
@@ -1085,6 +1119,9 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
 
 /* --- Phones: tabs at the bottom, one tab at a time ------------------------ */
 @media (max-width: 899px) {
+  .class-boxes { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
+  .class-boxes li { padding: 8px 2px 6px; }
+  .class-boxes .gicon { width: 22px; height: 22px; }
   .topbar { position: fixed; top: auto; bottom: 0; left: 0; right: 0; border-bottom: 0; border-top: 1px solid var(--line-soft); }
   .topbar-inner { padding: 0 8px env(safe-area-inset-bottom, 0px); }
   .brand, .tabs .wide-only { display: none; }

@@ -168,6 +168,7 @@ const ICONS = {
   chevron: '<path d="M6 9l6 6 6-6"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   minus: '<path d="M5 12h14"/>',
+  book: '<path d="M5 5a2 2 0 0 1 2-2h12v15H7a2 2 0 0 0-2 2z"/><path d="M5 20a2 2 0 0 0 2 2h12v-4"/>',
   cards: '<rect x="4" y="6.500" width="11" height="14" rx="2"/><path d="M8.500 3.500H18a2 2 0 0 1 2 2V17"/>',
   heart: '<path d="M12 20s-7.500-4.600-7.500-10.200A4.200 4.200 0 0 1 12 7.300a4.200 4.200 0 0 1 7.500 2.500C19.500 15.400 12 20 12 20z"/>',
   question: '<circle cx="12" cy="12" r="9"/><path d="M9.500 9.500a2.500 2.500 0 1 1 3.600 2.200c-.700.400-1.100 1-1.100 1.800"/><path d="M12 17h.010"/>',
@@ -1380,25 +1381,14 @@ function codeText(text) {
   return text.split("`").map((part, i) => i % 2 ? h("code", {}, part) : part);
 }
 
-function recordRows(list, data) {
-  if (!list.length) return h("p", { class: "small muted" }, "None yet.");
-  // Where it came from: a scenario ("#8") opens that scenario.
-  const where = text => {
-    const n = /^#(\d+)$/.exec(String(text))?.[1];
-    return n && data ? scenarioLink(data, Number(n), text) : text;
-  };
-  return h("ul", { class: "rows" }, list.map(a => h("li", {},
-    h("span", {},
-      h("strong", {}, a.name, a.count > 1 ? ` ×${a.count}` : null),
-      a.notes ? h("span", { class: "sub" }, a.notes) : null),
-    a.where ? h("span", { class: "where" }, where(a.where)) : null)));
-}
-
 function renderRecord(data) {
-  const { party, city } = data;
-  const card = (title, body) => h("div", { class: "card" }, h("h3", { class: "label" }, title), body);
+  const { party } = data;
+  const card = (title, body, extra, aside) => h("div", { class: `card${extra ? ` ${extra}` : ""}` },
+    h("div", { class: "block-head" }, h("h3", { class: "label" }, title), aside ? h("span", {}, aside) : null), body);
+  const classes = Object.keys(classRef?.classEvents || {});
   return [
     sectionHead("Campaign record"),
+    recordStats(data),
     // The page can't record a draw itself, so say exactly what to write.
     (data.draws || []).map(d => nudge("question", `Draw ${d.what}`, [
       `From ${d.from}. Not drawn yet.`,
@@ -1406,19 +1396,156 @@ function renderRecord(data) {
     // The form settles it; without the form, say what to write.
     (data.claims || []).map((c, i) => nudge("question", `Who looted ${c.item}?`, [
       `Treasure ${c.treasure} in ${c.where} gave it, but no one is written down as looting it, and no sheet has it.`,
-      rawCampaign
+      // Recorded on the phone recording the evening (any wide screen).
+      rawCampaign && isRecorder()
         ? h("div", { class: "nudge-do" }, h("button", { type: "button", class: "todo-do", "data-key": `claim-${i}`, onclick: () => recordClaim(data, i) }, "Record it"))
+        : rawCampaign ? null
         : h("span", { class: "how" }, codeText(`Record it in \`campaign.json\`: ${c.how}.`))])),
     h("div", { class: "record" },
-      card("Party achievements", recordRows(party.achievements, data)),
-      card("Global achievements", recordRows(city.globalAchievements, data)),
-      card("In the shop for good", recordRows(city.itemDesigns, data)),
-      card("Unlocked classes", city.unlockedClasses.length
-        ? h("div", { class: "chips" }, city.unlockedClasses.map(c =>
-            h("span", { class: "chip", title: c.where || null }, classIcon(c.name || c), c.name || c)))
-        : h("p", { class: "small muted" }, "None listed."))),
+      card("Milestones", milestones(data), "record-miles"),
+      card("Party achievements", achievementRows(data, "party"), "record-wide"),
+      card("Global achievements", achievementRows(data, "global"), "record-wide"),
+      classes.length ? card("Classes", classBoxes(data, classes), "record-classes",
+        `${classes.filter(id => data.city.unlockedClasses.some(u => u.id === id)).length} of ${classes.length}`) : null,
+      card("In the shop for good", designRows(data)),
+      card("Retired", retiredRows(data))),
     party.notes ? h("div", { class: "party-notes" }, h("h3", { class: "label" }, "Party notes"), notes(party.notes)) : null,
   ];
+}
+
+// The campaign at a glance, as the level's numbers are shown: big numbers,
+// small labels.
+function recordStats(data) {
+  const done = data.scenarios.filter(s => s.status === "completed").length;
+  const stats = [
+    ["Completed", [String(done), h("small", {}, ` of ${data.scenarios.length}`)]],
+    ["Sessions", data.sessions.length],
+    ["Retired", data.characters.filter(c => c.retired).length],
+    ["Prosperity", stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY)],
+    ["Reputation", signed(data.party.reputation)],
+  ];
+  return h("div", { class: "level-stats record-stats" },
+    stats.map(([label, value]) => h("div", {}, h("span", { class: "label" }, label), h("span", { class: "num" }, value))));
+}
+
+// What the campaign is working towards, each with how far it has come: the
+// envelopes, the Town Records Book and the class boxes reputation opens
+// (rulebook p. 49). Done is "Open", reached but not yet done is "Ready".
+function milestones(data) {
+  const { city, party } = data;
+  const tech = achievementCounts(data).global.get("ancient-technology") || 0;
+  const rep = party.reputation;
+  const peak = Math.max(rep, data.ledger?.reputation?.peak ?? rep), low = Math.min(rep, data.ledger?.reputation?.low ?? rep);
+  const unlocked = new Set(city.unlockedClasses.map(u => u.id));
+  const inDecks = (deck, n) => data.eventState?.decks?.[deck]?.has(n) || data.eventState?.removed?.[deck]?.has(n);
+  const row = (mark, name, have, need, open, unit, what, says) => {
+    // Without a count (need 0), reached once there's anything at all.
+    const ready = !open && (need ? have >= need : have > 0);
+    return h("li", { class: open ? "open" : ready ? "ready" : null },
+      h("span", { class: "mile-mark" }, mark),
+      h("span", { class: "mile-text" },
+        h("span", { class: "mile-name" }, h("strong", {}, name), h("span", { class: "mile-state" },
+          open ? "Open" : ready ? "Ready" : says || (need ? `${Math.max(0, have)} of ${need}${unit ? ` ${unit}` : ""}` : what))),
+        need && !open ? meter(Math.max(0, Math.min(1, have / need)), ready) : null,
+        need && !open && what ? h("span", { class: "sub" }, what) : null));
+  };
+  const envelope = letter => h("span", { class: "mile-env", "aria-hidden": "true" }, letter);
+  return h("ul", { class: "miles" },
+    row(envelope("A"), "Envelope A", tech, 5, city.envelopeA, "", "Ancient Technology achievements"),
+    row(envelope("B"), "Envelope B", city.donations, ENVELOPE_B_DONATIONS, city.envelopeB, "gold", "donated at the Sanctuary"),
+    row(icon("book"), "Town Records Book", data.characters.some(c => c.retired) ? 1 : 0, 0, city.townRecords, "", "At the first retirement"),
+    // Reputation, at its highest and lowest so far, against where each opens.
+    row(gameIcon("class-sun"), `The ${classIconName("sun")} box`, peak, 10, unlocked.has("sun"), "", "", `${signed(peak)} of +10 reputation`),
+    row(gameIcon("class-eclipse"), `The ${classIconName("eclipse")} box`, -low, 10, unlocked.has("eclipse"), "", "", `${signed(low)} of −10 reputation`),
+    // The events at ±20 once a box is reached.
+    peak >= 10 ? row(icon("plus"), "City 76, Road 67", peak, 20, inDecks("city", 76) && inDecks("road", 67), "", "", `${signed(peak)} of +20 reputation`) : null,
+    low <= -10 ? row(icon("minus"), "City 77, Road 68", -low, 20, inDecks("city", 77) && inDecks("road", 68), "", "", `${signed(low)} of −20 reputation`) : null,
+    row(envelope("X"), "Envelope X", 0, 0, city.envelopeX, "", "Sealed"));
+}
+
+// Each achievement with what it does to the scenarios found so far: which
+// it opened or opens, which it blocks (none not yet found, which would
+// spoil them). Lost and replaced ones follow, struck through.
+function achievementRows(data, kind) {
+  const list = kind === "party" ? data.party.achievements : data.city.globalAchievements;
+  const lost = (data.lostAchievements || []).filter(a => a.kind === kind);
+  if (!list.length && !lost.length) return h("p", { class: "small muted" }, "None yet.");
+  const counts = achievementCounts(data)[kind];
+  const does = id => {
+    const out = [];
+    if (id === "the-power-of-enhancement") out.push(h("a", { href: "#enhancing" }, "Enhancing open"));
+    if (id === "ancient-technology") out.push(`${Math.min(counts.get(id) || 0, 5)} of 5 for Envelope A`);
+    for (const s of data.scenarios) {
+      const alts = scenarioRef?.scenarios?.[String(s.number)]?.requirements || [];
+      const has = (alt, negated) => Object.entries(alt).some(([k, vs]) => k === kind
+        && vs.some(v => v.startsWith("!") === negated && v.replace(/^!/, "").split(":")[0] === id));
+      const link = scenarioLink(data, s.number, `#${s.number}`);
+      const alt = alts.find(a => has(a, false));
+      if (alt) {
+        // What else that scenario needs alongside it.
+        const others = Object.entries(alt).flatMap(([k, vs]) => vs.filter(v => !(k === kind && v.split(":")[0] === id))
+          .map(v => [v.startsWith("!"), achievementName(scenarioRef, k, v.replace(/^!/, "").split(":")[0])]));
+        const said = (not, word) => others.filter(([n]) => n === not).map(([, name]) => name).join(" and ").replace(/^(.)/, `${word} $1`);
+        out.push([s.status === "completed" ? "opened " : "opens ", link,
+          [said(false, "with"), said(true, "without")].filter(Boolean).map(x => ` ${x}`).join(" and")]);
+      } else if (alts.some(a => has(a, true)) && s.status !== "completed") out.push(["blocks ", link]);
+    }
+    return out.length ? h("span", { class: "sub" }, out.flatMap((x, i) => i ? [" · ", x] : [x])) : null;
+  };
+  const where = text => {
+    const n = /^#(\d+)$/.exec(String(text))?.[1];
+    return n ? scenarioLink(data, Number(n), text) : text;
+  };
+  return h("ul", { class: "rows" },
+    list.map(a => h("li", {},
+      h("span", {}, h("strong", {}, a.name, a.count > 1 ? ` ×${a.count}` : null), a.notes ? h("span", { class: "sub" }, a.notes) : null, does(a.id)),
+      a.where ? h("span", { class: "where" }, where(a.where)) : null)),
+    lost.map(a => h("li", { class: "lost" },
+      h("span", {}, h("s", {}, a.name), h("span", { class: "sub" }, capitalize(a.how), a.at ? [" at ", where(a.at)] : null)),
+      a.where ? h("span", { class: "where" }, where(a.where)) : null)));
+}
+
+// The class boxes, as on the shelf: the starting six, those opened (with
+// how), and the rest by their icon alone, as the boxes are known until opened.
+function classBoxes(data, ids) {
+  const opened = new Map(data.city.unlockedClasses.map(u => [u.id, u]));
+  return h("ul", { class: "class-boxes" }, ids.map(id => {
+    const u = opened.get(id);
+    const starting = classRef.classEvents[id]?.starting;
+    const how = u && !starting && /^#|event|retire/i.test(u.where || "") ? u.where : null;
+    const said = u ? `${className(classRef, id)}${starting ? ", a starting class" : how ? `, unlocked by ${how}` : ", unlocked"}` : `The ${classIconName(id)} box, still closed`;
+    return h("li", { class: u ? (starting ? "starting" : "unlocked") : "locked", title: said, role: "img", "aria-label": said },
+      gameIcon(`class-${id}`),
+      u ? h("span", { class: "box-name", "aria-hidden": "true" }, className(classRef, id)) : null,
+      how ? h("span", { class: "box-how", "aria-hidden": "true" }, how) : null);
+  }));
+}
+
+// Item designs: every copy in the shop for good, shown as the Shop shows an item.
+function designRows(data) {
+  const list = data.city.itemDesigns;
+  if (!list.length) return h("p", { class: "small muted" }, "None yet.");
+  return h("ul", { class: "rows" }, list.map(a => {
+    const item = data.shop?.stock.find(i => sameItem(i.name, a.name));
+    const n = /#(\d+)/.exec(a.where || "")?.[1];
+    const where = capitalize(a.where || "");
+    return h("li", {},
+      h("span", { class: "design-name" }, item ? gameIcon(`slot-${item.slot}`) : null,
+        h("span", {}, h("strong", {}, a.name),
+          item ? h("span", { class: "sub" }, `${item.price} gold · ${item.count} ${item.count === 1 ? "copy" : "copies"}`) : null)),
+      a.where ? h("span", { class: "where" }, n ? scenarioLink(data, Number(n), where) : where) : null);
+  }));
+}
+
+// Those who retired: the Town Records Book's company.
+function retiredRows(data) {
+  const gone = data.characters.filter(c => c.retired);
+  if (!gone.length) return h("p", { class: "small muted" }, "None yet.");
+  return h("ul", { class: "rows" }, gone.map(c => h("li", {},
+    h("span", { class: "design-name" }, classIcon(c.class),
+      h("span", {}, h("strong", {}, c.name),
+        h("span", { class: "sub" }, [`Level ${characterStats(c).level} ${c.class}`, c.player || null].filter(Boolean).join(" · ")))),
+    c.retiredOn ? h("span", { class: "where" }, formatDate(c.retiredOn)) : null)));
 }
 
 // --- Scenario rules from the reference data ------------------------------
@@ -1812,6 +1939,9 @@ function deriveCampaign(data, ref, evRef) {
   // The campaign record. Each list maps an id to { name, count, where }.
   const record = { party: new Map(), global: new Map(), designs: new Map(), classes: new Map(),
                    draws: [], treasures: new Map(),
+                   // Achievements lost (a scenario takes it away) or replaced (one
+                   // City Rule or Artifact by another), kept for the record.
+                   lost: [],
                    // Items found (treasures, scenario rewards): one copy each, to a
                    // character, not to the shop; and those whose finder isn't known.
                    found: [], claims: [] };
@@ -1822,14 +1952,25 @@ function deriveCampaign(data, ref, evRef) {
     const list = record[kind];
     // "City Rule: Economic" replaces any other City Rule; likewise Artifact.
     const type = kind === "global" && name.includes(": ") ? name.split(": ")[0] + ": " : null;
-    if (type) for (const [other, a] of list) if (other !== id && a.name.startsWith(type)) list.delete(other);
+    if (type) for (const [other, a] of list) if (other !== id && a.name.startsWith(type)) {
+      list.delete(other);
+      record.lost.push({ ...a, kind, where: a.where.join(", "), how: `replaced by ${name}`, at: where });
+    }
     const entry = list.get(id) || { id, name, count: 0, where: [] };
     entry.count++;
     note(entry, where);
     list.set(id, entry);
   };
   // The source sometimes names the achievement instead of giving its id.
-  const loseAchievement = (kind, id) => record[kind].delete(String(id)) || record[kind].delete(slug(id));
+  const loseAchievement = (kind, id, at) => {
+    for (const key of [String(id), slug(id)]) {
+      const a = record[kind].get(key);
+      if (!a) continue;
+      record[kind].delete(key);
+      record.lost.push({ ...a, kind, where: a.where.join(", "), how: "lost", at });
+      return;
+    }
+  };
   const isNumber = v => /^\d+$/.test(String(v));
   const addDesign = (item, where) => {
     const name = isNumber(item) ? itemName(item) : String(item);
@@ -1970,7 +2111,7 @@ function deriveCampaign(data, ref, evRef) {
     if (r.prosperity) gain("prosperity", exact(r.prosperity), label);
     for (const id of r.globalAchievements || []) gainAchievement("global", id, where);
     for (const id of r.partyAchievements || []) gainAchievement("party", id, where);
-    for (const id of r.lostPartyAchievements || []) loseAchievement("party", id);
+    for (const id of r.lostPartyAchievements || []) loseAchievement("party", id, where);
     // A design puts every copy in the shop; an item is one copy, given to one
     // of the characters there (rulebook p. 49). Items may be written "27:2"
     // (item 27, two copies).
@@ -1999,7 +2140,7 @@ function deriveCampaign(data, ref, evRef) {
         // A design puts every copy in the shop; a named item goes to whoever
         // looted it, one copy (rulebook p. 14). If no one is written down as
         // looting it, and no sheet has it, ask.
-        if (part.type === "itemDesign") addDesign(part.value, from);
+        if (part.type === "itemDesign") addDesign(part.value, `${from} in ${where}`);
         if (part.type === "item") {
           const item = itemName(part.value);
           record.found.push({ item, from, character });
@@ -2099,7 +2240,7 @@ function deriveCampaign(data, ref, evRef) {
   return { decks, added, removed, history, questions, unlocks, totals,
            record: { party: list(record.party), global: list(record.global), designs: list(record.designs),
                      classes: list(record.classes), draws: record.draws, treasures: record.treasures,
-                     found: record.found, claims: record.claims } };
+                     found: record.found, claims: record.claims, lost: record.lost } };
 }
 
 // What hangs on the choice of option: its effect on the deck and the numbers.
@@ -5635,6 +5776,7 @@ async function start() {
     data.city.globalAchievements = derived.record.global;
     data.city.itemDesigns = derived.record.designs;
     data.city.unlockedClasses = derived.record.classes;
+    data.lostAchievements = derived.record.lost;
     data.draws = derived.record.draws;
     data.foundItems = derived.record.found;
     data.claims = derived.record.claims;
