@@ -1,0 +1,635 @@
+{
+ "snapshot": {
+  "reputation": {
+   "value": 1,
+   "lo": -1,
+   "hi": 3,
+   "peak": 3,
+   "low": 0,
+   "entries": [
+    "City 1: -1..1",
+    "City 23: 0..1",
+    "Road 9: -1..0",
+    "#8 Gloomhaven Warehouse: 2",
+    "City 12: 1",
+    "Road 4: -2"
+   ]
+  },
+  "prosperity": {
+   "value": 3,
+   "lo": 3,
+   "hi": 3,
+   "entries": [
+    "City 29: 1",
+    "#2 Barrow Lair: 1",
+    "#3 Inox Encampment: 1"
+   ],
+   "level": 1
+  },
+  "donations": 10,
+  "achievements": {
+   "party": [
+    {
+     "id": "first-steps",
+     "name": "First Steps",
+     "count": 1,
+     "where": "#1"
+    },
+    {
+     "id": "jekserahs-plans",
+     "name": "Jekserah's Plans",
+     "count": 1,
+     "where": "#3"
+    }
+   ],
+   "global": [
+    {
+     "id": "the-merchant-flees",
+     "name": "The Merchant Flees",
+     "count": 1,
+     "where": "#8"
+    },
+    {
+     "id": "the-power-of-enhancement",
+     "name": "The Power of Enhancement",
+     "count": 1,
+     "where": "#14"
+    }
+   ]
+  },
+  "designs": [
+   {
+    "name": "Horned Helm",
+    "where": "treasure 65 in #3"
+   }
+  ],
+  "classes": [
+   {
+    "id": "brute",
+    "where": "starting class"
+   },
+   {
+    "id": "cragheart",
+    "where": "starting class"
+   },
+   {
+    "id": "mindthief",
+    "where": "starting class"
+   },
+   {
+    "id": "scoundrel",
+    "where": "starting class"
+   },
+   {
+    "id": "spellweaver",
+    "where": "starting class"
+   },
+   {
+    "id": "tinkerer",
+    "where": "starting class"
+   }
+  ],
+  "decks": {
+   "city": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    22,
+    24,
+    25,
+    26,
+    27,
+    28,
+    30
+   ],
+   "road": [
+    1,
+    2,
+    3,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    29,
+    30,
+    65
+   ],
+   "removed": {
+    "city": [
+     12,
+     21,
+     23,
+     29
+    ],
+    "road": [
+     4,
+     28
+    ]
+   }
+  },
+  "events": [
+   {
+    "label": "City 1",
+    "option": null,
+    "fate": "returned",
+    "outcome": null,
+    "effects": []
+   },
+   {
+    "label": "City 23",
+    "option": null,
+    "fate": "removed",
+    "outcome": null,
+    "effects": []
+   },
+   {
+    "label": "City 29",
+    "option": "A",
+    "fate": "removed",
+    "outcome": 1,
+    "effects": [
+     "+1 prosperity"
+    ]
+   },
+   {
+    "label": "Road 9",
+    "option": null,
+    "fate": "returned",
+    "outcome": null,
+    "effects": []
+   },
+   {
+    "label": "Road 28",
+    "option": null,
+    "fate": "removed",
+    "outcome": null,
+    "effects": []
+   },
+   {
+    "label": "City 21",
+    "option": "B",
+    "fate": "removed",
+    "outcome": 1,
+    "effects": [
+     "adds Road 65"
+    ]
+   },
+   {
+    "label": "Road 15",
+    "option": null,
+    "fate": "returned",
+    "outcome": null,
+    "effects": []
+   },
+   {
+    "label": "City 13",
+    "option": null,
+    "fate": "returned",
+    "outcome": null,
+    "effects": []
+   },
+   {
+    "label": "Road 1",
+    "option": null,
+    "fate": "returned",
+    "outcome": null,
+    "effects": []
+   },
+   {
+    "label": "City 12",
+    "option": "B",
+    "fate": "removed",
+    "outcome": 1,
+    "effects": [
+     "−1 battle goal checkmark each",
+     "+10 gold each",
+     "+1 reputation"
+    ]
+   },
+   {
+    "label": "Road 4",
+    "option": "B",
+    "fate": "removed",
+    "outcome": 1,
+    "effects": [
+     "+10 gold each",
+     "−2 reputation"
+    ]
+   }
+  ],
+  "questions": [],
+  "scenarios": [
+   {
+    "number": 1,
+    "status": "completed",
+    "unlockedBy": null,
+    "reasons": []
+   },
+   {
+    "number": 2,
+    "status": "completed",
+    "unlockedBy": 1,
+    "reasons": []
+   },
+   {
+    "number": 3,
+    "status": "completed",
+    "unlockedBy": 2,
+    "reasons": []
+   },
+   {
+    "number": 4,
+    "status": "completed",
+    "unlockedBy": 2,
+    "reasons": []
+   },
+   {
+    "number": 5,
+    "status": "completed",
+    "unlockedBy": 4,
+    "reasons": []
+   },
+   {
+    "number": 6,
+    "status": "available",
+    "unlockedBy": 4,
+    "reasons": []
+   },
+   {
+    "number": 7,
+    "status": "available",
+    "unlockedBy": 8,
+    "reasons": []
+   },
+   {
+    "number": 8,
+    "status": "completed",
+    "unlockedBy": 3,
+    "reasons": []
+   },
+   {
+    "number": 9,
+    "status": "blocked",
+    "unlockedBy": 3,
+    "reasons": [
+     "Blocked by #8 Gloomhaven Warehouse",
+     "Needs The Merchant Flees to be incomplete"
+    ]
+   },
+   {
+    "number": 10,
+    "status": "available",
+    "unlockedBy": 5,
+    "reasons": []
+   },
+   {
+    "number": 13,
+    "status": "completed",
+    "unlockedBy": 8,
+    "reasons": []
+   },
+   {
+    "number": 14,
+    "status": "completed",
+    "unlockedBy": 5,
+    "reasons": []
+   },
+   {
+    "number": 15,
+    "status": "available",
+    "unlockedBy": 13,
+    "reasons": []
+   },
+   {
+    "number": 19,
+    "status": "available",
+    "unlockedBy": 5,
+    "reasons": []
+   }
+  ],
+  "completedBy": [
+   {
+    "number": 1,
+    "characters": [
+     "Azorica",
+     "Craig",
+     "Flik Flak",
+     "Kaktus"
+    ]
+   },
+   {
+    "number": 2,
+    "characters": [
+     "Azorica",
+     "Craig",
+     "Flik Flak",
+     "Kaktus"
+    ]
+   },
+   {
+    "number": 3,
+    "characters": [
+     "Azorica",
+     "Craig",
+     "Flik Flak",
+     "Kaktus"
+    ]
+   },
+   {
+    "number": 4,
+    "characters": [
+     "Azorica",
+     "Craig",
+     "Flik Flak"
+    ]
+   },
+   {
+    "number": 5,
+    "characters": [
+     "Azorica",
+     "Craig",
+     "Flik Flak"
+    ]
+   },
+   {
+    "number": 8,
+    "characters": [
+     "Azorica",
+     "Craig",
+     "Flik Flak"
+    ]
+   },
+   {
+    "number": 13,
+    "characters": [
+     "Azorica",
+     "Craig",
+     "Flik Flak"
+    ]
+   },
+   {
+    "number": 14,
+    "characters": [
+     "Azorica",
+     "Craig",
+     "Flik Flak"
+    ]
+   }
+  ],
+  "characters": [
+   {
+    "name": "Azorica",
+    "class": "Spellweaver",
+    "xp": 169,
+    "gold": 78,
+    "checkmarks": 7,
+    "level": 4,
+    "items": [
+     "Cloak of Invisibility",
+     "Minor Stamina Potion"
+    ],
+    "perks": [
+     "Add one +0 STUN card",
+     "Remove four +0 cards",
+     "Replace one -1 card with one +1 card",
+     "Replace one -1 card with one +1 card"
+    ],
+    "donated": 0,
+    "enhanced": 0,
+    "retired": false
+   },
+   {
+    "name": "Craig",
+    "class": "Cragheart",
+    "xp": 191,
+    "gold": 128,
+    "checkmarks": 9,
+    "level": 4,
+    "items": [
+     "Boots of Striding",
+     "Horned Helm",
+     "Iron Helmet",
+     "Minor Power Potion",
+     "Minor Stamina Potion"
+    ],
+    "perks": [
+     "Add two rolling EARTH cards",
+     "Ignore negative scenario effects",
+     "Remove four +0 cards",
+     "Replace one -1 card with one +1 card",
+     "Replace one -1 card with one +1 card",
+     "Replace one -1 card with one +1 card"
+    ],
+    "donated": 0,
+    "enhanced": 0,
+    "retired": false
+   },
+   {
+    "name": "Flik Flak",
+    "class": "Tinkerer",
+    "xp": 208,
+    "gold": 92,
+    "checkmarks": 12,
+    "level": 4,
+    "items": [
+     "Eagle-Eye Goggles",
+     "Minor Stamina Potion"
+    ],
+    "perks": [
+     "Add one +3 card",
+     "Add three MUDDLE cards",
+     "Ignore negative scenario effects",
+     "Remove two -1 cards",
+     "Remove two -1 cards",
+     "Replace one -2 card with one +0 card"
+    ],
+    "donated": 10,
+    "enhanced": 1,
+    "retired": false
+   },
+   {
+    "name": "Kaktus",
+    "class": "Scoundrel",
+    "xp": 59,
+    "gold": 56,
+    "checkmarks": 2,
+    "level": 2,
+    "items": [
+     "Iron Helmet",
+     "Leather Armor",
+     "Minor Stamina Potion",
+     "Ring of Skulls"
+    ],
+    "perks": [],
+    "donated": 0,
+    "enhanced": 0,
+    "retired": false
+   },
+   {
+    "name": "Newbie",
+    "class": "Brute",
+    "xp": 0,
+    "gold": 30,
+    "checkmarks": 0,
+    "level": 1,
+    "items": [],
+    "perks": [],
+    "donated": 0,
+    "enhanced": 0,
+    "retired": false
+   }
+  ],
+  "shop": {
+   "level": 1,
+   "modifier": 0,
+   "stock": [
+    {
+     "name": "Boots of Striding",
+     "price": 20,
+     "left": 1
+    },
+    {
+     "name": "Winged Shoes",
+     "price": 20,
+     "left": 2
+    },
+    {
+     "name": "Hide Armor",
+     "price": 10,
+     "left": 2
+    },
+    {
+     "name": "Leather Armor",
+     "price": 20,
+     "left": 1
+    },
+    {
+     "name": "Cloak of Invisibility",
+     "price": 20,
+     "left": 1
+    },
+    {
+     "name": "Eagle-Eye Goggles",
+     "price": 30,
+     "left": 1
+    },
+    {
+     "name": "Iron Helmet",
+     "price": 10,
+     "left": 0
+    },
+    {
+     "name": "Heater Shield",
+     "price": 20,
+     "left": 2
+    },
+    {
+     "name": "Piercing Bow",
+     "price": 30,
+     "left": 2
+    },
+    {
+     "name": "War Hammer",
+     "price": 30,
+     "left": 2
+    },
+    {
+     "name": "Poison Dagger",
+     "price": 20,
+     "left": 2
+    },
+    {
+     "name": "Minor Healing Potion",
+     "price": 10,
+     "left": 4
+    },
+    {
+     "name": "Minor Stamina Potion",
+     "price": 10,
+     "left": 0
+    },
+    {
+     "name": "Minor Power Potion",
+     "price": 10,
+     "left": 3
+    },
+    {
+     "name": "Horned Helm",
+     "price": 30,
+     "left": 1
+    }
+   ]
+  },
+  "draws": [],
+  "claims": [],
+  "found": [
+   "Ring of Skulls from treasure 38 (Kaktus)"
+  ]
+ },
+ "log": [
+  "Newbie the Brute joins at level 1, with 0 XP and 30 gold",
+  "City 12 drawn, option B, before #5",
+  "City 12, option B: −1 battle goal checkmark each, for Azorica, Craig, Flik Flak (never one that would cost a perk)",
+  "City 12, option B: +10 gold each, for Azorica, Craig, Flik Flak",
+  "Road 4 drawn, option B, before #5",
+  "Road 4, option B: +10 gold each, for Azorica, Craig, Flik Flak",
+  "#5 Ruinous Crypt at level 2: 3 gold a coin, 8 bonus XP each",
+  "#5 Ruinous Crypt completed",
+  "Craig gains 15 gold from treasure 4",
+  "#6 Decaying Crypt at level 2: 3 gold a coin",
+  "#6 Decaying Crypt: failed",
+  "Craig's personal quest: 3/4",
+  "Treasure 38 in #4: Kaktus looted Ring of Skulls",
+  "Azorica: +20 XP, +29 gold, +1 checkmark",
+  "Azorica reaches level 4: add an ability card of level 4 or lower, and take a perk",
+  "Craig: +21 XP, +44 gold",
+  "Flik Flak: +16 XP, +23 gold, +2 checkmarks",
+  "Craig buys Iron Helmet for 10 gold",
+  "Azorica sells Minor Power Potion for 5 gold",
+  "Flik Flak donates 10 gold to the Sanctuary: two Bless cards in their next scenario",
+  "Flik Flak enhances a card (+1 move) for 30 gold",
+  "Azorica takes \"Add one +0 STUN card\""
+ ],
+ "warnings": [],
+ "evening": true,
+ "party": [
+  "Azorica",
+  "Craig",
+  "Flik Flak"
+ ]
+}

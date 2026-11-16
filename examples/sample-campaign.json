@@ -1,37 +1,54 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "edition": "Gloomhaven (1st edition)",
   "updated": "2026-11-15",
   "party": {
     "name": "The Sample Company",
     "location": "Gloomhaven",
-    "achievements": [
-      { "name": "Example party achievement", "scenario": 2 }
-    ],
+    "achievements": [{ "name": "Example party achievement", "scenario": 2 }],
     "notes": "Made-up data for testing the page. Not a real campaign."
   },
   "city": {
-    "donations": 40,
-    "globalAchievements": [
-      { "name": "Example global achievement", "scenario": 2, "notes": "Gained on the second night" }
-    ],
-    "unlockedClasses": []
+    "globalAchievements": [{ "name": "Example global achievement", "scenario": 2, "notes": "Gained on the second night" }],
+    "unlockedClasses": [],
+    "start": { "donations": 40 }
   },
   "scenarios": [
-    { "number": 1, "name": "Example Scenario One", "status": "completed", "unlockedBy": null, "completed": "2026-09-20", "treasures": ["07"], "notes": "First outing. Barely made it." },
-    { "number": 2, "name": "Example Scenario Two", "status": "completed", "unlockedBy": 1, "completed": "2026-10-04", "treasures": [{ "number": "67", "character": "Grunt" }], "notes": "" },
-    { "number": 3, "name": "Example Scenario Three", "status": "available", "unlockedBy": 2, "completed": null, "notes": "Rumoured to be nasty." },
-    { "number": 4, "name": "Example Scenario Four", "status": "blocked", "unlockedBy": 2, "completed": null, "notes": "Blocked by a choice we made." }
+    {
+      "number": 1,
+      "name": "Example Scenario One",
+      "treasures": ["07"],
+      "notes": "First outing. Barely made it."
+    },
+    {
+      "number": 2,
+      "name": "Example Scenario Two",
+      "treasures": [{ "number": "67", "character": "Grunt" }]
+    },
+    {
+      "number": 3,
+      "name": "Example Scenario Three",
+      "notes": "Rumoured to be nasty."
+    },
+    {
+      "number": 4,
+      "name": "Example Scenario Four",
+      "status": "blocked",
+      "notes": "Blocked by a choice we made."
+    }
   ],
   "characters": [
     {
       "name": "Grunt",
       "class": "Brute",
-      "xp": 102,
-      "gold": 35,
-      "checkmarks": 4,
-      "perks": ["Example perk"],
-      "items": ["Boots of Striding", "Minor Healing Potion"],
+      "start": {
+        "xp": 102,
+        "gold": 35,
+        "checkmarks": 4,
+        "items": ["Boots of Striding", "Minor Healing Potion"],
+        "perks": ["Example perk"]
+      },
+      "log": [],
       "personalQuest": "Example quest",
       "retired": false,
       "notes": ""
@@ -39,11 +56,8 @@
     {
       "name": "Sparks",
       "class": "Spellweaver",
-      "xp": 30,
-      "gold": 12,
-      "checkmarks": 1,
-      "perks": [],
-      "items": [],
+      "start": { "xp": 30, "gold": 12, "checkmarks": 1, "items": [], "perks": [] },
+      "log": [],
       "personalQuest": "",
       "retired": false,
       "notes": "Joined late."

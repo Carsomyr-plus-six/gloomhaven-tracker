@@ -1,7 +1,8 @@
 {
  "source": "https://github.com/Lurkars/gloomhavensecretariat",
  "license": "AGPL-3.0",
- "retrieved": "2026-11-16",
+ "commit": "97b2f965e613bd3ad7e45bd9f57f478eb37058c0",
+ "commitDate": "2026-11-13",
  "achievements": {
   "global": {
    "ancient-technology": "Ancient Technology",

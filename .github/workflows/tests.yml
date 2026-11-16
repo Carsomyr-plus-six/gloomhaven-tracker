@@ -1,0 +1,16 @@
+# The tests (tests/run.mjs) on every push and pull request: what the page
+# works out from campaign.json and the sample, the file layout, the session
+# writer, and the pinned reference data. No dependencies to install.
+name: Tests
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node tests/run.mjs

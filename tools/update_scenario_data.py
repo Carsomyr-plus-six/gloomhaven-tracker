@@ -25,17 +25,24 @@ a personal quest counts boss scenarios, and the treasure tiles on its map.
 
 Source: https://github.com/Lurkars/gloomhavensecretariat (AGPL-3.0)
 
+Pinned: every file records the Secretariat commit it was made from, and a
+plain run fetches that same commit again, so it rebuilds the files byte for
+byte. Moving to newer data is a choice, and shows up in git as a diff:
+
 Run from the repository root:
-    py tools/update_scenario_data.py
+    py tools/update_scenario_data.py            # again, at the pinned commit
+    py tools/update_scenario_data.py --latest   # the newest commit on main
+    py tools/update_scenario_data.py --ref SHA  # a chosen commit
 """
 
+import argparse
 import json
 import urllib.request
-from datetime import date
 from pathlib import Path
 
 REPO = "Lurkars/gloomhavensecretariat"
-RAW = f"https://raw.githubusercontent.com/{REPO}/main/data/gh"
+RAW = None      # set by main(): the raw files at the pinned commit
+SOURCE = None   # set by main(): where the files came from
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 OUTPUT = DATA_DIR / "gloomhaven-scenarios.json"
 EVENTS_OUTPUT = DATA_DIR / "gloomhaven-events.json"
@@ -49,6 +56,27 @@ FIELDS = ["name", "unlocks", "blocks", "requires", "requirements", "rewards", "l
 def fetch(url):
     with urllib.request.urlopen(url, timeout=30) as response:
         return json.load(response)
+
+
+def resolve_commit(ref):
+    """A branch, tag or commit -> (full commit SHA, its commit date)."""
+    commit = fetch(f"https://api.github.com/repos/{REPO}/commits/{ref}")
+    return commit["sha"], commit["commit"]["committer"]["date"][:10]
+
+
+def pinned():
+    """The commit the current data files were made from, if they say."""
+    try:
+        return json.loads(OUTPUT.read_text(encoding="utf-8")).get("commit")
+    except (OSError, ValueError):
+        return None
+
+
+def source(sha, day):
+    """Where each file came from, the same in every file: the repository,
+    its licence, and the commit (with that commit's date, not today's, so a
+    rebuild changes nothing)."""
+    return {"source": f"https://github.com/{REPO}", "license": "AGPL-3.0", "commit": sha, "commitDate": day}
 
 
 # Requirement values that the source writes as a display name or misspells.
@@ -276,9 +304,7 @@ def build_events(labels, spoiler_labels):
             options[option["label"]] = [summarize_outcome(option, o) for o in outcomes]
         events[card["type"]][str(int(card["cardId"]))] = options
     return {
-        "source": f"https://github.com/{REPO}",
-        "license": "AGPL-3.0",
-        "retrieved": date.today().isoformat(),
+        **SOURCE,
         "startingDecks": {deck: [int(n) for n in cards] for deck, cards in campaign["events"].items()},
         "classes": class_names(labels, spoiler_labels),
         "classEvents": class_events(class_names(labels, spoiler_labels)),
@@ -369,6 +395,19 @@ def write_json(path, data):
 
 
 def main():
+    global RAW, SOURCE
+    parser = argparse.ArgumentParser(description="Rebuild data/ from Gloomhaven Secretariat at a pinned commit.")
+    parser.add_argument("--ref", help="a commit SHA, tag or branch to build from")
+    parser.add_argument("--latest", action="store_true", help="build from the newest commit on main")
+    args = parser.parse_args()
+    ref = args.ref or ("main" if args.latest else pinned())
+    if not ref:
+        raise SystemExit("The data files name no commit: pass --latest or --ref SHA.")
+    sha, day = resolve_commit(ref)
+    RAW = f"https://raw.githubusercontent.com/{REPO}/{sha}/data/gh"
+    SOURCE = source(sha, day)
+    print(f"Secretariat commit {sha} ({day})")
+
     labels = fetch(f"{RAW}/label/en.json")
     spoiler_labels = fetch(f"{RAW}/label/spoiler/en.json")
 
@@ -395,9 +434,7 @@ def main():
         print(f"#{number} {data['name']}")
 
     output = {
-        "source": f"https://github.com/{REPO}",
-        "license": "AGPL-3.0",
-        "retrieved": date.today().isoformat(),
+        **SOURCE,
         "achievements": {
             "global": labels.get("globalAchievements", {}),
             "party": labels.get("partyAchievements", {}),
@@ -424,18 +461,14 @@ def main():
                               | ({"uses": int(item["slots"])} if item.get("slots") else {})
              for item in fetch(f"{RAW}/items.json")}
     write_json(ITEMS_OUTPUT, {
-        "source": f"https://github.com/{REPO}",
-        "license": "AGPL-3.0",
-        "retrieved": date.today().isoformat(),
+        **SOURCE,
         "items": items,
     })
     print(f"Wrote {len(items)} items to {ITEMS_OUTPUT}")
 
     quests = build_quests(labels, spoiler_labels, {k: v["name"] for k, v in items.items()})
     write_json(QUESTS_OUTPUT, {
-        "source": f"https://github.com/{REPO}",
-        "license": "AGPL-3.0",
-        "retrieved": date.today().isoformat(),
+        **SOURCE,
         "quests": quests,
         # Battle goal cards: the name and the checkmarks each gives. No text.
         "battleGoals": {str(int(g["cardId"])): {"name": g["name"], "checks": int(g.get("checks", 1))}

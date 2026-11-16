@@ -1,0 +1,365 @@
+{
+ "reputation": {
+  "value": 4,
+  "lo": 4,
+  "hi": 4,
+  "peak": 4,
+  "low": 0,
+  "entries": [
+   "City 1: 1",
+   "Example: a made-up starting point: 3"
+  ]
+ },
+ "prosperity": {
+  "value": 5,
+  "lo": 5,
+  "hi": 5,
+  "entries": [
+   "#2 Example Scenario Two: 1",
+   "Example: a made-up starting point: 4"
+  ],
+  "level": 2
+ },
+ "donations": 40,
+ "achievements": {
+  "party": [
+   {
+    "id": "example-party-achievement",
+    "name": "Example party achievement",
+    "count": 1,
+    "where": "#2"
+   },
+   {
+    "id": "first-steps",
+    "name": "First Steps",
+    "count": 1,
+    "where": "#1"
+   }
+  ],
+  "global": [
+   {
+    "id": "example-global-achievement",
+    "name": "Example global achievement",
+    "count": 1,
+    "where": "#2"
+   }
+  ]
+ },
+ "designs": [],
+ "classes": [
+  {
+   "id": "brute",
+   "where": "starting class"
+  },
+  {
+   "id": "cragheart",
+   "where": "starting class"
+  },
+  {
+   "id": "mindthief",
+   "where": "starting class"
+  },
+  {
+   "id": "scoundrel",
+   "where": "starting class"
+  },
+  {
+   "id": "spellweaver",
+   "where": "starting class"
+  },
+  {
+   "id": "tinkerer",
+   "where": "starting class"
+  }
+ ],
+ "decks": {
+  "city": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   14,
+   15,
+   17,
+   18,
+   19,
+   20,
+   21,
+   22,
+   23,
+   24,
+   25,
+   26,
+   27,
+   28,
+   29,
+   30
+  ],
+  "road": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   14,
+   15,
+   16,
+   17,
+   18,
+   19,
+   20,
+   21,
+   22,
+   23,
+   24,
+   25,
+   26,
+   27,
+   28,
+   29,
+   30
+  ],
+  "removed": {
+   "city": [
+    16
+   ],
+   "road": []
+  }
+ },
+ "events": [
+  {
+   "label": "City 1",
+   "option": "B",
+   "fate": "returned",
+   "outcome": 1,
+   "effects": [
+    "+1 reputation"
+   ]
+  },
+  {
+   "label": "City 29",
+   "option": "A",
+   "fate": "returned",
+   "outcome": 2,
+   "effects": []
+  },
+  {
+   "label": "City 16",
+   "option": "A",
+   "fate": "removed",
+   "outcome": null,
+   "effects": []
+  }
+ ],
+ "questions": [
+  "City 16, option A: did you pay 10 gold?",
+  "City 16: City 70 may have been added, depending on the outcome."
+ ],
+ "scenarios": [
+  {
+   "number": 1,
+   "status": "completed",
+   "unlockedBy": null,
+   "reasons": []
+  },
+  {
+   "number": 2,
+   "status": "completed",
+   "unlockedBy": 1,
+   "reasons": []
+  },
+  {
+   "number": 3,
+   "status": "available",
+   "unlockedBy": 2,
+   "reasons": []
+  },
+  {
+   "number": 4,
+   "status": "blocked",
+   "unlockedBy": 2,
+   "reasons": []
+  }
+ ],
+ "completedBy": [
+  {
+   "number": 1,
+   "characters": [
+    "Grunt"
+   ]
+  },
+  {
+   "number": 2,
+   "characters": [
+    "Grunt",
+    "Sparks"
+   ]
+  }
+ ],
+ "characters": [
+  {
+   "name": "Grunt",
+   "class": "Brute",
+   "xp": 102,
+   "gold": 35,
+   "checkmarks": 4,
+   "level": 3,
+   "items": [
+    "Boots of Striding",
+    "Minor Healing Potion"
+   ],
+   "perks": [
+    "Example perk"
+   ],
+   "donated": 0,
+   "enhanced": 0,
+   "retired": false
+  },
+  {
+   "name": "Sparks",
+   "class": "Spellweaver",
+   "xp": 30,
+   "gold": 12,
+   "checkmarks": 1,
+   "level": 1,
+   "items": [],
+   "perks": [],
+   "donated": 0,
+   "enhanced": 0,
+   "retired": false
+  }
+ ],
+ "shop": {
+  "level": 2,
+  "modifier": -1,
+  "stock": [
+   {
+    "name": "Boots of Striding",
+    "price": 19,
+    "left": 1
+   },
+   {
+    "name": "Winged Shoes",
+    "price": 19,
+    "left": 2
+   },
+   {
+    "name": "Hide Armor",
+    "price": 9,
+    "left": 2
+   },
+   {
+    "name": "Leather Armor",
+    "price": 19,
+    "left": 2
+   },
+   {
+    "name": "Cloak of Invisibility",
+    "price": 19,
+    "left": 2
+   },
+   {
+    "name": "Eagle-Eye Goggles",
+    "price": 29,
+    "left": 2
+   },
+   {
+    "name": "Iron Helmet",
+    "price": 9,
+    "left": 2
+   },
+   {
+    "name": "Heater Shield",
+    "price": 19,
+    "left": 2
+   },
+   {
+    "name": "Piercing Bow",
+    "price": 29,
+    "left": 2
+   },
+   {
+    "name": "War Hammer",
+    "price": 29,
+    "left": 2
+   },
+   {
+    "name": "Poison Dagger",
+    "price": 19,
+    "left": 2
+   },
+   {
+    "name": "Minor Healing Potion",
+    "price": 9,
+    "left": 3
+   },
+   {
+    "name": "Minor Stamina Potion",
+    "price": 9,
+    "left": 4
+   },
+   {
+    "name": "Minor Power Potion",
+    "price": 9,
+    "left": 4
+   },
+   {
+    "name": "Boots of Speed",
+    "price": 29,
+    "left": 2
+   },
+   {
+    "name": "Cloak of Pockets",
+    "price": 19,
+    "left": 2
+   },
+   {
+    "name": "Empowering Talisman",
+    "price": 44,
+    "left": 2
+   },
+   {
+    "name": "Battle-Axe",
+    "price": 19,
+    "left": 2
+   },
+   {
+    "name": "Weighted Net",
+    "price": 19,
+    "left": 2
+   },
+   {
+    "name": "Minor Mana Potion",
+    "price": 9,
+    "left": 4
+   },
+   {
+    "name": "Stun Powder",
+    "price": 19,
+    "left": 2
+   }
+  ]
+ },
+ "draws": [
+  "a random side scenario from treasure 07, looted in #1"
+ ],
+ "claims": [],
+ "found": []
+}

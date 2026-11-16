@@ -1,0 +1,546 @@
+{
+ "reputation": {
+  "value": 2,
+  "lo": 0,
+  "hi": 4,
+  "peak": 2,
+  "low": 0,
+  "entries": [
+   "City 1: -1..1",
+   "City 23: 0..1",
+   "Road 9: -1..0",
+   "#8 Gloomhaven Warehouse: 2"
+  ]
+ },
+ "prosperity": {
+  "value": 3,
+  "lo": 3,
+  "hi": 3,
+  "entries": [
+   "City 29: 1",
+   "#2 Barrow Lair: 1",
+   "#3 Inox Encampment: 1"
+  ],
+  "level": 1
+ },
+ "donations": 0,
+ "achievements": {
+  "party": [
+   {
+    "id": "first-steps",
+    "name": "First Steps",
+    "count": 1,
+    "where": "#1"
+   },
+   {
+    "id": "jekserahs-plans",
+    "name": "Jekserah's Plans",
+    "count": 1,
+    "where": "#3"
+   }
+  ],
+  "global": [
+   {
+    "id": "the-merchant-flees",
+    "name": "The Merchant Flees",
+    "count": 1,
+    "where": "#8"
+   },
+   {
+    "id": "the-power-of-enhancement",
+    "name": "The Power of Enhancement",
+    "count": 1,
+    "where": "#14"
+   }
+  ]
+ },
+ "designs": [
+  {
+   "name": "Horned Helm",
+   "where": "treasure 65 in #3"
+  }
+ ],
+ "classes": [
+  {
+   "id": "brute",
+   "where": "starting class"
+  },
+  {
+   "id": "cragheart",
+   "where": "starting class"
+  },
+  {
+   "id": "mindthief",
+   "where": "starting class"
+  },
+  {
+   "id": "scoundrel",
+   "where": "starting class"
+  },
+  {
+   "id": "spellweaver",
+   "where": "starting class"
+  },
+  {
+   "id": "tinkerer",
+   "where": "starting class"
+  }
+ ],
+ "decks": {
+  "city": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   14,
+   15,
+   16,
+   17,
+   18,
+   19,
+   20,
+   22,
+   24,
+   25,
+   26,
+   27,
+   28,
+   30
+  ],
+  "road": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   14,
+   15,
+   16,
+   17,
+   18,
+   19,
+   20,
+   21,
+   22,
+   23,
+   24,
+   25,
+   26,
+   27,
+   29,
+   30,
+   65
+  ],
+  "removed": {
+   "city": [
+    21,
+    23,
+    29
+   ],
+   "road": [
+    28
+   ]
+  }
+ },
+ "events": [
+  {
+   "label": "City 1",
+   "option": null,
+   "fate": "returned",
+   "outcome": null,
+   "effects": []
+  },
+  {
+   "label": "City 23",
+   "option": null,
+   "fate": "removed",
+   "outcome": null,
+   "effects": []
+  },
+  {
+   "label": "City 29",
+   "option": "A",
+   "fate": "removed",
+   "outcome": 1,
+   "effects": [
+    "+1 prosperity"
+   ]
+  },
+  {
+   "label": "Road 9",
+   "option": null,
+   "fate": "returned",
+   "outcome": null,
+   "effects": []
+  },
+  {
+   "label": "Road 28",
+   "option": null,
+   "fate": "removed",
+   "outcome": null,
+   "effects": []
+  },
+  {
+   "label": "City 21",
+   "option": "B",
+   "fate": "removed",
+   "outcome": 1,
+   "effects": [
+    "adds Road 65"
+   ]
+  },
+  {
+   "label": "Road 15",
+   "option": null,
+   "fate": "returned",
+   "outcome": null,
+   "effects": []
+  },
+  {
+   "label": "City 13",
+   "option": null,
+   "fate": "returned",
+   "outcome": null,
+   "effects": []
+  },
+  {
+   "label": "Road 1",
+   "option": null,
+   "fate": "returned",
+   "outcome": null,
+   "effects": []
+  }
+ ],
+ "questions": [],
+ "scenarios": [
+  {
+   "number": 1,
+   "status": "completed",
+   "unlockedBy": null,
+   "reasons": []
+  },
+  {
+   "number": 2,
+   "status": "completed",
+   "unlockedBy": 1,
+   "reasons": []
+  },
+  {
+   "number": 3,
+   "status": "completed",
+   "unlockedBy": 2,
+   "reasons": []
+  },
+  {
+   "number": 4,
+   "status": "completed",
+   "unlockedBy": 2,
+   "reasons": []
+  },
+  {
+   "number": 5,
+   "status": "available",
+   "unlockedBy": 4,
+   "reasons": []
+  },
+  {
+   "number": 6,
+   "status": "available",
+   "unlockedBy": 4,
+   "reasons": []
+  },
+  {
+   "number": 7,
+   "status": "available",
+   "unlockedBy": 8,
+   "reasons": []
+  },
+  {
+   "number": 8,
+   "status": "completed",
+   "unlockedBy": 3,
+   "reasons": []
+  },
+  {
+   "number": 9,
+   "status": "blocked",
+   "unlockedBy": 3,
+   "reasons": [
+    "Blocked by #8 Gloomhaven Warehouse",
+    "Needs The Merchant Flees to be incomplete"
+   ]
+  },
+  {
+   "number": 13,
+   "status": "completed",
+   "unlockedBy": 8,
+   "reasons": []
+  },
+  {
+   "number": 14,
+   "status": "completed",
+   "unlockedBy": 8,
+   "reasons": []
+  },
+  {
+   "number": 15,
+   "status": "available",
+   "unlockedBy": 13,
+   "reasons": []
+  }
+ ],
+ "completedBy": [
+  {
+   "number": 1,
+   "characters": [
+    "Azorica",
+    "Craig",
+    "Flik Flak",
+    "Kaktus"
+   ]
+  },
+  {
+   "number": 2,
+   "characters": [
+    "Azorica",
+    "Craig",
+    "Flik Flak",
+    "Kaktus"
+   ]
+  },
+  {
+   "number": 3,
+   "characters": [
+    "Azorica",
+    "Craig",
+    "Flik Flak",
+    "Kaktus"
+   ]
+  },
+  {
+   "number": 4,
+   "characters": [
+    "Azorica",
+    "Craig",
+    "Flik Flak"
+   ]
+  },
+  {
+   "number": 8,
+   "characters": [
+    "Azorica",
+    "Craig",
+    "Flik Flak"
+   ]
+  },
+  {
+   "number": 13,
+   "characters": [
+    "Azorica",
+    "Craig",
+    "Flik Flak"
+   ]
+  },
+  {
+   "number": 14,
+   "characters": [
+    "Azorica",
+    "Craig",
+    "Flik Flak"
+   ]
+  }
+ ],
+ "characters": [
+  {
+   "name": "Azorica",
+   "class": "Spellweaver",
+   "xp": 149,
+   "gold": 44,
+   "checkmarks": 7,
+   "level": 3,
+   "items": [
+    "Cloak of Invisibility",
+    "Minor Power Potion",
+    "Minor Stamina Potion"
+   ],
+   "perks": [
+    "Remove four +0 cards",
+    "Replace one -1 card with one +1 card",
+    "Replace one -1 card with one +1 card"
+   ],
+   "donated": 0,
+   "enhanced": 0,
+   "retired": false
+  },
+  {
+   "name": "Craig",
+   "class": "Cragheart",
+   "xp": 170,
+   "gold": 94,
+   "checkmarks": 9,
+   "level": 4,
+   "items": [
+    "Boots of Striding",
+    "Horned Helm",
+    "Minor Power Potion",
+    "Minor Stamina Potion"
+   ],
+   "perks": [
+    "Add two rolling EARTH cards",
+    "Ignore negative scenario effects",
+    "Remove four +0 cards",
+    "Replace one -1 card with one +1 card",
+    "Replace one -1 card with one +1 card",
+    "Replace one -1 card with one +1 card"
+   ],
+   "donated": 0,
+   "enhanced": 0,
+   "retired": false
+  },
+  {
+   "name": "Flik Flak",
+   "class": "Tinkerer",
+   "xp": 192,
+   "gold": 109,
+   "checkmarks": 11,
+   "level": 4,
+   "items": [
+    "Eagle-Eye Goggles",
+    "Minor Stamina Potion"
+   ],
+   "perks": [
+    "Add one +3 card",
+    "Add three MUDDLE cards",
+    "Ignore negative scenario effects",
+    "Remove two -1 cards",
+    "Remove two -1 cards",
+    "Replace one -2 card with one +0 card"
+   ],
+   "donated": 0,
+   "enhanced": 0,
+   "retired": false
+  },
+  {
+   "name": "Kaktus",
+   "class": "Scoundrel",
+   "xp": 59,
+   "gold": 56,
+   "checkmarks": 2,
+   "level": 2,
+   "items": [
+    "Iron Helmet",
+    "Leather Armor",
+    "Minor Stamina Potion"
+   ],
+   "perks": [],
+   "donated": 0,
+   "enhanced": 0,
+   "retired": false
+  }
+ ],
+ "shop": {
+  "level": 1,
+  "modifier": 0,
+  "stock": [
+   {
+    "name": "Boots of Striding",
+    "price": 20,
+    "left": 1
+   },
+   {
+    "name": "Winged Shoes",
+    "price": 20,
+    "left": 2
+   },
+   {
+    "name": "Hide Armor",
+    "price": 10,
+    "left": 2
+   },
+   {
+    "name": "Leather Armor",
+    "price": 20,
+    "left": 1
+   },
+   {
+    "name": "Cloak of Invisibility",
+    "price": 20,
+    "left": 1
+   },
+   {
+    "name": "Eagle-Eye Goggles",
+    "price": 30,
+    "left": 1
+   },
+   {
+    "name": "Iron Helmet",
+    "price": 10,
+    "left": 1
+   },
+   {
+    "name": "Heater Shield",
+    "price": 20,
+    "left": 2
+   },
+   {
+    "name": "Piercing Bow",
+    "price": 30,
+    "left": 2
+   },
+   {
+    "name": "War Hammer",
+    "price": 30,
+    "left": 2
+   },
+   {
+    "name": "Poison Dagger",
+    "price": 20,
+    "left": 2
+   },
+   {
+    "name": "Minor Healing Potion",
+    "price": 10,
+    "left": 4
+   },
+   {
+    "name": "Minor Stamina Potion",
+    "price": 10,
+    "left": 0
+   },
+   {
+    "name": "Minor Power Potion",
+    "price": 10,
+    "left": 2
+   },
+   {
+    "name": "Horned Helm",
+    "price": 30,
+    "left": 1
+   }
+  ]
+ },
+ "draws": [],
+ "claims": [
+  "Ring of Skulls: treasure 38 in #4"
+ ],
+ "found": [
+  "Ring of Skulls from treasure 38"
+ ]
+}
