@@ -14,8 +14,24 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="styles.css">
-  <script src="campaign.js" defer></script>
-  <script src="app.js" defer></script>
+  <script src="campaign/rules.js" defer></script>
+  <script src="campaign/ledger.js" defer></script>
+  <script src="campaign/evening.js" defer></script>
+  <script src="campaign/history.js" defer></script>
+  <script src="campaign/progress.js" defer></script>
+  <script src="campaign/file.js" defer></script>
+  <script src="app/base.js" defer></script>
+  <script src="app/overview.js" defer></script>
+  <script src="app/sheets.js" defer></script>
+  <script src="app/tonight.js" defer></script>
+  <script src="app/record.js" defer></script>
+  <script src="app/scenarios.js" defer></script>
+  <script src="app/characters.js" defer></script>
+  <script src="app/table.js" defer></script>
+  <script src="app/shop.js" defer></script>
+  <script src="app/recorder.js" defer></script>
+  <script src="app/sessions.js" defer></script>
+  <script src="app/main.js" defer></script>
 </head>
 <body>
   <a class="skip" href="#overview">Skip to content</a>
@@ -57,7 +73,7 @@
 
   <!-- On phones only the panels of the current tab show; on wide screens all of
        them do, as one page. data-tab says which tab a panel belongs to: the
-       Overview shows on two, its parts each saying which (app.js). -->
+       Overview shows on two, its parts each saying which (app/). -->
   <main>
     <p id="status" class="status">Loading campaign…</p>
     <section id="overview" class="panel" data-tab="tonight campaign" hidden></section>

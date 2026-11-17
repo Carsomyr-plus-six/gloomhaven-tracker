@@ -20,8 +20,8 @@ The first time a phone opens it, it asks which character you play. From then on 
 | `campaign.json` | The campaign itself. Edit it by hand, or record a session on the page and replace it with the file that gives you. |
 | `index.html` | The page skeleton: header, tabs, empty sections. |
 | `styles.css` | How it looks: one dark theme, with the phone layout at the bottom of the file. |
-| `campaign.js` | The rules, and everything worked out from `campaign.json` and the reference data; no page code, so the tests run it too. Reads and writes the file's layout (and moves an older file over), and works out levels, the scenario level for whoever is playing (with monster level, gold per coin, trap damage and bonus XP), reputation and prosperity, event outcomes and decks, achievements, item designs, unlocked classes, what treasures gave, the shop (stock, prices, who carries what), what an enhancement costs once the Enhancer is open (from the sticker, the card's level, whether the ability targets more than one, and the stickers already on the action; an attack hex is 200 gold over the hexes, rounded down; and a warning past the class's limit of enhanced cards, the prosperity level), the unlock map, and which scenarios are unlocked or blocked, and the milestones (envelopes, class boxes, the Town Records Book). Builds an updated `campaign.json` from a recorded session: `applyDraft` runs the steps in `EVENING_STEPS` in order (newcomers, who played, events, scenarios, quests, retirements, gains, then town business and checks), each a function on one shared context. The reference data is read from its globals (`setReference`), never passed in. |
-| `app.js` | The page: fills it in from what `campaign.js` works out, with a "Before you play" list on the Overview of everything waiting on the party (perks to choose, random draws, open questions, item and perk flags), and the form that records a session. |
+| `campaign/` | The rules: everything worked out from `campaign.json` and the reference data, with no page code, so the tests run it too. A file each part (below). |
+| `app/` | The page, filled in from what `campaign/` works out, and the form that records a session. A file each part (below). |
 | `data/gloomhaven-scenarios.json` | Reference data for all 95 scenarios: unlocks, blocks, requirements, rewards, whether it has a boss, the treasure tiles on its map; and what each treasure tile gives. Generated, don't edit by hand. **Contains spoilers.** |
 | `data/gloomhaven-events.json` | Reference data for city and road events: starting decks, and each option's outcomes: the condition, what happens to the card, and the effects (reputation, prosperity, gold, XP, achievements, cards added, scenarios unlocked), plus each class's unlock and retirement events, its perks (worded as on the character sheet, with their boxes and what each does to the attack modifier deck, as data), its hit points at each level and its hand size. No event text. Generated, **contains spoilers**. |
 | `data/gloomhaven-items.json` | Reference data for the 150 items: name, cost, copies, slot, the prosperity that puts them in the shop, and whether using one spends or consumes it (and after how many uses). No item text. Generated, **contains spoilers**. |
@@ -34,6 +34,27 @@ The first time a phone opens it, it asks which character you play. From then on 
 | `favicon.svg`, `icon-192.png`, `apple-touch-icon.png` | The site's own icon, the brass hexagon from the top bar with "CL" for Craig's List, for browser tabs, bookmarks and phone home screens; transparent around the hexagon, except the iPhone home-screen icon, which iOS would fill with black. Not from the Creator Pack. |
 | `tools/site_icons.py` | Redraws the two PNG icons: `py tools/site_icons.py` (needs `Pillow`). |
 | `examples/sample-campaign.json` | Made-up data for testing. View it at `?data=examples/sample-campaign.json`; it keeps its own character choice and draft, apart from the real campaign's. |
+| `app.js`, `campaign.js` | Stand-ins for a page a browser cached from before the code moved into `campaign/` and `app/`: they load the files `index.html` lists. They can go once no browser could still hold such a page. |
+
+Both folders are plain scripts sharing one scope, loaded in the order `index.html` lists them; the tests read that list, and check it names every file in the two folders.
+
+`campaign/`, the rules. It works out levels, the scenario level for whoever is playing (with monster level, gold per coin, trap damage and bonus XP), reputation and prosperity, event outcomes and decks, achievements, item designs, unlocked classes, what treasures gave, the shop (stock, prices, who carries what), what an enhancement costs once the Enhancer is open (from the sticker, the card's level, whether the ability targets more than one, and the stickers already on the action; an attack hex is 200 gold over the hexes, rounded down; and a warning past the class's limit of enhanced cards, the prosperity level), the unlock map, and which scenarios are unlocked or blocked, and the milestones (envelopes, class boxes, the Town Records Book).
+- `rules.js`: the rulebook's numbers (levels, scenario level, shop prices, donations, enhancement costs), and the scenarios' rules from the reference data.
+- `ledger.js`: events and what they did, reputation and prosperity, achievements, unlocks, the scenarios' state, classes, and the shop.
+- `evening.js`: writing an evening: `applyDraft` runs the steps in `EVENING_STEPS` in order (newcomers, who played, events, scenarios, quests, retirements, gains, then town business and checks), each a function on one shared context.
+- `history.js`: what each play gave, who played, level-ups, blessings waiting, treasure looters, personal quest progress.
+- `progress.js`: perks and the attack modifier deck, item slots, the milestones.
+- `file.js`: reading and writing `campaign.json` (and moving an older layout over), the questions a file raises, and building the page's data. The reference data is read from its globals (`setReference`), never passed in.
+
+`app/`, the page, a file a part:
+- `base.js`: making elements and icons, and what this browser keeps.
+- `overview.js`, `sheets.js`: the Overview's tiles, and the phone's sheets with the Overview section.
+- `tonight.js`: tonight's scenario, and a "Before you play" list of everything waiting on the party (perks to choose, random draws, open questions, item and perk flags).
+- `record.js`: the event decks and the campaign record.
+- `scenarios.js`, `characters.js`: the scenario list and map, and the character sheets.
+- `table.js`: at the table, after the scenario, and in town.
+- `shop.js`, `recorder.js`, `sessions.js`: the Shop and Enhancer, the form that records a session, and the sessions.
+- `main.js`: the tabs, loading the campaign and reference data, and starting the page.
 
 ## Recording a session
 
