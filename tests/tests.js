@@ -21,7 +21,7 @@ async function runTests(load, loadText) {
   // The rules' files load in one order, index.html's: the test page loads
   // the same ones in the same order (tests/run.mjs reads index.html's list).
   // (The test page's own campaign/ is its tests, not the rules.)
-  const rulesIn = (html, prefix) => [...html.matchAll(/<script src="([^"]+)"/g)].map(m => m[1])
+  const rulesIn = (html, prefix) => [...html.matchAll(/<script src="([^"?]+)/g)].map(m => m[1])
     .filter(src => src.startsWith(`${prefix}campaign/`)).map(src => src.slice(prefix.length));
   const pageRules = rulesIn(await loadText("index.html"), "");
   same("the test page loads the rules' files the page does, in its order",

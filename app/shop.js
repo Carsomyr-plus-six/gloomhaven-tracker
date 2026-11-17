@@ -15,10 +15,6 @@ function draftSpend(data, name) {
        - (draft?.sells || []).filter(x => x.character === name && x.item).reduce((sum, x) => sum + (priceOf(x.item)?.sells || 0), 0);
 }
 
-// Whose shopping the Shop shows: until someone is picked, this phone's
-// character; then a name, or "" for no one.
-let shopFor;
-let shopFilter = "all";   // "all", or "can": only what the shopper can buy
 
 function renderShop(data) {
   const shop = data.shop;

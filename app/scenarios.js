@@ -15,14 +15,14 @@ let scenarioPicked = null;   // the scenario shown under the unlock map
 // Remembered per browser. Until someone chooses, wide screens start on the
 // unlock map and phones on the list.
 let scenarioView = phone.matches ? "list" : "tree";
-try {
-  const saved = localStorage.getItem("scenarioView");
+{
+  const saved = stored.get(STORE.scenarioView);
   if (saved === "list" || saved === "tree") scenarioView = saved;
-} catch {}
+}
 
 function setScenarioView(data, view) {
   scenarioView = view;
-  try { localStorage.setItem("scenarioView", view); } catch {}
+  stored.set(STORE.scenarioView, view);
   render(data, "scenarios");
 }
 
@@ -33,7 +33,6 @@ function revealScenario(number) {
 }
 
 // Jump to a scenario from elsewhere on the page (the "ready to play" cards).
-let pendingScenario = null;
 function openScenario(data, number) {
   scenarioFilter = "all";
   scenarioOpen = number;

@@ -142,10 +142,6 @@ function prosperityTile(city, ledger) {
     ledgerFoot(ledger?.prosperity, ""));
 }
 
-// Who is playing tonight, for the scenario level. Starts as the last
-// session's party (those still active), or everyone.
-let levelParty = null;
-let difficulty = "normal";
 
 function defaultLevelParty(data) {
   const active = data.characters.filter(playable).map(c => c.name);

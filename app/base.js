@@ -130,3 +130,65 @@ function dataUrl() {
 function storeKey(name) {
   return new URLSearchParams(location.search).get("data") ? `${name}:${dataUrl().pathname}` : name;
 }
+
+// Every key this browser keeps, in one place: per campaign file, but for
+// the scenario list's view, which is how this browser likes it.
+const STORE = {
+  me: storeKey("myCharacter"),             // the character this phone plays
+  draft: storeKey("sessionDraft"),         // the session being recorded
+  pick: storeKey("tonightScenario"),       // the scenario picked for tonight
+  result: storeKey("tonightResult"),       // how tonight's scenario went
+  table: name => storeKey(`table:${name}`),         // a character's tracker
+  questCard: name => storeKey(`questCard:${name}`), // a character's quest card
+  scenarioView: "scenarioView",            // list or unlock map
+};
+
+// Reading and writing what this browser keeps. Storage can be off, or full,
+// or refuse a private window: then reading gives null and writing does
+// nothing. A value that isn't text is kept as JSON; null takes it out.
+const stored = {
+  get: key => { try { return localStorage.getItem(key); } catch { return null; } },
+  json: key => { try { return JSON.parse(localStorage.getItem(key)); } catch { return null; } },
+  set: (key, value) => {
+    try {
+      if (value == null) localStorage.removeItem(key);
+      else localStorage.setItem(key, typeof value === "string" ? value : JSON.stringify(value));
+    } catch {}
+  },
+};
+
+// --- The page's state -------------------------------------------------------
+// What more than one part of the page reads or sets, in one place. What only
+// one part uses stays at the top of its file.
+
+// The campaign as loaded, the session being recorded (kept in this browser),
+// and a draft found already in campaign.json on load, and cleared.
+let rawCampaign = null;
+let draft = null;
+let savedDraft = null;
+// The data last drawn: what a phone draws later, when a tab is shown.
+let latestData = null;
+// The character this phone plays: a name, "" for just looking, or null to ask.
+let me = stored.get(STORE.me);
+// Which sheet a phone shows, and whether its list of characters is open
+// (kept, so a redraw draws it open again).
+let characterIndex = 0;
+let switchOpen = false;
+// Tonight: who is playing (for the scenario level; at first the last
+// session's party, those still active, or else everyone), at what
+// difficulty, the scenario picked, and whether the form's quick picks show
+// completed scenarios too (once asked for, until one is picked).
+let levelParty = null;
+let difficulty = "normal";
+let tonightPick = Number(stored.get(STORE.pick)) || null;
+let showReplays = false;
+// What's open: the sheet on a phone, the session form, and a scenario to
+// jump to from elsewhere on the page.
+let openSheetId = null;
+let recorderOpen = false;
+let pendingScenario = null;
+// Whose shopping the Shop shows (until someone is picked, this phone's
+// character; then a name, or "" for no one), and whether it shows
+// everything or only what they can buy ("all", "can").
+let shopFor;
+let shopFilter = "all";

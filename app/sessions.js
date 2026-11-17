@@ -16,8 +16,6 @@ function sessionHaul(data, session) {
   return [...totals.values()];
 }
 
-let recorderOpen = false;
-
 function renderSessions(data) {
   const sorted = [...data.sessions].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
   const history = data.eventState?.history || [];

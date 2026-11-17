@@ -6,9 +6,6 @@
 // copy it and put it in the repository. The draft is kept in this browser
 // until then, so a reload at the table loses nothing.
 
-let rawCampaign = null;   // campaign.json exactly as loaded
-let draft = null;
-let savedDraft = null;   // a draft found already in campaign.json on load, and cleared
 
 // Is this draft's session already in campaign.json? The same date (or, if
 // undated, title) and the same scenarios played in the same order.
@@ -20,21 +17,20 @@ function draftIsSaved(d, raw) {
     && (d.date || (s.title || "") === (d.title || ""))
     && (s.scenarios || []).map(x => x.number).join(",") === played);
 }
-const DRAFT_KEY = storeKey("sessionDraft");
 
 function loadDraft() {
   let d = null;
-  try { d = JSON.parse(localStorage.getItem(DRAFT_KEY)) || null; } catch {}
+  d = stored.json(STORE.draft) || null;
   if (d && !d.id) d.id = draftId();
   if (d) for (const [key, empty] of Object.entries(draftParts())) d[key] ??= empty;
   return d;
 }
 function saveDraft() {
-  try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch {}
+  stored.set(STORE.draft, draft);
 }
 function dropDraft() {
   draft = null;
-  try { localStorage.removeItem(DRAFT_KEY); } catch {}
+  stored.set(STORE.draft, null);
 }
 // The level a scenario in the draft is recorded at when its row has none
 // (an older draft): tonight's, as picked on the Overview.

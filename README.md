@@ -18,7 +18,7 @@ The first time a phone opens it, it asks which character you play. From then on 
 | File | What it is |
 | --- | --- |
 | `campaign.json` | The campaign itself. Edit it by hand, or record a session on the page and replace it with the file that gives you. |
-| `index.html` | The page skeleton: header, tabs, empty sections. |
+| `index.html` | The page skeleton: header, tabs, empty sections; and the page's scripts, in the order they load, with `styles.css`. Each address carries one version (`?v=`) worked out from the files' contents, so a browser holding an older page keeps its own files and never mixes them with newer ones: change a script or the styles and the tests fail until `node tests/run.mjs --update` writes the new version. |
 | `styles.css` | How it looks: one dark theme, with the phone layout at the bottom of the file. |
 | `campaign/` | The rules: everything worked out from `campaign.json` and the reference data, with no page code, so the tests run it too. A file each part (below). |
 | `app/` | The page, filled in from what `campaign/` works out, and the form that records a session. A file each part (below). |
@@ -47,7 +47,7 @@ Both folders are plain scripts sharing one scope, loaded in the order `index.htm
 - `file.js`: reading and writing `campaign.json` (and moving an older layout over), the questions a file raises, and building the page's data. The built data keeps `party` and `city` as the file has them; what's worked out has names of its own: `reputation`, `prosperityCheckmarks`, `achievements` (`party`, `global`), `itemDesigns`, `classes`, `ledger` and the `shop`. A reputation or prosperity an older file kept by hand is compared with the sums (the ledger asks about a difference), then dropped. The one key replaced is `scenarios`: the file's entries become every scenario found, each with its status. The reference data is read from its globals (`setReference`), never passed in.
 
 `app/`, the page, a file a part:
-- `base.js`: making elements and icons, and what this browser keeps.
+- `base.js`: making elements and icons; what this browser keeps (every key in `STORE`, read and written through `stored`, which shrugs off storage that's off or full); and the page's state that more than one file reads or sets. State only one file uses stays at the top of that file.
 - `overview.js`, `sheets.js`: the Overview's tiles, and the phone's sheets with the Overview section.
 - `tonight.js`: tonight's scenario, and a "Before you play" list of everything waiting on the party (perks to choose, random draws, open questions, item and perk flags).
 - `record.js`: the event decks and the campaign record.

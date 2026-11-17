@@ -48,8 +48,6 @@ function perkBoxes(ticked, empty) {
 
 // --- Characters -----------------------------------------------------------------
 
-let characterIndex = 0;   // which sheet a phone shows
-let switchOpen = false;   // the list of characters is open (phones), so drawn open again
 
 function pickCharacter(data, index) {
   characterIndex = index;
@@ -62,14 +60,11 @@ function pickCharacter(data, index) {
 // A phone at the table belongs to one player. The first time, it asks which
 // character they play, and from then on opens on that sheet. Kept in this
 // browser only: a name, or "" for "just looking"; nothing yet means ask.
-const ME_KEY = storeKey("myCharacter");
-let me = null;
-try { me = localStorage.getItem(ME_KEY); } catch {}
 
 function chooseMe(data, name) {
   me = name;
   shopFor = undefined;   // the Shop follows this phone's character again
-  try { localStorage.setItem(ME_KEY, name); } catch {}
+  stored.set(STORE.me, name);
   const index = characterOrder(data).findIndex(c => c.name === name);
   if (index >= 0) characterIndex = index;
   render(data, "characters");
@@ -343,12 +338,11 @@ function toggleQuest(name) {
 
 // Which quest card a character holds is kept on their player's phone only:
 // campaign.json is public, and the quest is a secret until it's done.
-const questCardKey = name => storeKey(`questCard:${name}`);
 function questCard(name) {
-  try { return localStorage.getItem(questCardKey(name)) || null; } catch { return null; }
+  return stored.get(STORE.questCard(name)) || null;
 }
 function setQuestCard(name, card) {
-  try { if (card) localStorage.setItem(questCardKey(name), card); else localStorage.removeItem(questCardKey(name)); } catch {}
+  stored.set(STORE.questCard(name), card || null);
 }
 
 // The progress to check against the card: what's typed in the session being

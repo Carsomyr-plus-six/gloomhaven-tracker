@@ -30,7 +30,6 @@ function currentTab() {
 // when something changes: it's marked out of date, and drawn when its tab
 // is shown (showTab), from the latest data. Wide screens draw everything.
 const outOfDate = new Set();
-let latestData = null;
 const onShownTab = id => document.getElementById(id)?.dataset.tab.split(" ").includes(currentTab());
 // The section each phone sheet is drawn in: it opens over any tab, so its
 // section is drawn while it's open, whatever tab is shown.
