@@ -8,7 +8,7 @@
   (async () => {
     const page = new URL("index.html", here);
     const html = await (await fetch(page, { cache: "no-cache" })).text();
-    for (const [, src] of html.matchAll(/<script src="((?:campaign|app)\/[\w-]+\.js)"/g)) {
+    for (const [, src] of html.matchAll(/<script src="((?:campaign|app)\/[\w-]+\.js(?:\?v=\w+)?)"/g)) {
       const script = document.createElement("script");
       script.src = new URL(src, page).href;
       script.async = false;   // run in the order listed

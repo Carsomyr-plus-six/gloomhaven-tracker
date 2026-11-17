@@ -7,7 +7,6 @@
 // the tab, full height, with its title and Close, and Back or Escape closes
 // it; the page behind is out of reach meanwhile. On a wide screen it's part
 // of the page as before. Which is open survives a redraw.
-let openSheetId = null;
 let sheetOpener = null;
 const sheetOnClose = {};
 let sheetInert = [];

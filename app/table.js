@@ -14,7 +14,6 @@ function maxHealth(c) {
   return (id && classRef.classEvents?.[id]?.health?.[characterStats(c).level - 1]) || null;
 }
 
-const tableKey = name => storeKey(`table:${name}`);
 // A scenario under way on this phone: anything tracked since the last reset.
 function tableActive(name) { return tracking(tableState(name)); }
 function tracking(st) {
@@ -22,8 +21,7 @@ function tracking(st) {
     || Object.keys(st.items || {}).length || Object.keys(st.conds || {}).length);
 }
 function tableState(name) {
-  let saved = null;
-  try { saved = JSON.parse(localStorage.getItem(tableKey(name))); } catch {}
+  const saved = stored.json(STORE.table(name));
   // hp null: at full health, whatever the maximum is by then.
   return { hp: null, xp: 0, coins: 0, items: {}, conds: {}, cards: null, goal: 0, ...(saved && typeof saved === "object" ? saved : {}) };
 }
@@ -34,7 +32,7 @@ function saveTable(name, part) {
   const was = tableState(name);
   const next = { ...was, ...part };
   if (!tracking(was) && tracking(next)) Object.assign(next, { since: today(), scenario: tonightPick || null });
-  try { localStorage.setItem(tableKey(name), JSON.stringify(next)); } catch {}
+  stored.set(STORE.table(name), next);
 }
 
 // A new scenario: full hit points and hand, nothing gained, every item
@@ -55,7 +53,7 @@ function clearRecordedTables(data) {
     const recorded = data.sessions.some(s => s.date >= st.since && s.scenarios?.length
       && (!st.scenario || s.scenarios.some(x => num(x.number) === st.scenario)));
     if (!recorded) continue;
-    try { localStorage.removeItem(tableKey(c.name)); } catch {}
+    stored.set(STORE.table(c.name), null);
     cardUndo.delete(c.name);
     if (c.name === me) setTonightResult("success");
   }
@@ -396,12 +394,10 @@ function tableDock(c) {
 // at that level's rate; a battle goal's checkmarks count on a success only.
 // Then where that leaves them: XP, gold and any new level. The result is
 // this phone's; the checkmarks are kept with the tracker.
-const RESULT_KEY = storeKey("tonightResult");
-let tonightResult = "success";
-try { tonightResult = localStorage.getItem(RESULT_KEY) || "success"; } catch {}
+let tonightResult = stored.get(STORE.result) || "success";
 function setTonightResult(r) {
   tonightResult = r;
-  try { if (r === "success") localStorage.removeItem(RESULT_KEY); else localStorage.setItem(RESULT_KEY, r); } catch {}
+  stored.set(STORE.result, r === "success" ? null : r);
 }
 
 function scenarioSummary(data) {

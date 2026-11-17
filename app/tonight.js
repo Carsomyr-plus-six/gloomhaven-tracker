@@ -7,14 +7,11 @@
 // road event comes first, its treasure tiles, and each player's hand size
 // and hit points. Kept in this browser; a scenario no longer open to play is
 // forgotten. Without a pick, the first scenario in the draft stands in.
-const PICK_KEY = storeKey("tonightScenario");
-let tonightPick = null;
-try { tonightPick = Number(localStorage.getItem(PICK_KEY)) || null; } catch {}
 
 function pickTonight(data, number) {
   if (openSheetId === "ready") { openSheetId = null; if (history.state?.sheet) history.back(); }
   tonightPick = number;
-  try { if (number) localStorage.setItem(PICK_KEY, String(number)); else localStorage.removeItem(PICK_KEY); } catch {}
+  stored.set(STORE.pick, number ? String(number) : null);
   // The Play tab names it too, over the cards.
   render(data, "characters");
   render(data, "overview");
@@ -387,9 +384,6 @@ function recordEnhancement(data, what, cost) {
   showInRecorder(data, `enr-${draft.enhancements.length - 1}-c`);
 }
 
-// The recorder's quick picks: completed scenarios too, once asked for, until
-// one is picked.
-let showReplays = false;
 
 // Personal quests are secret at the table, so a sheet's progress shows only
 // once its player taps it (until they tap again, or the page reloads). A

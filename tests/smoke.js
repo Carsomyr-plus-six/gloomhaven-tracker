@@ -129,6 +129,29 @@ async function runSmoke() {
     frame.remove();
   }
 
+  // Storage refused (off, full, a private window): reading and writing what
+  // the browser keeps throws. The page, already open, still draws every part
+  // and keeps working, as stored gives nothing and keeps nothing. The page's
+  // Storage is broken in its own frame only.
+  {
+    const path = "tests/fixtures/campaign-v1.json";
+    const frame = await open(`../index.html?data=${path}`, 1200);
+    const errors = [];
+    frame.contentWindow.addEventListener("error", e => errors.push(e.message));
+    await ready(frame);
+    const w = frame.contentWindow;
+    for (const m of ["getItem", "setItem", "removeItem"]) w.Storage.prototype[m] = () => { throw new w.DOMException("refused", "SecurityError"); };
+    let drawn = false, said = [];
+    try {
+      said = w.eval(`[stored.get(STORE.me), stored.json(STORE.table("Azorica")), stored.set(STORE.pick, "5")]`);
+      w.eval("render(latestData)");
+      drawn = [...frame.contentDocument.querySelectorAll("main > section")].filter(s => s.innerText.trim()).length > 3;
+    } catch (e) { errors.push(String(e)); }
+    check("storage refused: what the browser keeps reads as nothing, and the page still draws",
+      drawn && JSON.stringify(said) === "[null,null,null]" && !errors.length, errors.join("; ") || `drawn: ${drawn}, read: ${JSON.stringify(said)}`);
+    frame.remove();
+  }
+
   // A phone draws only the tab on screen (the others when shown), so: every
   // tab has something drawn once opened, and a sheet drawn in another tab's
   // section still opens over this one (the form, from Tonight). On a copy of
