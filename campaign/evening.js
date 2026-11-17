@@ -66,7 +66,33 @@ const scenarioGain = (s, r, fallback = 0) => playGain({ level: draftLevel(s, fal
 function applyDraft(raw, d, data, { level = 0 } = {}) {
   const ctx = eveningContext(raw, d, data, level);
   for (const step of EVENING_STEPS) step(ctx);
-  return { out: ctx.marked, log: ctx.log, warnings: ctx.warnings, evening: ctx.evening, party: ctx.party };
+  return { out: ctx.marked, log: ctx.log, warnings: ctx.warnings, evening: ctx.evening, party: ctx.party, asOf: ctx.asOf };
+}
+
+// The campaign as each scenario played tonight finds it: one completed
+// earlier tonight counts already, with the achievements it gave, and the
+// scenarios it opened or blocked. So a scenario it opens is played in
+// campaign mode, and one it blocks in casual mode, as the form defaults.
+// Row of the draft -> the data as of then (its scenarios and achievements).
+function scenariosTonight(raw, data, played) {
+  const asOf = new Map();
+  const done = [];
+  let now = data;
+  for (const s of played) {
+    asOf.set(s, now);
+    const n = num(s.number);
+    // Only what a later scenario would find needs working out again.
+    if (s === played.at(-1) || s.result !== "success" || !scenarioRef?.scenarios?.[String(n)] || isCasual(s, now)
+        || now.scenarios.find(x => x.number === n)?.status === "completed") continue;
+    done.push(n);
+    const shaped = withDefaults(copyJson(raw));
+    shaped.scenarios = [...shaped.scenarios.filter(x => !done.includes(x.number)),
+      ...done.map(number => ({ ...shaped.scenarios.find(x => x.number === number), number, status: "completed" }))];
+    const derived = deriveCampaign(shaped);
+    shaped.achievements = { party: derived.record.party, global: derived.record.global };
+    now = { ...data, achievements: shaped.achievements, scenarios: deriveScenarios(shaped, derived.unlocks) };
+  }
+  return asOf;
 }
 
 // What the evening's steps share: the file being written, the draft and
@@ -209,10 +235,11 @@ function eveningNewcomers(ctx) {
 
 // Who played, which scenarios, and whether it was an evening of play.
 function eveningWhoPlayed(ctx) {
-  const { out, d, raw, log, warnings, who, when, joined } = ctx;
+  const { out, d, raw, data, log, warnings, who, when, joined } = ctx;
   // Who played: those marked, and newcomers unless they sat it out.
   const party = [...d.party.filter(name => who(name) && !joined.includes(name)), ...joined];
   const played = d.scenarios.filter(s => num(s.number));
+  const asOf = scenariosTonight(raw, data, played);
   // The first scenario tonight: where a road event with none picked led.
   const firstScenario = num(played[0]?.number) || null;
   // The last scenario completed before tonight: an event in town on an
@@ -229,11 +256,11 @@ function eveningWhoPlayed(ctx) {
     if (c?.inactive) { delete c.inactive; log.push(`${name} plays again, so is no longer inactive`); }
   }
   out.updated = when;
-  Object.assign(ctx, { party, played, firstScenario, lastCompleted, evening });
+  Object.assign(ctx, { party, played, asOf, firstScenario, lastCompleted, evening });
 }
 
 function eveningEvents(ctx) {
-  const { out, d, data, log, warnings, who, happening, eventGain, party, played, firstScenario, lastCompleted } = ctx;
+  const { out, d, data, log, warnings, who, happening, eventGain, party, played, asOf, firstScenario, lastCompleted } = ctx;
   // Events, in the order drawn.
   for (const e of d.events.filter(e => num(e.number))) {
     const entry = { deck: e.deck, number: num(e.number) };
@@ -256,15 +283,15 @@ function eveningEvents(ctx) {
     // "After" points at a scenario in the campaign's order: the last one
     // newly completed tonight, else the last completed before tonight (a
     // failure or casual replay doesn't move it).
-    const lastTonight = num(played.filter(s => s.result === "success" && !isCasual(s, data)
-      && data.scenarios.find(x => x.number === num(s.number))?.status !== "completed").at(-1)?.number) || lastCompleted;
+    const lastTonight = num(played.filter(s => s.result === "success" && !isCasual(s, asOf.get(s))
+      && asOf.get(s).scenarios.find(x => x.number === num(s.number))?.status !== "completed").at(-1)?.number) || lastCompleted;
     if (e.deck === "city" && e.scenario === "after" && lastTonight) entry.after = lastTonight;
     else if (e.deck === "city" && !entry.scenario && firstScenario) entry.scenario = firstScenario;
     else if (e.deck === "city" && !entry.scenario && lastCompleted) entry.after = lastCompleted;
     if (e.deck === "road" && !entry.scenario && firstScenario) entry.scenario = firstScenario;
     // A road event for a scenario that doesn't take one (p. 41).
     const toward = e.deck === "road" ? played.find(s => num(s.number) === entry.scenario) : null;
-    if (toward && isCasual(toward, data)) warnings.push(`${eventLabel(e.deck, entry.number)}: no road event is drawn for a scenario in casual mode.`);
+    if (toward && isCasual(toward, asOf.get(toward))) warnings.push(`${eventLabel(e.deck, entry.number)}: no road event is drawn for a scenario in casual mode.`);
     // Only from town: the first scenario tonight. Travelling on from an
     // earlier one needs a road event unless the two are linked (p. 41).
     else if (toward && toward === played[0] && !needsRoadEvent(entry.scenario)) warnings.push(`${eventLabel(e.deck, entry.number)}: #${entry.scenario} is linked to Gloomhaven, so it takes no road event from town.`);
@@ -326,7 +353,7 @@ function eveningEvents(ctx) {
 }
 
 function eveningScenarios(ctx) {
-  const { out, d, data, raw, fallbackLevel, log, warnings, who, giveItem, noCopyLeft, gain, happening, party, played } = ctx;
+  const { out, d, raw, fallbackLevel, log, warnings, who, giveItem, noCopyLeft, gain, happening, party, played, asOf } = ctx;
   // Treasures already looted, and where: a tile is looted once.
   const looted = new Map();
   for (const sc of raw.scenarios || []) {
@@ -339,6 +366,8 @@ function eveningScenarios(ctx) {
   for (const s of played) {
     const n = num(s.number);
     const info = scenarioRef?.scenarios?.[String(n)];
+    // As tonight's earlier scenarios left it.
+    const data = asOf.get(s);
     const known = data.scenarios.find(x => x.number === n);
     const label = `#${n}${info?.name ? ` ${info.name}` : ""}`;
     if (!info) warnings.push(`#${n} isn't a scenario.`);

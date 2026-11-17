@@ -152,10 +152,10 @@ const MILESTONES = [
   { id: "events-minus-20", name: "City 77, Road 68", need: 20, what: "lowest reputation", shown: m => m.low <= -10,
     have: m => -m.low, open: m => m.inDecks("city", 77) && m.inDecks("road", 68), says: m => reputationSays(m, m.low, -20),
     todo: () => ["Reputation has reached −20: add City 77 and Road 68 to the event decks.", "#events"] },
-  // Listed only once it's ready: its two achievements would spoil it.
-  { id: "drake", name: "City 75, Road 66", need: 2, shown: m => m.drakes >= 2,
-    have: m => m.drakes, open: m => m.cityHas.has("the-drake-aided"),
-    todo: () => ["The Drake's Command and The Drake's Treasure: add City 75 and Road 66 to the event decks, and gain The Drake Aided.", "#record"] },
+  // The ledger opens it the moment the party holds both of the Drake's
+  // achievements; listed only once open, as its count would spoil them.
+  { id: "drake", name: "City 75, Road 66", need: DRAKE_AIDED.needs.length, shown: m => m.cityHas.has(DRAKE_AIDED.gains),
+    have: m => m.drakes, open: m => m.cityHas.has(DRAKE_AIDED.gains) },
   { id: "envelope-x", name: "Envelope X", need: 0, what: "Sealed", have: () => 0, open: m => Boolean(m.city.envelopeX) },
 ];
 
@@ -179,7 +179,7 @@ function milestoneStates(data) {
     low: Math.min(rep, data.ledger?.reputation?.low ?? rep),
     unlocked: new Set(data.classes.map(u => u.id)),
     cityHas: new Map(data.achievements.global.map(a => [a.id, a.count || 1])),
-    drakes: ["the-drakes-command", "the-drakes-treasure"].filter(id => partyHas.has(id)).length,
+    drakes: DRAKE_AIDED.needs.filter(id => partyHas.has(id)).length,
     inDecks: (deck, n) => Boolean(data.eventState?.decks?.[deck]?.has(n) || data.eventState?.removed?.[deck]?.has(n)),
   };
   return MILESTONES.map(x => {

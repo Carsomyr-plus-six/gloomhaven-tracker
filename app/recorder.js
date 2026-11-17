@@ -189,13 +189,15 @@ function recorderContext(data) {
   };
 
   // A scenario's name (with its rewards, on a success) under its number.
-  const scenarioNameText = s => {
+  // res: the draft applied, which says how tonight's earlier scenarios
+  // left the campaign for this one.
+  const scenarioNameText = (s, res) => {
     const n = num(s.number);
     if (!n) return "";
     const info = scenarioRef?.scenarios?.[String(n)];
     if (!info) return "Not a scenario number.";
     const rewards = describeRewards(info.rewards);
-    const casual = isCasual(s, data);
+    const casual = isCasual(s, res.asOf.get(s) || data);
     if (casual) return `${info.name} · casual mode: XP, gold, loot, battle goals and quest progress, but no rewards or unlocks`;
     return `${info.name}${s.result === "success" && rewards.length ? ` · rewards: ${rewards.join(", ")}` : ""}`;
   };
@@ -215,7 +217,7 @@ function recorderContext(data) {
     const res = applyDraft(rawCampaign, d, data, { level: fallbackLevel });
     for (const el of document.querySelectorAll("[data-sc-name]")) {
       const s = d.scenarios[num(el.dataset.scName)];
-      if (s) el.textContent = scenarioNameText(s);
+      if (s) el.textContent = scenarioNameText(s, res);
     }
     const derived = after(res);
     for (const el of document.querySelectorAll("[data-ev-note]")) {
@@ -332,7 +334,7 @@ function recorderEvening(f) {
 // Scenarios played, each with its level, result, what each character took,
 // treasure and rewards; and one a personal quest opens.
 function recorderScenarios(f) {
-  const { data, d, fallbackLevel, rerender, set, field, text, select, focusOn, remove, addButton, party, partyOptions, available, scenarioNameText, gainText } = f;
+  const { data, d, fallbackLevel, rerender, set, field, text, select, focusOn, remove, addButton, party, partyOptions, available, scenarioNameText, gainText, first } = f;
   // Playable scenarios not already in this draft.
   const pickable = i => available.filter(sc => !d.scenarios.some((x, j) => j !== i && num(x.number) === sc.number));
   // A scenario's treasure tiles not looted before or already in this row.
@@ -349,9 +351,10 @@ function recorderScenarios(f) {
   const scenarioBlock = (s, i) => {
     const n = num(s.number);
     s.level ??= String(draftLevel(s, fallbackLevel));
-    const known = data.scenarios.find(x => x.number === n);
-    const casualOk = Boolean(known);
-    const casual = isCasual(s, data);
+    // As tonight's earlier scenarios left it: one they opened can be ticked.
+    const now = first.asOf.get(s) || data;
+    const casualOk = now.scenarios.some(x => x.number === n);
+    const casual = isCasual(s, now);
     const st = scenarioStats(draftLevel(s, fallbackLevel));
     return h("fieldset", { class: "card rec-block" },
       h("legend", {}, `Scenario ${i + 1}`),
@@ -367,7 +370,7 @@ function recorderScenarios(f) {
       // Its name, kept current as you type; and while it's empty, the
       // scenarios the party can play, to tap (phones don't list a number
       // box's suggestions).
-      h("p", { class: "small muted", "data-sc-name": i }, scenarioNameText(s)),
+      h("p", { class: "small muted", "data-sc-name": i }, scenarioNameText(s, first)),
       !n && (pickable(i).length || replayable.length) ? h("div", { class: "rec-picks", "data-sc-picks": i, role: "group", "aria-label": "Playable scenarios" },
         [...pickable(i), ...(showReplays ? replayable : [])].map(sc => h("button", { type: "button", class: "chip", "data-key": `sc-${i}-pick-${sc.number}`,
           onclick: () => { s.number = String(sc.number); showReplays = false; rerender(); focusOn(party.length ? `sc-${i}-${party[0].name}-xp` : `sc-${i}-r`); } },

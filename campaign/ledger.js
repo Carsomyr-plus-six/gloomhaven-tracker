@@ -305,10 +305,24 @@ function ledgerContext(data) {
                    // character, not to the shop; and those whose finder isn't known.
                    found: [], claims: [] };
   const note = (entry, where) => { if (where && !entry.where.includes(where)) entry.where.push(where); };
-  const gainAchievement = (kind, rawId, where) => {
+  // byHand: one campaign.json lists by hand ({ name, count, notes }).
+  // once: one the campaign gains only once (The Drake Aided).
+  let drakeAided = false;
+  const gainAchievement = (kind, rawId, where, byHand = null, once = false) => {
     const id = String(rawId).split(":")[0];
-    const name = achievementName(kind, id);
+    const name = byHand?.name || achievementName(kind, id);
     const list = record[kind];
+    const stacks = achievementStacks(kind, id);
+    // One listed by hand that's now worked out too: counted once, and asked
+    // about. One that can be held more than once is the same one only if
+    // the hand says it came from the same place, or it comes only once.
+    const held = list.get(id);
+    if (held?.byHand && !byHand && (!stacks || once || held.where.includes(where))) {
+      questions.push(`Record: ${held.name} is worked out from ${where}. Remove it from campaign.json.`);
+      held.byHand = false;
+      held.where = [...held.where.filter(w => w !== "added by hand" && w !== where), where];
+      return;
+    }
     // "City Rule: Economic" replaces any other City Rule; likewise Artifact:
     // a group by its ids (city-rule-economic), not by how its name reads.
     const group = kind === "global" ? ACHIEVEMENT_GROUPS.find(g => id.startsWith(g)) : null;
@@ -316,10 +330,16 @@ function ledgerContext(data) {
       list.delete(other);
       record.lost.push({ ...a, kind, where: a.where.join(", "), how: `replaced by ${name}`, at: where });
     }
-    const entry = list.get(id) || { id, name, count: 0, where: [] };
-    entry.count++;
+    const entry = list.get(id) || { id, name, count: 0, where: [], ...(byHand ? { byHand: true, notes: byHand.notes } : {}) };
+    entry.count = stacks ? entry.count + (byHand?.count || 1) : 1;
     note(entry, where);
     list.set(id, entry);
+    // Both of the Drake's: The Drake Aided, and its two events, once.
+    if (kind === "party" && !drakeAided && DRAKE_AIDED.needs.every(n => list.has(n))) {
+      drakeAided = true;
+      gainAchievement("global", DRAKE_AIDED.gains, where, null, true);
+      for (const [deck, n] of DRAKE_AIDED.events) addCard(deck, n, achievementName("global", DRAKE_AIDED.gains));
+    }
   };
   // By id: the update script turns the source's names into ids.
   const loseAchievement = (kind, id, at) => {
@@ -601,20 +621,33 @@ function ledgerRetirements(ledger) {
   }
 }
 
-// What the file lists by hand.
+// Achievements the file lists by hand: from before the record began, so
+// gained first, and replaced or lost by what came after as any other is.
+// Global ones first: The Drake Aided listed by hand is then already there
+// when the Drake's two party achievements are.
+function ledgerAchievementsByHand(ledger) {
+  const { data, gainAchievement } = ledger;
+  for (const [kind, entries] of [["global", data.city.globalAchievements], ["party", data.party.achievements]]) {
+    for (const a of entries) {
+      const item = typeof a === "string" ? { name: a } : a;
+      // By the reference data's id or its exact name; anything else keeps
+      // its own name as its id, so it can't pass for one the data has (and
+      // the Campaign record asks about it).
+      const named = Object.entries(scenarioRef?.achievements?.[kind] || {}).find(([, n]) => n === item.name)?.[0];
+      const where = item.scenario != null ? `#${item.scenario}` : "added by hand";
+      gainAchievement(kind, item.id || named || item.name, where, { name: item.name, count: item.count, notes: item.notes });
+    }
+  }
+}
+
+// Designs and classes the file lists by hand.
 function ledgerByHand(ledger) {
   const { data, questions, record, classIdOf, unlockClass } = ledger;
   // What campaign.json lists by hand: things nothing above accounts for.
   const byHand = (list, entries, kind) => {
     for (const a of entries) {
       const item = typeof a === "string" ? { name: a } : a;
-      // By the reference data's id or its exact name; anything else keeps
-      // its own name as its id, so it can't pass for one the data has (and
-      // the Campaign record asks about it).
-      const named = kind === "party" || kind === "global"
-        ? Object.entries(scenarioRef?.achievements?.[kind] || {}).find(([, n]) => n === item.name)?.[0] : null;
-      const id = kind === "classes" ? classIdOf(item.name)
-               : kind === "designs" ? item.name : item.id || named || item.name;
+      const id = kind === "classes" ? classIdOf(item.name) : item.name;
       const where = item.scenario != null ? `#${item.scenario}` : "added by hand";
       if (kind === "classes" && !id) continue;
       if (list.has(id)) {
@@ -627,8 +660,6 @@ function ledgerByHand(ledger) {
       }
     }
   };
-  byHand(record.party, data.party.achievements, "party");
-  byHand(record.global, data.city.globalAchievements, "global");
   byHand(record.designs, data.city.itemDesigns, "designs");
   byHand(record.classes, data.city.unlockedClasses, "classes");
 }
@@ -656,10 +687,11 @@ function ledgerStoredTotals(ledger) {
 const LEDGER_STEPS = [
   ledgerStartingClasses,  // the six classes open from the start
   ledgerTimeline,         // the order things happened
+  ledgerAchievementsByHand, // achievements listed by hand, from before the record
   ledgerReplay,           // scenarios, events and adjustments, in that order
   ledgerEnvelopeB,        // Envelope B and the donations it counts
   ledgerRetirements,      // retirements: prosperity, events, quest draws
-  ledgerByHand,           // achievements, designs and classes listed by hand
+  ledgerByHand,           // designs and classes listed by hand
   ledgerDecksByHand,      // event cards added or removed by hand
   ledgerStoredTotals,     // an older file's own totals, compared
 ];
@@ -742,6 +774,9 @@ function deriveScenarios(data, eventUnlocks = []) {
     const unmet = info.requirements ? unmetRequirements(info.requirements, have) : null;
     if (unmet) s.reasons.push(unmet);
     s.status = entry.status === "blocked" || s.reasons.length ? "blocked" : "available";
+    // Not yet: all that stands in its way is an achievement still to be
+    // gained, which the campaign may yet bring. Blocked for good otherwise.
+    if (unmet && !blockers.length && entry.status !== "blocked" && couldYetMeet(info.requirements, have)) s.waiting = true;
     return s;
   });
 }

@@ -248,6 +248,14 @@ function isCasual(s, data) {
 
 // Global achievements of which the party holds one at a time, by id prefix.
 const ACHIEVEMENT_GROUPS = ["city-rule-", "artifact-"];
+// Only a global achievement without a type can be held more than once
+// (rulebook p. 40): another of a party achievement, or of a typed one,
+// changes nothing.
+const achievementStacks = (kind, id) => kind === "global" && !ACHIEVEMENT_GROUPS.some(g => String(id).startsWith(g));
+// A party holding both of these gains The Drake Aided, and City 75 and
+// Road 66 go into the decks (rulebook p. 49).
+const DRAKE_AIDED = { needs: ["the-drakes-command", "the-drakes-treasure"], gains: "the-drake-aided",
+                      events: [["city", 75], ["road", 66]] };
 
 function achievementName(kind, id) {
   return scenarioRef?.achievements?.[kind]?.[id] || id;
@@ -333,6 +341,16 @@ function unmetRequirements(requirements, have) {
     failures.push(unmet.join(" and "));
   }
   return `Needs ${failures.join(", or ")}`;
+}
+
+// Whether requirements not met now could still be: some alternative wants
+// only achievements gained, none held that it wants incomplete.
+function couldYetMeet(requirements, have) {
+  return requirements.some(alternative => Object.entries(alternative).every(([kind, values]) =>
+    values.filter(v => v.startsWith("!")).every(v => {
+      const [id, times] = v.slice(1).split(":");
+      return (have[kind]?.get(id) || 0) < Number(times || 1);
+    })));
 }
 
 function describeRewards(rewards) {
