@@ -43,6 +43,13 @@ async function eveningTests({ load, same, copy, written, raw, draft, apply, res,
   const ringLeft =file => buildData(copy(file)).shop.stock.find(i => i.name === "Ring of Skulls")?.left ?? 0;
   const ringBought = evening(ringSold, { date: "2026-11-27", buys: [{ character: "Craig", item: "Ring of Skulls" }] });
   const azoricaRetires = evening(raw, { retirements: [{ character: "Azorica", unlocks: "envelope-x" }] });
+  // Her retirement adds the Spellweaver's events, which shuffles both decks
+  // that day: cards returned before it are no longer known to be at the
+  // bottom, one returned after still is.
+  const laterDraw = copy(azoricaRetires);
+  laterDraw.events.push({ deck: "road", number: 2, option: "A", card: "returned", date: "2026-12-01" });
+  same("decks: a retirement's events shuffle the decks on its day",
+    [buildData(copy(azoricaRetires)).eventState.bottom, buildData(laterDraw).eventState.bottom], [{ city: [], road: [] }, { city: [], road: [2] }]);
   same("shop: a copy sold comes back, bought back goes, and a retiree's items return",
     [ringLeft(raw), ringLeft(ringSold), ringLeft(ringBought), ringLeft(azoricaRetires),
      buildData(copy(ringBought)).characters.find(c => c.name === "Craig").items.includes("Ring of Skulls"),
@@ -229,6 +236,18 @@ async function eveningTests({ load, same, copy, written, raw, draft, apply, res,
     return [toFile(res.out).sessions.at(-1).scenarios.map(p => [p.number, Boolean(p.casual)]),
       res.warnings.filter(w => /blocked|unlocked|casual/i.test(w))];
   };
+  // One city event a visit, one road event a journey, and a card once.
+  const drawWarns = (scenarios, ...events) => warnsOf({ party, scenarios, events: events.map(([deck, number, scenario]) =>
+    ({ deck, number: String(number), option: "A", ...(scenario ? { scenario } : {}) })) })
+    .filter(w => /visit|journey|earlier tonight/.test(w));
+  same("events: one city event a visit, one road event a journey, each card once",
+    [drawWarns([], ["city", 2], ["city", 3]), drawWarns([], ["road", 2], ["road", 3]), drawWarns(twice, ["city", 2], ["city", 3, "after"]), drawWarns(twice, ["road", 2], ["road", 3]),
+     drawWarns(twice, ["city", 2], ["city", 2, "after"])],
+    [["City 3: City 2 was drawn on the same visit to town: one city event a visit."],
+     ["Road 3: Road 2 was drawn on the way already: one road event a journey."], [],
+     ["Road 3: Road 2 was drawn on the way to #6 already: one road event a journey."],
+     ["City 2 was drawn earlier tonight, then removed or put at the bottom of the deck. Check the number."]]);
+
   same("scenarios: tonight's earlier ones open, and block, the later ones",
     [tonight(23, 26), tonight(11, 12)],
     [[[[23, false], [26, false]], []], [[[11, false], [12, true]], []]]);

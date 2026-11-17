@@ -121,6 +121,26 @@ function possibleOutcomes(options, letter, ctx, pinned, depth = 0) {
   });
 }
 
+// Why a card drawn now is unlikely to be the one drawn, most likely a
+// mistyped number: it isn't in the event data, or in its deck, or it went
+// to the bottom with cards still to come above it (p. 39). null if none.
+// state: the ledger's decks (data.eventState).
+function drawDoubt(state, deck, number) {
+  const label = eventLabel(deck, number);
+  if (!classRef?.events?.[deck]?.[String(number)]) return `${label} isn't in the event data.`;
+  if (!state?.decks?.[deck]) return null;
+  if (!state.decks[deck].has(number)) {
+    const why = state.removed?.[deck]?.get(number);
+    const how = !why ? "" : why.startsWith(label) ? ": it was removed when it was drawn before"
+      : why === "removed by hand" ? ": it was removed by hand" : `: it was removed (${why})`;
+    return `${label} isn't in the ${deck} deck now${how}. Check the number.`;
+  }
+  const bottom = state.bottom?.[deck] || [];
+  const at = bottom.indexOf(number);
+  const above = at < 0 ? 0 : state.decks[deck].size - bottom.length + at;
+  return above ? `${label} went to the bottom of the deck when it was drawn before, under ${plural(above, "card")} still to come. Check the number.` : null;
+}
+
 // What a recorded event's chosen option did for the characters there: the
 // effects whose conditions are met. null when which outcome applied can't be
 // told from what's recorded.
@@ -269,9 +289,9 @@ const settledPart = r => r.lo > 0 ? r.lo : r.hi < 0 ? r.hi : 0;
 function deriveCampaign(data) {
   const ledger = ledgerContext(data);
   for (const step of LEDGER_STEPS) step(ledger);
-  const { decks, added, removed, history, questions, unlocks, totals, record } = ledger;
+  const { decks, added, removed, bottom, history, questions, unlocks, totals, record } = ledger;
   const list = map => [...map.values()].map(a => ({ ...a, where: a.where.join(", ") }));
-  return { decks, added, removed, history, questions, unlocks, totals,
+  return { decks, added, removed, bottom, history, questions, unlocks, totals,
            record: { party: list(record.party), global: list(record.global), designs: list(record.designs),
                      classes: list(record.classes), draws: record.draws, treasures: record.treasures,
                      found: record.found, claims: record.claims, lost: record.lost } };
@@ -283,10 +303,15 @@ function ledgerContext(data) {
   const decks = {};
   const added = {};
   const removed = {};
+  // The cards at the bottom of each deck, top first: each returned there
+  // since the deck was last shuffled (rulebook p. 39). The rest of the
+  // deck lies above them, in an order no one knows.
+  const bottom = {};
   for (const deck of Object.keys(DECK_NAMES)) {
     decks[deck] = new Set(classRef?.startingDecks?.[deck] || []);
     added[deck] = new Map();
     removed[deck] = new Map();
+    bottom[deck] = [];
   }
   const history = [];
   const questions = [];
@@ -366,15 +391,24 @@ function ledgerContext(data) {
       if (!removed[deck].has(n)) addCard(deck, n, `${className(id)} unlocked`);
     }
   };
-  const addCard = (deck, number, source) => {
+  // A card added is shuffled in, and the deck with it: nothing is known to
+  // be at the bottom any more (p. 39). One added on a known day, after the
+  // replay (a retirement), keeps those returned to the bottom on a later day.
+  const bottomSince = new Map();   // "road:15" -> the day it went to the bottom, if known
+  const addCard = (deck, number, source, on = null) => {
+    if (decks[deck] && !decks[deck].has(number)) {
+      bottom[deck] = on ? bottom[deck].filter(n => (bottomSince.get(`${deck}:${n}`) || "") > on) : [];
+    }
     decks[deck]?.add(number);
     added[deck]?.set(number, source);
     removed[deck]?.delete(number);
   };
   const removeCard = (deck, number, source) => {
+    if (bottom[deck]) bottom[deck] = bottom[deck].filter(n => n !== number);
     decks[deck]?.delete(number);
     removed[deck]?.set(number, source);
   };
+  const reached = new Set();   // the reputations whose events are in
   const gain = (key, range, label, forGood = false) => {
     if (!range.lo && !range.hi) return;
     const t = totals[key];
@@ -390,6 +424,12 @@ function ledgerContext(data) {
     if (key === "reputation") hold(-20, 20);
     // The highest and lowest reputation reached: milestones count once reached.
     if (key === "reputation") { t.peak = Math.max(t.peak ?? 0, t.value); t.low = Math.min(t.low ?? 0, t.value); }
+    // Reaching +20 or −20: two events into the decks, the first time.
+    if (key === "reputation") for (const r of REPUTATION_EVENTS) {
+      if (reached.has(r.at) || (r.at > 0 ? t.value < r.at : t.value > r.at)) continue;
+      reached.add(r.at);
+      for (const [deck, n] of r.events) addCard(deck, n, `reputation ${signed(r.at)}`);
+    }
     if (key === "prosperity" && range.lo < 0) hold(CHECKMARKS_FOR_PROSPERITY[stepFor(before, CHECKMARKS_FOR_PROSPERITY) - 1], Infinity);
     t.entries.push({ label, range });
     if (!isExact(range)) (forGood ? t.unknown : t.unsure).push(label);
@@ -397,7 +437,7 @@ function ledgerContext(data) {
   // Who looted each treasure tile, by the line for it in their log.
   const looters = treasureLooters(data.characters);
   // What the steps take (note and isNumber stay with the helpers that use them).
-  return { data, decks, added, removed, history, questions, unlocks, totals, record, gainAchievement, loseAchievement,
+  return { data, decks, added, removed, bottom, bottomSince, history, questions, unlocks, totals, record, gainAchievement, loseAchievement,
            addDesign, classInfo, classIdOf, unlockClass, addCard, removeCard, gain, looters };
 }
 
@@ -419,6 +459,14 @@ function ledgerEvent(ledger, e) {
   const fates = new Set(found.map(o => o.card));
   const fate = e.card || (fates.size === 1 ? [...fates][0] : null);
   if (fate === "removed") removeCard(e.deck, e.number, e.option ? `${label}, option ${e.option}` : label);
+  // Returned: to the bottom, not shuffled in (p. 39), noting the day (the
+  // event's, else its scenario's). Not known: somewhere.
+  const rest = ledger.bottom[e.deck].filter(n => n !== e.number);
+  const doneOn = n => n == null ? null : ledger.played.find(s => s.number === n)?.completed || null;
+  if (fate === "returned" && ledger.decks[e.deck].has(e.number)) {
+    ledger.bottom[e.deck] = [...rest, e.number];
+    ledger.bottomSince.set(`${e.deck}:${e.number}`, e.date || doneOn(e.scenario) || doneOn(e.after));
+  } else if (fate !== "removed") ledger.bottom[e.deck] = rest;
 
   const inAll = list => found.length ? found[0][list].filter(x => found.every(o => o[list].some(y => JSON.stringify(y) === JSON.stringify(x)))) : [];
   const adds = inAll("adds");
@@ -606,7 +654,7 @@ function ledgerRetirements(ledger) {
   for (const c of data.characters.filter(c => c.retired)) {
     gain("prosperity", exact(1), `${c.name} retired`);
     const n = classInfo(classIdOf(c.class))?.retireEvent;
-    if (n) for (const deck of ["city", "road"]) if (!removed[deck].has(n)) addCard(deck, n, `${c.name} retired`);
+    if (n) for (const deck of ["city", "road"]) if (!removed[deck].has(n)) addCard(deck, n, `${c.name} retired`, c.retiredOn || null);
     // Their quest opened a box already open: a random design and scenario.
     const q = c.questDraws;
     if (q) {
@@ -667,7 +715,14 @@ function ledgerByHand(ledger) {
 // Cards added to or taken from the event decks by hand.
 function ledgerDecksByHand(ledger) {
   const { data, addCard, removeCard } = ledger;
-  for (const a of data.eventDecks.added) addCard(a.deck, a.number, a.notes || "added by hand");
+  for (const a of data.eventDecks.added) {
+    // One in the deck already is asked about; one since removed (drawn, or
+    // taken out by hand) can be put back.
+    if (ledger.decks[a.deck]?.has(a.number)) {
+      const why = ledger.added[a.deck]?.get(a.number) || "a starting card";
+      ledger.questions.push(`Record: ${eventLabel(a.deck, a.number)} is in the deck already (${why}). Remove it from "eventDecks" in campaign.json.`);
+    } else addCard(a.deck, a.number, a.notes || "added by hand");
+  }
   for (const r of data.eventDecks.removed) removeCard(r.deck, r.number, r.notes || "removed by hand");
 }
 

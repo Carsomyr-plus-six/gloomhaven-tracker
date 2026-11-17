@@ -261,7 +261,10 @@ function eveningWhoPlayed(ctx) {
 
 function eveningEvents(ctx) {
   const { out, d, data, log, warnings, who, happening, eventGain, party, played, asOf, firstScenario, lastCompleted } = ctx;
-  // Events, in the order drawn.
+  // Events, in the order drawn. Tonight's draws so far: each card, each
+  // visit to town's city event, and each journey's road event.
+  const drawnTonight = new Set();
+  const visits = new Map();
   for (const e of d.events.filter(e => num(e.number))) {
     const entry = { deck: e.deck, number: num(e.number) };
     // The evening it was drawn, so the session log shows it there, even when
@@ -295,14 +298,22 @@ function eveningEvents(ctx) {
     // Only from town: the first scenario tonight. Travelling on from an
     // earlier one needs a road event unless the two are linked (p. 41).
     else if (toward && toward === played[0] && !needsRoadEvent(entry.scenario)) warnings.push(`${eventLabel(e.deck, entry.number)}: #${entry.scenario} is linked to Gloomhaven, so it takes no road event from town.`);
-    if (!classRef?.events?.[e.deck]?.[String(entry.number)]) warnings.push(`${eventLabel(e.deck, entry.number)} isn't in the event data.`);
-    // A card that isn't in its deck can't be drawn: most likely a typo.
-    else if (data.eventState?.decks?.[e.deck] && !data.eventState.decks[e.deck].has(entry.number)) {
-      const label = eventLabel(e.deck, entry.number);
-      const why = data.eventState.removed?.[e.deck]?.get(entry.number);
-      const how = !why ? "" : why.startsWith(label) ? ": it was removed when it was drawn before" : `: it was removed by ${why}`;
-      warnings.push(`${label} isn't in the ${e.deck} deck now${how}. Check the number.`);
-    }
+    // A card that isn't in its deck, or lies at its bottom, isn't the one
+    // drawn: most likely a typo. Nor is one drawn earlier tonight, since
+    // removed or put at the bottom.
+    const drawn = eventLabel(e.deck, entry.number);
+    const doubt = drawDoubt(data.eventState, e.deck, entry.number);
+    if (doubt) warnings.push(doubt);
+    else if (drawnTonight.has(drawn)) warnings.push(`${drawn} was drawn earlier tonight, then removed or put at the bottom of the deck. Check the number.`);
+    drawnTonight.add(drawn);
+    // One city event a visit to town (p. 43), and a visit follows each
+    // scenario; one road event a journey to a scenario (p. 41).
+    const stop = e.deck === "road" ? `road:${entry.scenario}`
+      : `city:${entry.scenario ? played.findIndex(s => num(s.number) === entry.scenario) : played.length}`;
+    if (visits.has(stop)) warnings.push(e.deck === "road"
+      ? `${drawn}: ${visits.get(stop)} was drawn on the way ${entry.scenario ? `to #${entry.scenario} ` : ""}already: one road event a journey.`
+      : `${drawn}: ${visits.get(stop)} was drawn on the same visit to town: one city event a visit.`);
+    else visits.set(stop, drawn);
     if (!e.option) warnings.push(`${eventLabel(e.deck, entry.number)}: no option chosen.`);
     out.events.push(entry);
     log.push(`${eventLabel(e.deck, entry.number)} drawn${e.option ? `, option ${e.option}` : ""}${entry.scenario ? `, before #${entry.scenario}` : ""}`);

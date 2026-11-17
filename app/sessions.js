@@ -22,7 +22,7 @@ function renderSessions(data) {
   // An event drawn on the way to a scenario, or in town around it, as a row
   // of its own in the evening's order: a small card, then what it did.
   const eventRow = e => h("li", { class: "played-event" },
-    h("a", { class: "played-link", href: "#events" },
+    h("a", { class: "played-link", href: "#events", onclick: () => pickEvent(e.deck, e.number) },
       h("span", { class: `ev-card ${e.deck}`, "aria-hidden": "true" }, h("b", {}, e.number)),
       h("span", { class: "played-text" },
         // The card shows the number; the words say which deck.

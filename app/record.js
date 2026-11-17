@@ -9,37 +9,22 @@ function optionBadge(e) {
   return h("span", { class: `opt${e.option ? "" : " unknown"}`, role: "img", title: said, "aria-label": said }, e.option || "?");
 }
 
+// Each deck as a small card per card it has held, in number order (those
+// added after the box's first thirty, after a gap), each marked by what's
+// happened to it: drawn (a dot), removed (struck through), at the bottom
+// (green, with its place), a question to answer (brass). Tapping one tells
+// its story below: where it is, and every time it was drawn.
 function renderEvents(data) {
   const ev = data.eventState;
   if (!ev) return null;
-
-  const deckCard = deck => {
-    const sorted = map => [...map].sort((a, b) => a[0] - b[0]);
-    const added = sorted(ev.added[deck]);
-    const removed = sorted(ev.removed[deck]);
-    const summary = capitalize([
-      added.length ? `added ${added.map(([n]) => n).join(", ")}` : null,
-      removed.length ? `removed ${removed.map(([n]) => n).join(", ")}` : null,
-    ].filter(Boolean).join(" · "));
-    const line = (verb, [number, source]) =>
-      h("li", {}, `${verb} ${eventLabel(deck, number)}`, h("span", { class: "muted" }, ` · ${source}`));
-    return h("div", { class: "card deck" },
-      h("div", { class: "deck-top" },
-        h("span", { class: "label" }, `${DECK_NAMES[deck]} deck`),
-        h("span", { class: "figure" }, ev.decks[deck].size)),
-      summary
-        ? h("details", {}, h("summary", {}, summary),
-            h("ul", {}, added.map(a => line("Added", a)), removed.map(r => line("Removed", r))))
-        : h("span", { class: "small muted" }, "No changes yet"));
-  };
 
   const question = q => {
     const [label, ...rest] = q.split(": ");
     return rest.length ? nudge("question", `${label} needs an answer`, capitalize(rest.join(": "))) : nudge("question", q);
   };
 
-  // A question about a drawn event is asked on that event's row, so the
-  // list says it once; any other question stays a box above the list.
+  // A question about a drawn event is asked in that card's story, and the
+  // card says there's one; any other question stays a box above the decks.
   const asks = new Map();
   const loose = [];
   for (const q of ev.questions) {
@@ -50,35 +35,104 @@ function renderEvents(data) {
     asks.set(row, [...(asks.get(row) || []), extra + capitalize(rest.join(": "))]);
   }
 
-  const drawn = e => {
-    const detail = [
-      e.effects.length ? capitalize(e.effects.join(", ")) : null,
-      !e.effects.length && e.adds.length ? `added ${e.adds.map(([d, n]) => eventLabel(d, n)).join(", ")}` : null,
-      e.scenario ? `before #${e.scenario}` : null,
-    ].filter(Boolean).join(" · ");
-    return h("li", {},
-      h("strong", {}, e.label, optionBadge(e)),
-      // What was recorded at full strength, and notes quietly; the badge
-      // says when the option is missing, so a list of unrecorded draws
-      // doesn't spell out its gaps.
-      h("span", {}, detail || null,
-        e.notes ? h("div", { class: "small muted" }, e.notes) : null,
-        (asks.get(e) || []).map(text => h("div", { class: "ask" }, icon("question"), text))),
-      h("span", { class: `fate ${e.fate || (e.unknown ? "unknown" : "open")}` },
-        // The icon printed on event cards, and the word: the two icons look
-        // alike at this size.
-        e.fate ? [gameIcon(`event-${e.fate}`), h("span", { class: "fate-word" }, capitalize(e.fate))] : e.unknown ? "Not known" : "Needs an answer"));
+  const deckCard = deck => {
+    const draws = n => ev.history.filter(e => e.deck === deck && e.number === n);
+    const asked = n => draws(n).some(e => asks.has(e));
+    const starting = classRef?.startingDecks?.[deck] || [];
+    const all = [...new Set([...starting, ...ev.added[deck].keys(), ...ev.removed[deck].keys(), ...ev.history.filter(e => e.deck === deck).map(e => e.number)])]
+      .sort((a, b) => a - b);
+    const bottom = ev.bottom?.[deck] || [];
+    // Where a card is now, in words: for its story and screen readers.
+    const where = n => {
+      const label = eventLabel(deck, n);
+      const removed = ev.removed[deck].get(n);
+      if (removed) return removed.startsWith(label) ? "Removed when drawn" : removed === "removed by hand" ? "Removed by hand" : `Removed: ${removed}`;
+      // Drawn last with no fate: it may be out of the deck.
+      const last = draws(n).at(-1);
+      if (last && !last.fate) return last.unknown ? "Removed or returned: not known" : "Removed or returned: say which";
+      const at = bottom.indexOf(n);
+      if (at >= 0) {
+        const above = ev.decks[deck].size - bottom.length + at;
+        return above ? `At the bottom, under ${plural(above, "card")} still to come` : "Next to be drawn";
+      }
+      return draws(n).length ? "Back in the deck, somewhere in it" : "In the deck, not drawn yet";
+    };
+    // The card shown: the one picked, else the first with a question, else
+    // the last drawn.
+    const fromDeck = ev.history.filter(e => e.deck === deck);
+    const shown = all.includes(eventPick[deck]) ? eventPick[deck]
+      : (fromDeck.find(e => asks.has(e)) || fromDeck.at(-1))?.number ?? null;
+
+    const tile = n => {
+      const out = ev.removed[deck].has(n);
+      const at = out ? -1 : bottom.indexOf(n);
+      const kind = [out ? "out" : null, at >= 0 ? "low" : null, asked(n) ? "ask" : null, draws(n).length ? "seen" : null].filter(Boolean);
+      const said = [eventLabel(deck, n), where(n), ev.added[deck].has(n) ? `added: ${ev.added[deck].get(n)}` : null,
+        asked(n) ? "a question to answer" : null].filter(Boolean).join(", ");
+      return h("button", { type: "button", class: ["ev-tile", ...kind].join(" "), "data-key": `ev-${deck}-${n}`, "aria-pressed": String(n === shown),
+          "aria-label": said, title: said, onclick: () => {
+            eventPick[deck] = n;
+            render(data, "events");
+            announce(`${where(n)}. ${draws(n).length ? `Drawn ${draws(n).length === 1 ? "once" : `${draws(n).length} times`}.` : ""}`);
+          } },
+        h("b", {}, n),
+        at >= 0 ? h("small", { class: "place", "aria-hidden": "true" }, at + 1) : null,
+        asked(n) ? h("small", { class: "mark", "aria-hidden": "true" }, "?") : null);
+    };
+
+    // Its story: where it is, how it came into the deck, each time drawn.
+    const story = n => {
+      if (n == null) return h("p", { class: "ev-story small muted" }, "No card drawn yet.");
+      const added = ev.added[deck].get(n);
+      const drawn = draws(n);
+      const when = e => [e.date ? formatDate(e.date) : null, e.scenario ? `before #${e.scenario}` : e.after ? `after #${e.after}` : null].filter(Boolean).join(", ");
+      return h("div", { class: "ev-story" },
+        h("div", { class: "ev-story-head" }, h("strong", {}, eventLabel(deck, n)), h("span", {}, where(n))),
+        added ? h("p", { class: "small muted" }, added === "added by hand" ? "Added by hand" : `Added: ${added}`) : null,
+        drawn.length ? h("ul", { class: "ev-draws" }, drawn.map(e => {
+          const detail = [
+            e.effects.length ? capitalize(e.effects.join(", ")) : null,
+            !e.effects.length && e.adds.length ? `Added ${e.adds.map(([d, x]) => eventLabel(d, x)).join(", ")}` : null,
+          ].filter(Boolean).join(" · ");
+          return h("li", {},
+            optionBadge(e),
+            h("span", {},
+              detail || null,
+              when(e) ? h("span", { class: "when" }, detail ? ` · ${when(e)}` : capitalize(when(e))) : null,
+              !detail && !when(e) ? h("span", { class: "when" }, "Drawn") : null,
+              e.notes ? h("div", { class: "small muted" }, e.notes) : null,
+              (asks.get(e) || []).map(text => h("div", { class: "ask" }, icon("question"), text))),
+            h("span", { class: `fate ${e.fate || (e.unknown ? "unknown" : "open")}` },
+              // The icon printed on event cards, and the word: the two icons
+              // look alike at this size.
+              e.fate ? [gameIcon(`event-${e.fate}`), h("span", { class: "fate-word" }, capitalize(e.fate))] : e.unknown ? "Not known" : "Needs an answer"));
+        })) : null,
+        // Past events can't be answered on the page, so say where the answer goes.
+        drawn.some(e => asks.has(e)) ? h("p", { class: "small muted how" },
+          codeText('To answer, add `"option": "A"` or `"B"` to that event in the `"events"` list of `campaign.json`; the page works out the rest.')) : null);
+    };
+
+    return h("div", { class: "card deck" },
+      h("div", { class: "deck-top" },
+        h("span", { class: "label" }, `${DECK_NAMES[deck]} deck`),
+        h("span", { class: "figure" }, ev.decks[deck].size)),
+      h("div", { class: "ev-tiles", role: "group", "aria-label": `${DECK_NAMES[deck]} deck: ${ev.decks[deck].size} cards` },
+        all.filter(n => starting.includes(n)).map(tile),
+        all.some(n => !starting.includes(n)) ? [h("span", { class: "ev-gap", "aria-hidden": "true" }), all.filter(n => !starting.includes(n)).map(tile)] : null),
+      story(shown));
   };
 
   return [
     sectionHead("Event decks", ev.history.length ? `${plural(ev.history.length, "event")} drawn` : null),
-    h("div", { class: "decks" }, Object.keys(DECK_NAMES).map(deckCard)),
     loose.map(question),
-    ev.history.length ? h("ul", { class: "drawn" }, ev.history.map(drawn)) : null,
-    // Past events can't be answered on the page, so say where the answer goes.
-    asks.size ? h("p", { class: "small muted how" },
-      codeText('To answer, add `"option": "A"` or `"B"` to that event in the `"events"` list of `campaign.json`; the page works out the rest.')) : null,
+    h("div", { class: "decks" }, Object.keys(DECK_NAMES).map(deckCard)),
   ];
+}
+
+// Show a card's story under its deck: from Sessions, an event drawn there.
+function pickEvent(deck, number) {
+  eventPick[deck] = number;
+  if (latestData) render(latestData, "events");
 }
 
 // --- Campaign record ---------------------------------------------------------
