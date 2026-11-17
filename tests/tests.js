@@ -191,6 +191,18 @@ async function runTests(load, loadText) {
      says(warnsOf({ enhancements: enhance(prosperity - stickers + 1) }), "can be enhanced"),
      says(warnsOf({ party, scenarios: won51, enhancements: enhance(raised - stickers) }), "can be enhanced")],
     [true, false, true, false]);
+  // A scenario recorded without a level (an older draft) takes the level
+  // given for it (the page's tonight's), or 0 with none given: in the
+  // session, and in what each character takes from it.
+  const noLevel = [{ ...scenario6[0], level: "" }];
+  const recorded = level => {
+    const res = applyDraft(fromFile(copy(raw)), { ...copy(draft), party, scenarios: noLevel, events: [], buys: [], sells: [], perks: [],
+      donations: [], enhancements: [], claims: {}, quests: {}, newCharacters: [], retirements: [] }, buildData(copy(raw)), level === undefined ? undefined : { level });
+    return res.out.sessions.find(s => s.date === draft.date)?.scenarios[0]?.level;
+  };
+  same("evening: a scenario with no level takes the fallback level given, else 0",
+    [recorded(3), recorded(undefined), draftLevel({ level: "" }, 5), draftLevel({ level: "2" }, 5), scenarioGain({ level: "", result: "success" }, { xp: "1" }, 3).xp],
+    [3, 0, 5, 2, 1 + scenarioStats(3).xp]);
   // Who passed a level at a session is worked out from XP over time, as the
   // evening's summary says it; the file stores none. A list written in on a
   // session whose plays have no level (the record can't tell) stands; one
@@ -427,7 +439,7 @@ async function runTests(load, loadText) {
   same("names: an achievement written another way doesn't count as it",
     [achievementCounts(namesData).global.get("the-merchant-flees"), achievementCounts(namesData).global.get("the merchant flees")], [1, 1]);
   same("names: a class not in the list leaves who was there unknown",
-    eventParty(namesData, classRef, { characters: ["Azorica", "Craig"] }).complete, false);
+    eventParty(namesData, { characters: ["Azorica", "Craig"] }).complete, false);
 
   // A City Rule replaces a City Rule, by its id.
   const rules = copy(raw);
@@ -455,7 +467,7 @@ async function runTests(load, loadText) {
     events: [], buys: [], sells: [], perks: [], donations: [], enhancements: [], claims: {}, quests: {}, newCharacters: [] };
   const looted = toFile(applyDraft(fromFile(copy(twoItems)), lootDraft, buildData(copy(twoItems))).out);
   same("treasure: a tile with two items gives both, by name",
-    [treasureParts(scenarioRef, 62).map(describeTreasurePart), looted.characters.find(c => c.name === "Azorica").log.at(-1), fileQuestions(looted)],
+    [treasureParts(62).map(describeTreasurePart), looted.characters.find(c => c.name === "Azorica").log.at(-1), fileQuestions(looted)],
     [[itemName(110), itemName(115)], { date: "2026-11-20", for: "treasure", treasure: "62", gained: [itemName(110), itemName(115)] }, []]);
 
   // Every quest card, for every character in campaign.json and the sample,
@@ -575,7 +587,7 @@ async function runTests(load, loadText) {
     same("quests: a card opens what its data says, and a retirement opens it",
       [questUnlocks("515"), questUnlocks("513"), questUnlocks("999"),
        none.warnings.filter(w => w.includes("nothing says what their personal quest opens")).length,
-       (sun.out.city.unlockedClasses || []).map(u => u.name ?? u).includes(className(classRef, "sun"))],
+       (sun.out.city.unlockedClasses || []).map(u => u.name ?? u).includes(className("sun"))],
       ["sun", "envelope-x", "", 1, true]);
   }
 

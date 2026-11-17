@@ -246,8 +246,8 @@ function isCasual(s, data) {
 // Global achievements of which the party holds one at a time, by id prefix.
 const ACHIEVEMENT_GROUPS = ["city-rule-", "artifact-"];
 
-function achievementName(ref, kind, id) {
-  return ref?.achievements?.[kind]?.[id] || id;
+function achievementName(kind, id) {
+  return scenarioRef?.achievements?.[kind]?.[id] || id;
 }
 
 // data/gloomhaven-items.json, once loaded: item names by number.
@@ -271,8 +271,8 @@ function itemSlot(name) { return itemInfo(name)?.slot || null; }
 // What a treasure tile gives, from the reference data ("gold:10|..."). A
 // tile with several items or designs lists them joined by "+" ("item:110+115"
 // is both): each is a part of its own.
-function treasureParts(ref, number) {
-  const raw = ref?.treasures?.[String(Number(number))];
+function treasureParts(number) {
+  const raw = scenarioRef?.treasures?.[String(Number(number))];
   return raw ? raw.split("|").flatMap(part => {
     const [type, value] = part.split(":");
     return (type === "item" || type === "itemDesign") && value?.includes("+")
@@ -311,7 +311,7 @@ function achievementCounts(data) {
 // Requirements are alternatives (any one will do); each lists achievements
 // that are needed, "!" meaning must be incomplete and ":N" meaning N times.
 // Returns null when met, otherwise a sentence saying what is missing.
-function unmetRequirements(ref, requirements, have) {
+function unmetRequirements(requirements, have) {
   const failures = [];
   for (const alternative of requirements) {
     const unmet = [];
@@ -321,7 +321,7 @@ function unmetRequirements(ref, requirements, have) {
         const [id, times] = value.replace(/^!/, "").split(":");
         const needed = Number(times || 1);
         const count = have[kind]?.get(id) || 0;
-        const name = achievementName(ref, kind, id);
+        const name = achievementName(kind, id);
         if (negated && count >= needed) unmet.push(`${name} to be incomplete`);
         if (!negated && count < needed) unmet.push(needed > 1 ? `${name} ×${needed}` : name);
       }
@@ -332,7 +332,7 @@ function unmetRequirements(ref, requirements, have) {
   return `Needs ${failures.join(", or ")}`;
 }
 
-function describeRewards(ref, rewards, evRef) {
+function describeRewards(rewards) {
   if (!rewards) return [];
   const parts = [];
   const r = rewards;
@@ -342,14 +342,14 @@ function describeRewards(ref, rewards, evRef) {
   if (r.battleGoals) parts.push(`${plural(r.battleGoals, "battle goal checkmark")} each`);
   if (r.prosperity) parts.push(`${signed(r.prosperity)} prosperity`);
   if (r.reputation) parts.push(`${signed(r.reputation)} reputation`);
-  for (const id of r.globalAchievements || []) parts.push(achievementName(ref, "global", String(id).split(":")[0]));
-  for (const id of r.partyAchievements || []) parts.push(achievementName(ref, "party", String(id).split(":")[0]));
-  for (const id of r.lostPartyAchievements || []) parts.push(`lose ${achievementName(ref, "party", id)}`);
+  for (const id of r.globalAchievements || []) parts.push(achievementName("global", String(id).split(":")[0]));
+  for (const id of r.partyAchievements || []) parts.push(achievementName("party", String(id).split(":")[0]));
+  for (const id of r.lostPartyAchievements || []) parts.push(`lose ${achievementName("party", id)}`);
   if (r.chooseLocation) parts.push(`choose one of ${r.chooseLocation.map(n => `#${n}`).join(", ")}`);
   for (const id of r.items || []) parts.push(itemName(String(id).split(":")[0]));
   for (const id of r.itemDesigns || []) parts.push(`${itemName(id)} design`);
   for (const ev of r.events || []) { const [deck, n] = ev.split(":"); parts.push(`adds ${eventLabel(deck, Number(n))}`); }
-  if (r.unlockCharacter) parts.push(`unlocks the ${className(evRef, r.unlockCharacter)}`);
+  if (r.unlockCharacter) parts.push(`unlocks the ${className(r.unlockCharacter)}`);
   const known = ["gold", "collectiveGold", "experience", "prosperity", "reputation", "globalAchievements",
                  "partyAchievements", "lostPartyAchievements", "chooseLocation", "items", "itemDesigns", "events",
                  "unlockCharacter"];
@@ -376,13 +376,13 @@ const either = (a, b) => ({ lo: Math.min(a.lo, b.lo), hi: Math.max(a.hi, b.hi) }
 const isExact = r => r.lo === r.hi;
 const rangeText = r => isExact(r) ? signed(r.lo) : `${signed(r.lo)} to ${signed(r.hi)}`;
 
-function className(evRef, id) { return evRef?.classes?.[id] || capitalize(id); }
+function className(id) { return classRef?.classes?.[id] || capitalize(id); }
 
-function describeCondition(c, evRef) {
+function describeCondition(c) {
   if (!c || c.type === "otherwise") return "otherwise";
   if (c.type === "reputationGT") return `reputation above ${signed(c.values[0])}`;
   if (c.type === "reputationLT") return `reputation below ${signed(c.values[0])}`;
-  if (c.type === "character") return `with a ${c.values.map(id => className(evRef, id)).join(" or ")}`;
+  if (c.type === "character") return `with a ${c.values.map(id => className(id)).join(" or ")}`;
   if (c.type === "payCollectiveGold" || c.type === "payGold") return `if you paid ${goldText(c.values[0])}`;
   if (c.type.startsWith("pay")) return "if you paid";
   return c.type;
@@ -391,14 +391,14 @@ function describeCondition(c, evRef) {
 // Who was at an event, as class ids. The event's own "characters" win; an
 // event drawn before a scenario played in only one session takes that
 // session's party. complete is false when someone's class isn't known.
-function eventParty(data, evRef, e) {
+function eventParty(data, e) {
   let names = e.characters;
   if (!names && e.scenario != null) {
     const sessions = data.sessions.filter(s => s.scenarios.some(sc => sc.number === e.scenario));
     if (sessions.length === 1) names = sessions[0].characters;
   }
   if (!names?.length) return { classes: null, complete: false };
-  const ids = Object.entries(evRef?.classes || {});
+  const ids = Object.entries(classRef?.classes || {});
   const classes = new Set();
   let complete = true;
   for (const name of names) {
@@ -479,10 +479,10 @@ function possibleOutcomes(options, letter, ctx, pinned, depth = 0) {
 // What a recorded event's chosen option did for the characters there: the
 // effects whose conditions are met. null when which outcome applied can't be
 // told from what's recorded.
-function chosenOutcome(data, evRef, deck, number, option, names, paid) {
-  const options = evRef?.events?.[deck]?.[String(number)];
+function chosenOutcome(data, deck, number, option, names, paid) {
+  const options = classRef?.events?.[deck]?.[String(number)];
   if (!options || !option) return null;
-  const ctx = { ...eventParty(data, evRef, { characters: names }),
+  const ctx = { ...eventParty(data, { characters: names }),
                 reputation: data.ledger?.reputation?.range || exact(data.party.reputation || 0), paid };
   const found = possibleOutcomes(options, option, ctx, null);
   if (found.length !== 1 || found[0].doubts.length) return null;
@@ -555,7 +555,7 @@ function paymentFor(condition, reputation) {
 
 // What one outcome's effects come to. An effect with a condition that can't
 // be told counts as "may": a range for numbers, a question for cards.
-function tally(effects, ctx, ref, evRef) {
+function tally(effects, ctx) {
   const t = { reputation: exact(0), prosperity: exact(0), adds: [], mayAdd: [], unlocks: [], mayUnlock: [],
               gains: [], mayGain: [], text: [], effectDoubts: [] };
   const amount = e => ["reputation", "prosperity"].includes(e.type) ? { [e.type]: exact(e.amount) } : {};
@@ -565,7 +565,7 @@ function tally(effects, ctx, ref, evRef) {
     if (met === false) continue;
     const maybe = met === null;
     if (maybe) t.effectDoubts.push(e.condition);
-    const say = text => t.text.push(maybe ? `${text} ${describeCondition(e.condition, evRef)}` : text);
+    const say = text => t.text.push(maybe ? `${text} ${describeCondition(e.condition)}` : text);
     const add = (key, r) => { t[key] = plus(t[key], maybe ? either(exact(0), r) : r); };
     switch (e.type) {
       case "reputation":
@@ -581,7 +581,7 @@ function tally(effects, ctx, ref, evRef) {
       case "globalAchievement": {
         const kind = e.type === "partyAchievement" ? "party" : "global";
         (maybe ? t.mayGain : t.gains).push({ kind, id: e.id });
-        say(achievementName(ref, kind, e.id));
+        say(achievementName(kind, e.id));
         break;
       }
       case "item":
@@ -616,12 +616,12 @@ function tally(effects, ctx, ref, evRef) {
 // The part of a range that is certain: the smallest change it could be.
 const settledPart = r => r.lo > 0 ? r.lo : r.hi < 0 ? r.hi : 0;
 
-function deriveCampaign(data, ref, evRef) {
+function deriveCampaign(data) {
   const decks = {};
   const added = {};
   const removed = {};
   for (const deck of Object.keys(DECK_NAMES)) {
-    decks[deck] = new Set(evRef?.startingDecks?.[deck] || []);
+    decks[deck] = new Set(classRef?.startingDecks?.[deck] || []);
     added[deck] = new Map();
     removed[deck] = new Map();
   }
@@ -644,7 +644,7 @@ function deriveCampaign(data, ref, evRef) {
   const note = (entry, where) => { if (where && !entry.where.includes(where)) entry.where.push(where); };
   const gainAchievement = (kind, rawId, where) => {
     const id = String(rawId).split(":")[0];
-    const name = achievementName(ref, kind, id);
+    const name = achievementName(kind, id);
     const list = record[kind];
     // "City Rule: Economic" replaces any other City Rule; likewise Artifact:
     // a group by its ids (city-rule-economic), not by how its name reads.
@@ -672,18 +672,18 @@ function deriveCampaign(data, ref, evRef) {
     note(entry, where);
     record.designs.set(name, entry);
   };
-  const classInfo = id => evRef?.classEvents?.[id];
-  const classIdOf = name => Object.entries(evRef?.classes || {}).find(([, n]) => n === String(name))?.[0];
+  const classInfo = id => classRef?.classEvents?.[id];
+  const classIdOf = name => Object.entries(classRef?.classes || {}).find(([, n]) => n === String(name))?.[0];
   const unlockClass = (id, where) => {
     if (record.classes.has(id)) return;
-    record.classes.set(id, { id, name: className(evRef, id), count: 1, where: where ? [where] : [] });
+    record.classes.set(id, { id, name: className(id), count: 1, where: where ? [where] : [] });
     // A new class brings its city and road events.
     const n = classInfo(id)?.unlockEvent;
     if (n && !classInfo(id)?.starting) for (const deck of ["city", "road"]) {
-      if (!removed[deck].has(n)) addCard(deck, n, `${className(evRef, id)} unlocked`);
+      if (!removed[deck].has(n)) addCard(deck, n, `${className(id)} unlocked`);
     }
   };
-  for (const [id, info] of Object.entries(evRef?.classEvents || {})) if (info.starting) unlockClass(id, "starting class");
+  for (const [id, info] of Object.entries(classRef?.classEvents || {})) if (info.starting) unlockClass(id, "starting class");
 
   const addCard = (deck, number, source) => {
     decks[deck]?.add(number);
@@ -740,12 +740,12 @@ function deriveCampaign(data, ref, evRef) {
 
   const doEvent = e => {
     const label = eventLabel(e.deck, e.number);
-    const options = evRef?.events?.[e.deck]?.[String(e.number)] || {};
-    const party = eventParty(data, evRef, e);
+    const options = classRef?.events?.[e.deck]?.[String(e.number)] || {};
+    const party = eventParty(data, e);
     const ctx = { ...party, reputation: totals.reputation.range, paid: e.paid };
     const letters = e.option ? [e.option] : Object.keys(options);
     const found = letters.flatMap(l => possibleOutcomes(options, l, ctx, e.option ? e.outcome : null))
-      .map(o => ({ ...o, ...tally(o.effects, ctx, ref, evRef) }));
+      .map(o => ({ ...o, ...tally(o.effects, ctx) }));
 
     // Everything that every possible outcome agrees on happened.
     const key = o => JSON.stringify([o.card, o.reputation, o.prosperity, o.adds, o.unlocks, o.mayAdd, o.mayUnlock, o.gains]);
@@ -785,7 +785,7 @@ function deriveCampaign(data, ref, evRef) {
       questions.push(`${label}: which option did you choose${who}? It decides ${describeStakes(found)}.`);
     } else if (!agreed || (one && one.effectDoubts.length)) {
       const doubt = found.flatMap(o => [...o.doubts, ...o.effectDoubts])[0];
-      questions.push(`${label}, option ${e.option}: ${askAbout(doubt, ctx, evRef)}`);
+      questions.push(`${label}, option ${e.option}: ${askAbout(doubt, ctx)}`);
     }
     if (!fate && agreed) questions.push(`${label}: check whether the card was removed or returned to the deck.`);
     const sureAdds = new Set(adds.map(a => JSON.stringify(a)));
@@ -798,7 +798,7 @@ function deriveCampaign(data, ref, evRef) {
   };
 
   const doScenario = s => {
-    const r = ref?.scenarios?.[String(s.number)]?.rewards || {};
+    const r = scenarioRef?.scenarios?.[String(s.number)]?.rewards || {};
     const label = `#${s.number}${s.name ? ` ${s.name}` : ""}`;
     const where = `#${s.number}`;
     if (r.reputation) gain("reputation", exact(r.reputation), label);
@@ -834,7 +834,7 @@ function deriveCampaign(data, ref, evRef) {
       const { number, character: named, drew, drawn: never } = typeof t === "object" ? { ...t, drawn: t.drawn === false } : { number: t };
       const character = looters.get(String(Number(number))) || named;
       const from = `treasure ${number}`;
-      const parts = treasureParts(ref, number);
+      const parts = treasureParts(number);
       for (const part of parts) {
         // A design puts every copy in the shop; a named item goes to whoever
         // looted it, one copy (rulebook p. 14). If no one is written down as
@@ -910,7 +910,7 @@ function deriveCampaign(data, ref, evRef) {
       // its own name as its id, so it can't pass for one the data has (and
       // the Campaign record asks about it).
       const named = kind === "party" || kind === "global"
-        ? Object.entries(ref?.achievements?.[kind] || {}).find(([, n]) => n === item.name)?.[0] : null;
+        ? Object.entries(scenarioRef?.achievements?.[kind] || {}).find(([, n]) => n === item.name)?.[0] : null;
       const id = kind === "classes" ? classIdOf(item.name)
                : kind === "designs" ? item.name : item.id || named || item.name;
       const where = item.scenario != null ? `#${item.scenario}` : "added by hand";
@@ -961,13 +961,13 @@ function describeStakes(found) {
   return stakes.length ? stakes.join(", ").replace(/, ([^,]*)$/, " and $1") : "what happened";
 }
 
-function askAbout(c, ctx, evRef) {
+function askAbout(c, ctx) {
   if (c?.type === "character") {
-    return `who was there? It turns on having a ${c.values.map(id => className(evRef, id)).join(" or ")} in the party.`;
+    return `who was there? It turns on having a ${c.values.map(id => className(id)).join(" or ")} in the party.`;
   }
   if (c?.type?.startsWith("pay")) return `did you pay${c.values?.length && typeof c.values[0] === "number" ? ` ${goldText(c.values[0])}` : ""}?`;
   if (c?.type === "reputationGT" || c?.type === "reputationLT") {
-    return `it turns on ${describeCondition(c, evRef)}, and reputation then could have been ${rangeText(ctx.reputation)}. Which outcome was it?`;
+    return `it turns on ${describeCondition(c)}, and reputation then could have been ${rangeText(ctx.reputation)}. Which outcome was it?`;
   }
   return "which outcome was it?";
 }
@@ -979,23 +979,23 @@ function askAbout(c, ctx, evRef) {
 // revealed it: #1 (by none), then each unlocked by a completed scenario,
 // the lowest-numbered first. The page's scenario list starts from this, and
 // so does the file writer, to leave out an unlockedBy it says already.
-function revealedByReference(ref, completed) {
+function revealedByReference(completed) {
   const parent = new Map();
-  if (ref) parent.set(1, null);
+  if (scenarioRef) parent.set(1, null);
   for (const c of [...completed].sort((a, b) => a - b)) {
-    for (const u of ref?.scenarios?.[String(c)]?.unlocks || []) if (!parent.has(Number(u))) parent.set(Number(u), c);
+    for (const u of scenarioRef?.scenarios?.[String(c)]?.unlocks || []) if (!parent.has(Number(u))) parent.set(Number(u), c);
   }
   return parent;
 }
 
-function deriveScenarios(data, ref, eventUnlocks = [], evRef = null) {
+function deriveScenarios(data, eventUnlocks = []) {
   const entries = new Map(data.scenarios.map(s => [s.number, s]));
-  const refOf = n => ref?.scenarios?.[String(n)];
+  const refOf = n => scenarioRef?.scenarios?.[String(n)];
   const done = data.scenarios.filter(s => s.status === "completed").map(s => s.number).sort((a, b) => a - b);
   const completed = new Set(done);
 
   // Which scenario unlocked each one. An unlockedBy in campaign.json wins.
-  const parent = revealedByReference(ref, done);
+  const parent = revealedByReference(done);
   const via = new Map();
   for (const { number, source } of eventUnlocks) {
     if (!parent.has(number)) { parent.set(number, null); via.set(number, source); }
@@ -1017,13 +1017,13 @@ function deriveScenarios(data, ref, eventUnlocks = [], evRef = null) {
 
     if (completed.has(n)) {
       s.status = "completed";
-      s.rewards = describeRewards(ref, info.rewards, evRef);
+      s.rewards = describeRewards(info.rewards);
       return s;
     }
 
     const blockers = done.filter(c => (refOf(c)?.blocks || []).includes(String(n)));
     if (blockers.length) s.reasons.push(`Blocked by ${blockers.map(c => `#${c} ${nameOf(c)}`).join(", ")}`);
-    const unmet = info.requirements ? unmetRequirements(ref, info.requirements, have) : null;
+    const unmet = info.requirements ? unmetRequirements(info.requirements, have) : null;
     if (unmet) s.reasons.push(unmet);
     s.status = entry.status === "blocked" || s.reasons.length ? "blocked" : "available";
     return s;
@@ -1053,11 +1053,11 @@ let questRef = null;   // data/gloomhaven-quests.json, once loaded
 const SLOTS = [["head", "Head"], ["body", "Body"], ["legs", "Legs"], ["onehand", "One hand"],
                ["twohand", "Two hands"], ["small", "Small items"]];
 
-function deriveShop(data, items, ledger) {
-  if (!items) return null;
+function deriveShop(data, ledger) {
+  if (!itemsRef) return null;
   const level = stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
   const modifier = shopModifier(data.party.reputation);
-  const all = Object.entries(items.items).map(([id, item]) => ({ id: Number(id), ...item }));
+  const all = Object.entries(itemsRef.items).map(([id, item]) => ({ id: Number(id), ...item }));
   const byName = new Map(all.map(item => [item.name, item]));
   const designs = new Set(data.city.itemDesigns.map(d => d.name));
   const inShop = item => (item.prosperity && item.prosperity <= level) || designs.has(item.name);
@@ -1145,12 +1145,10 @@ function notWholeNumbers(d) {
 
 const filled = v => String(v ?? "").trim() !== "";
 
-// The level a recorded scenario was played at (an older draft has none:
-// tonight's level stands in).
-function draftLevel(s, data) {
-  // tonight() is the page's (who's playing, picked on the Overview): absent in the tests.
-  const fallback = typeof tonight === "function" ? tonight(data)?.level ?? 0 : 0;
-  return Math.max(0, Math.min(7, filled(s.level) ? num(s.level) : fallback));
+// The level a recorded scenario was played at. An older draft's row has
+// none: the fallback stands in, which the page gives as tonight's level.
+function draftLevel(s, fallback = 0) {
+  return Math.max(0, Math.min(7, filled(s.level) ? num(s.level) : num(fallback)));
 }
 
 // What one character takes from a scenario played: the XP on their dial,
@@ -1172,11 +1170,24 @@ function playGain(play, r) {
   };
 }
 // The same for a scenario in the draft, at the level it's being recorded at.
-const scenarioGain = (s, r, data) => playGain({ level: draftLevel(s, data), result: s.result }, r);
+const scenarioGain = (s, r, fallback = 0) => playGain({ level: draftLevel(s, fallback), result: s.result }, r);
 
-// The draft applied to a copy of campaign.json. Returns the new file, a list
-// of what changes, and anything that looks wrong.
-function applyDraft(raw, d, data) {
+// The draft applied to a copy of campaign.json: the steps below, in the
+// order an evening happens and the rules want, each on the one context
+// the evening shares (eveningContext). Returns the new file, a list of
+// what changes, and anything that looks wrong. level: the scenario level
+// for a recorded scenario that has none (an older draft), the page's
+// tonight's level; 0 if not given.
+function applyDraft(raw, d, data, { level = 0 } = {}) {
+  const ctx = eveningContext(raw, d, data, level);
+  for (const step of EVENING_STEPS) step(ctx);
+  return { out: ctx.marked, log: ctx.log, warnings: ctx.warnings, evening: ctx.evening, party: ctx.party };
+}
+
+// What the evening's steps share: the file being written, the draft and
+// the campaign as it stands, the log and warnings, and the ways a change
+// goes onto a sheet.
+function eveningContext(raw, d, data, fallbackLevel) {
   const out = JSON.parse(JSON.stringify(raw));
   out.scenarios ||= [];
   out.sessions ||= [];
@@ -1185,23 +1196,15 @@ function applyDraft(raw, d, data) {
   const log = [];
   const warnings = notWholeNumbers(d);
   for (const c of out.characters) { c.items ||= []; c.perks ||= []; }
-  if (String(d.partyName || "").trim()) {
-    out.party ||= {};
-    out.party.name = String(d.partyName).trim();
-    log.push(`The party is named ${out.party.name}`);
-  }
   const who = name => out.characters.find(c => c.name === name);
   // Handing someone an item (bought, looted or a reward): one of each item
-  // per character, and whoever's items change gets the slot check below.
-  // The caller writes it on the log line it belongs to; false if there's no
-  // one to give it to.
-  const changed = new Set();
+  // per character. The caller writes it on the log line it belongs to;
+  // false if there's no one to give it to.
   const giveItem = (name, item) => {
     const c = who(name);
     if (!c) return false;
     if (c.items.some(i => sameItem(i, item))) warnings.push(`${name} already has ${item}: a character can own only one of each item.`);
     c.items.push(item);
-    changed.add(name);
     return true;
   };
   // Every copy of an item already owned by someone still adventuring.
@@ -1221,6 +1224,7 @@ function applyDraft(raw, d, data) {
   // the evening: a line for each thing that happened, saying what it was
   // for, with all it changed. The one record of it. what: { xp, gold,
   // checkmarks, gained, lost, perks }; why: { for, ... }.
+  // The evening's date, read once: the draft's, else today's.
   const when = d.date || today();
   const LISTS = ["gained", "lost", "perks"];
   // always: written even if it changed nothing, as the record of what
@@ -1264,11 +1268,30 @@ function applyDraft(raw, d, data) {
     else c.xp = Math.max(XP_FOR_LEVEL[stepFor(was, XP_FOR_LEVEL) - 1], was + amount);
     ev.add(name, { [key]: c[key] - was });
   };
+  const retiring = new Set((d.retirements || []).map(x => x.character).filter(name => who(name) && !who(name).retired));
+  const prosperityTonight = stepFor(data.city.prosperityCheckmarks + retiring.size, CHECKMARKS_FOR_PROSPERITY);
+  const joinLog = [];   // what retirements do, said after the gains
+  const joined = [];    // newcomers playing tonight
+  return { out, d, data, raw, fallbackLevel, log, warnings, who, giveItem, noCopyLeft, gainFor, gain, when, line, happening, credit,
+           eventGain, joinLog, retiring, prosperityTonight, joined };
+}
+
+// The party's name, if the form gives one.
+function eveningName(ctx) {
+  const { out, d, log } = ctx;
+  if (String(d.partyName || "").trim()) {
+    out.party ||= {};
+    out.party.name = String(d.partyName).trim();
+    log.push(`The party is named ${out.party.name}`);
+  }
+}
+
+function eveningNewcomers(ctx) {
+  const { out, d, log, warnings, who, when, retiring, prosperityTonight, joined } = ctx;
   // Newcomers before anything else: a newcomer can play tonight's scenarios
   // and go shopping. Retirements come after the scenarios (below). Each
   // retirement tonight is a prosperity checkmark (p. 48), which counts for a
   // newcomer's starting level and for advancing to the prosperity level.
-  const joinLog = [];
   // How many characters a player has retired, tonight's retirements included
   // (with the player named on the retirement row, if not already known).
   const playerOf = c => String((d.retirements || []).find(x => x.character === c.name)?.player || c.player || "").trim();
@@ -1277,9 +1300,6 @@ function applyDraft(raw, d, data) {
     if (!name) return 0;
     return out.characters.filter(c => playerOf(c) === name && (c.retired || (d.retirements || []).some(x => x.character === c.name))).length;
   };
-  const retiring = new Set((d.retirements || []).map(x => x.character).filter(name => who(name) && !who(name).retired));
-  const prosperityTonight = stepFor(data.city.prosperityCheckmarks + retiring.size, CHECKMARKS_FOR_PROSPERITY);
-  const joined = [];
   for (const x of d.newCharacters || []) {
     const name = String(x.name || "").trim();
     if (!name && !x.class) continue;
@@ -1295,13 +1315,16 @@ function applyDraft(raw, d, data) {
     out.characters.push({ name, class: x.class, xp: XP_FOR_LEVEL[level - 1], gold: startingGold(level), checkmarks: 0,
                           perks: [], items: [], start: { xp: XP_FOR_LEVEL[level - 1], gold: startingGold(level), checkmarks: 0, items: [], perks: [] },
                           log: [], personalQuest: "", retired: false, ...(bonus ? { perkBonus: bonus } : {}),
-                          ...(String(x.player || "").trim() ? { player: String(x.player).trim() } : {}), joined: d.date || today(), notes: "" });
+                          ...(String(x.player || "").trim() ? { player: String(x.player).trim() } : {}), joined: when, notes: "" });
     const perks = level - 1 + bonus;
     log.push(`${name} the ${x.class} joins at level ${level}, with ${xpText(XP_FOR_LEVEL[level - 1])} and ${goldText(startingGold(level))}${perks ? `, and ${plural(perks, "perk")} to choose` : ""}${level > 1 ? `; and ${plural(level - 1, "ability card")} to add, one for each level from 2 to ${level} (each of that level or lower)` : ""}`);
     if (x.playing !== false) joined.push(name);
   }
+}
 
-  const playedTonight = d.scenarios.some(s => num(s.number));
+// Who played, which scenarios, and whether it was an evening of play.
+function eveningWhoPlayed(ctx) {
+  const { out, d, raw, log, warnings, who, when, joined } = ctx;
   // Who played: those marked, and newcomers unless they sat it out.
   const party = [...d.party.filter(name => who(name) && !joined.includes(name)), ...joined];
   const played = d.scenarios.filter(s => num(s.number));
@@ -1320,8 +1343,12 @@ function applyDraft(raw, d, data) {
     const c = who(name);
     if (c?.inactive) { delete c.inactive; log.push(`${name} plays again, so is no longer inactive`); }
   }
-  out.updated = d.date || today();
+  out.updated = when;
+  Object.assign(ctx, { party, played, firstScenario, lastCompleted, evening });
+}
 
+function eveningEvents(ctx) {
+  const { out, d, data, log, warnings, who, happening, eventGain, party, played, firstScenario, lastCompleted } = ctx;
   // Events, in the order drawn.
   for (const e of d.events.filter(e => num(e.number))) {
     const entry = { deck: e.deck, number: num(e.number) };
@@ -1373,7 +1400,7 @@ function applyDraft(raw, d, data) {
     if (!e.option || !classRef?.events?.[e.deck]?.[String(entry.number)]) continue;
     const label = `${eventLabel(e.deck, entry.number)}, option ${e.option}`;
     const ev = happening({ for: "event", deck: e.deck, card: entry.number, option: e.option });
-    const outcome = chosenOutcome(data, classRef, e.deck, entry.number, e.option, party, entry.paid);
+    const outcome = chosenOutcome(data, e.deck, entry.number, e.option, party, entry.paid);
     const pays = JSON.stringify(classRef.events[e.deck][String(entry.number)][e.option] || []).includes('"type":"pay');
     if (!outcome && pays && entry.paid === undefined) { warnings.push(`${label}: say on its row whether the party paid (Paid?).`); continue; }
     if (!outcome) { warnings.push(`${label}: which outcome applied can't be told from what's recorded, so add any gold or XP it gave by hand.`); continue; }
@@ -1411,7 +1438,10 @@ function applyDraft(raw, d, data) {
     }
     ev.write();
   }
+}
 
+function eveningScenarios(ctx) {
+  const { out, d, data, raw, fallbackLevel, log, warnings, who, giveItem, noCopyLeft, gain, happening, party, played } = ctx;
   // Treasures already looted, and where: a tile is looted once.
   const looted = new Map();
   for (const sc of raw.scenarios || []) {
@@ -1438,13 +1468,13 @@ function applyDraft(raw, d, data) {
     }
 
     // The level it was played at decides the bonus XP and what a coin is worth.
-    const level = draftLevel(s, data);
+    const level = draftLevel(s, fallbackLevel);
     const st = scenarioStats(level);
     const usual = recommendedLevel(party.map(name => stepFor(who(name).xp || 0, XP_FOR_LEVEL)));
     if (party.length && (level < Math.max(0, usual - 1) || level > Math.min(7, usual + 2))) {
       warnings.push(`${label} at level ${level}: for this party that's outside easy to very hard (${Math.max(0, usual - 1)} to ${Math.min(7, usual + 2)}).`);
     }
-    const results = party.map(name => ({ character: name, ...scenarioGain(s, s.results[name] || {}, data) }));
+    const results = party.map(name => ({ character: name, ...scenarioGain(s, s.results[name] || {}, fallbackLevel) }));
     for (const r of results) { gain(r.character, "xp", r.xp); gain(r.character, "gold", r.gold); gain(r.character, "checkmarks", r.checkmarks); }
     // Easy to skip someone at the table; a failed scenario keeps XP and gold too.
     const blank = party.filter(name => !["xp", "coins", "gold"].some(k => filled(s.results[name]?.[k])));
@@ -1471,7 +1501,7 @@ function applyDraft(raw, d, data) {
         if (tiles && !tiles.includes(tile)) warnings.push(`Treasure ${t.number} isn't in ${label}${tiles.length ? ` (its ${tiles.length === 1 ? "tile is" : "tiles are"} ${tiles.join(", ")})` : ""}. Check the number.`);
         looted.set(tile, n);
         const tr = happening({ for: "treasure", treasure: t.number });
-        for (const part of treasureParts(scenarioRef, t.number)) {
+        for (const part of treasureParts(t.number)) {
           if (!t.character) { if (["gold", "experience", "item", "battleGoal"].includes(part.type)) warnings.push(`Treasure ${t.number}: who looted it?`); continue; }
           if (part.type === "gold") {
             tr.gain(t.character, { gold: num(part.value) });
@@ -1575,16 +1605,23 @@ function applyDraft(raw, d, data) {
     }
     loot();
   }
+  Object.assign(ctx, { apart });
+}
 
+function eveningSession(ctx) {
+  const { out, d, fallbackLevel, party, played, evening, apart } = ctx;
   // The session itself, if there was one.
   const session = { date: d.date || null };
   if (d.title) session.title = d.title;
-  session.scenarios = played.map(s => ({ number: num(s.number), level: draftLevel(s, data), result: s.result,
+  session.scenarios = played.map(s => ({ number: num(s.number), level: draftLevel(s, fallbackLevel), result: s.result,
     ...(apart.get(s)?.casual ? { casual: true } : {}), ...(apart.get(s)?.results?.length ? { results: apart.get(s).results } : {}) }));
   session.characters = [...party];
   session.notes = d.notes || "";
   if (evening) placeSession(out.sessions, session);
+}
 
+function eveningOpened(ctx) {
+  const { out, d, log, warnings } = ctx;
   // Scenarios a personal quest opens (the second step of some quests).
   for (const o of d.opened || []) {
     const n = num(o.number);
@@ -1597,7 +1634,10 @@ function applyDraft(raw, d, data) {
     out.scenarios.push({ number: n, name, status: "available", unlockedVia: "a personal quest" });
     log.push(`#${n} ${name} opens, from a personal quest`);
   }
+}
 
+function eveningQuests(ctx) {
+  const { d, log, warnings, who } = ctx;
   // Personal quest progress, as updated in the form; once fulfilled, the
   // character must retire before playing again (p. 48).
   for (const [name, value] of Object.entries(d.quests || {})) {
@@ -1615,7 +1655,10 @@ function applyDraft(raw, d, data) {
       warnings.push(`${name}'s personal quest is fulfilled: they must retire before playing again (Retiring and joining).`);
     }
   }
+}
 
+function eveningClaims(ctx) {
+  const { out, d, data, log, giveItem, line } = ctx;
   // Past treasures settled: who looted them, and the item onto their sheet,
   // or back in the shop's supply if they've sold it since (p. 43).
   for (const c of data.claims || []) {
@@ -1631,14 +1674,17 @@ function applyDraft(raw, d, data) {
     else if (giveItem(x.character, c.item)) line(x.character, { gained: [c.item] }, { for: "treasure", treasure: c.treasure });
     log.push(`Treasure ${c.treasure} in ${c.where}: ${x.character} looted ${c.item}${x.kept !== false ? "" : ", and has since sold it"}`);
   }
+}
 
+function eveningRetirements(ctx) {
+  const { out, d, data, warnings, who, when, joinLog } = ctx;
   // Retirements, after the evening's scenarios: a character who played tonight
   // keeps tonight's loot until retiring, then it all goes back to the shop.
   for (const x of (d.retirements || []).filter(x => x.character)) {
     const c = who(x.character);
     if (!c || c.retired) { warnings.push(`${x.character} isn't an active character.`); continue; }
     c.retired = true;
-    c.retiredOn = d.date || today();
+    c.retiredOn = when;
     if (String(x.player || "").trim()) c.player = String(x.player).trim();
     // All money the character owned is gone (p. 48): below, with tonight's.
     delete c.inactive;
@@ -1663,16 +1709,19 @@ function applyDraft(raw, d, data) {
     // A box already opened gives a random item design and a random side
     // scenario instead (rulebook p. 48): the Campaign record asks for both.
     if (data.city.unlockedClasses.some(u => u.id === x.unlocks)
-        || (out.city?.unlockedClasses || []).includes(className(classRef, x.unlocks))) {
+        || (out.city?.unlockedClasses || []).includes(className(x.unlocks))) {
       c.questDraws = { itemDesign: null, scenario: null };
       joinLog.push(`${c.name}'s personal quest opens the box with the ${classIconName(x.unlocks)} icon, which is already open: instead, draw a random item design and a random side scenario`);
       continue;
     }
     out.city ||= {};
-    out.city.unlockedClasses = [...(out.city.unlockedClasses || []), className(classRef, x.unlocks)];
+    out.city.unlockedClasses = [...(out.city.unlockedClasses || []), className(x.unlocks)];
     joinLog.push(`${c.name}'s personal quest unlocks the class with the ${classIconName(x.unlocks)} icon, and its events go into the decks`);
   }
+}
 
+function eveningAdvances(ctx) {
+  const { d, log, who, gainFor, credit, prosperityTonight } = ctx;
   // Advancing to the prosperity level: XP up to that level's start (p. 48).
   for (const name of d.advances || []) {
     const c = who(name);
@@ -1682,7 +1731,10 @@ function applyDraft(raw, d, data) {
     credit(name, { xp: short }, { for: "advance", level: prosperityTonight });
     log.push(`${name} advances to level ${prosperityTonight}, the prosperity level`);
   }
+}
 
+function eveningGains(ctx) {
+  const { log, who, gainFor } = ctx;
   // XP, gold and checkmarks onto the character sheets. Passing a level means
   // a new ability card; the perk that comes with it the sheet counts.
   for (const [name, g] of gainFor) {
@@ -1698,8 +1750,16 @@ function applyDraft(raw, d, data) {
       log.push(`${name} reaches level ${level}: add an ability card of level ${level} or lower, and take a perk`);
     }
   }
-  log.push(...joinLog);
+}
 
+// What the retirements do, said after the gains.
+function eveningRetirementsSaid(ctx) {
+  const { log, joinLog } = ctx;
+  log.push(...joinLog);
+}
+
+function eveningShopping(ctx) {
+  const { d, data, log, warnings, who, giveItem, line } = ctx;
   // Shopping and perks, after the scenarios.
   const priceOf = name => data.shop?.stock.find(i => sameItem(i.name, name))?.price;
   for (const b of d.buys.filter(b => b.character && b.item)) {
@@ -1724,13 +1784,17 @@ function applyDraft(raw, d, data) {
     const i = c.items.findIndex(x => sameItem(x, sale.item));
     if (i < 0) { warnings.push(`${sale.character} doesn't carry ${sale.item}.`); continue; }
     const [sold] = c.items.splice(i, 1);
-    changed.add(sale.character);
     const item = Object.values(itemsRef?.items || {}).find(x => sameItem(x.name, sale.item));
     const value = item ? Math.floor(item.cost / 2) : 0;
     c.gold = (c.gold || 0) + value;
     line(sale.character, { gold: value, lost: [sold] }, { for: "sell" });
     log.push(`${sale.character} sells ${sale.item} for ${goldText(value)}`);
   }
+}
+
+// The Sanctuary: donations, and Envelope B.
+function eveningSanctuary(ctx) {
+  const { out, d, log, warnings, who, line, retiring, party, played } = ctx;
   out.city ||= {};
   const before = out.city.donations || 0;
   const donors = (d.donations || []).filter(x => x.character);
@@ -1764,6 +1828,11 @@ function applyDraft(raw, d, data) {
     out.city.envelopeB = true;
     log.push("Envelope B opened");
   }
+}
+
+// Enhancements, from the calculator.
+function eveningEnhancements(ctx) {
+  const { d, log, who, line } = ctx;
   const enhancedClasses = new Set();
   for (const x of (d.enhancements || []).filter(x => x.character)) {
     const c = who(x.character);
@@ -1774,11 +1843,21 @@ function applyDraft(raw, d, data) {
     enhancedClasses.add(c.class);
     log.push(`${x.character} enhances a card (${x.what}) for ${goldText(num(x.cost))}`);
   }
+  Object.assign(ctx, { enhancedClasses });
+}
+
+// Perks taken.
+function eveningPerks(ctx) {
+  const { d, log, who, line } = ctx;
   for (const p of d.perks.filter(p => p.character && p.perk)) {
     who(p.character).perks.push(p.perk);
     line(p.character, { perks: [p.perk] }, { for: "perk" });
     log.push(`${p.character} takes "${p.perk}"`);
   }
+}
+
+function eveningRetiringLeaves(ctx) {
+  const { who, line, retiring } = ctx;
   // Who retired tonight leaves with nothing: their gold is gone (p. 48),
   // and their items go back to the shop. After the town's business, which
   // they may do first: a donation, a sale, a purchase.
@@ -1790,8 +1869,16 @@ function applyDraft(raw, d, data) {
     c.gold = 0;
     c.items = [];
   }
-  for (const c of out.characters) if (c.gold < 0) warnings.push(`${c.name} would have ${goldText(c.gold)}.`);
+}
 
+// No one left with less than no gold.
+function eveningGoldChecked(ctx) {
+  const { out, warnings } = ctx;
+  for (const c of out.characters) if (c.gold < 0) warnings.push(`${c.name} would have ${goldText(c.gold)}.`);
+}
+
+function eveningMarked(ctx) {
+  const { out, d } = ctx;
   // The draft's id, just after "updated" (replacing an earlier one).
   const marked = {};
   for (const [k, v] of Object.entries(out)) {
@@ -1799,6 +1886,11 @@ function applyDraft(raw, d, data) {
     marked[k] = v;
     if (k === "updated") marked.lastDraft = d.id;
   }
+  Object.assign(ctx, { marked });
+}
+
+function eveningEnhancementLimit(ctx) {
+  const { out, warnings, enhancedClasses, marked } = ctx;
   // A class's deck can have no more enhanced cards than the prosperity level
   // (p. 46), and its stickers stay on through every character of the class.
   // The level is the city's after the evening (enhancing comes after the
@@ -1806,7 +1898,7 @@ function applyDraft(raw, d, data) {
   // The sheets count stickers, not cards (a card can carry several), so
   // past the limit it can only ask.
   if (enhancedClasses.size) {
-    const prosperity = stepFor(deriveCampaign(withDefaults(copyJson(marked)), scenarioRef, classRef).totals.prosperity.value, CHECKMARKS_FOR_PROSPERITY);
+    const prosperity = stepFor(deriveCampaign(withDefaults(copyJson(marked))).totals.prosperity.value, CHECKMARKS_FOR_PROSPERITY);
     for (const cls of enhancedClasses) {
       const stickers = out.characters.filter(c => c.class === cls).reduce((n, c) => n + (c.enhanced || 0), 0);
       if (stickers > prosperity) {
@@ -1814,8 +1906,37 @@ function applyDraft(raw, d, data) {
       }
     }
   }
-  return { out: marked, log, warnings, evening, party };
 }
+
+// The steps, in order: who's there, then what happened at the table, then
+// what was done in town after, then the checks on the file it makes. The
+// order is the rules': a newcomer can play tonight; the evening's gains go
+// on before anyone advances or shops; a retiree's town business comes
+// before retiring takes their gold and items (p. 48); the enhancement
+// limit reads the city as the evening leaves it.
+const EVENING_STEPS = [
+  eveningName,              // the party's name, if given
+  eveningNewcomers,         // new characters, before they play
+  eveningWhoPlayed,         // the party, the scenarios played, an evening or not
+  eveningEvents,            // road and city events, and what they gave
+  eveningScenarios,         // each scenario: results, treasure, completion, rewards
+  eveningSession,           // the session in the log
+  eveningOpened,            // scenarios a personal quest opens
+  eveningQuests,            // personal quest progress
+  eveningClaims,            // past treasures settled
+  eveningRetirements,       // who retires, and what their quest opens
+  eveningAdvances,          // advancing to the prosperity level
+  eveningGains,             // XP, gold and checkmarks onto the sheets
+  eveningRetirementsSaid,   // what the retirements do, in the log
+  eveningShopping,          // buying and selling
+  eveningSanctuary,         // donations, and Envelope B
+  eveningEnhancements,      // enhancements
+  eveningPerks,             // perks taken
+  eveningRetiringLeaves,    // a retiree's gold gone, items back to the shop
+  eveningGoldChecked,       // no one below 0g
+  eveningMarked,            // the draft's id on the file
+  eveningEnhancementLimit,  // enhanced cards within the prosperity level
+];
 
 // campaign.json written the way the file is laid out by hand: short lists of
 // plain values on one line; a list of entries (events, results) one entry
@@ -2552,7 +2673,7 @@ function toFile(m, when = m.updated || today()) {
   out.schemaVersion = SCHEMA_VERSION;
   out.sessions ||= [];
   const completing = completions(out.sessions);
-  const revealed = revealedByReference(scenarioRef, out.scenarios.filter(s => s.status === "completed").map(s => s.number));
+  const revealed = revealedByReference(out.scenarios.filter(s => s.status === "completed").map(s => s.number));
   const looters = treasureLooters(out.characters);
   out.scenarios = (out.scenarios || []).map(s => {
     const e = { ...s };
@@ -2686,7 +2807,7 @@ function fileQuestions(json) {
   if ((json?.schemaVersion || 1) < 2) return [];
   const q = [];
   const completing = completions(json.sessions || []);
-  const revealed = revealedByReference(scenarioRef, [...completing.keys()]);
+  const revealed = revealedByReference([...completing.keys()]);
   // A pending Bless is worked out from the last donation line; a flag it contradicts is asked about.
   if (json.characters?.some(c => "blessNext" in c && c.log?.some(e => e.for === "donation"))) {
     const plays = readPlays(fromFile(json));
@@ -2820,7 +2941,7 @@ function setReference({ scenarios = null, events = null, items = null, quests = 
 // already through fromFile(), if the caller has it (a copy is used).
 function buildData(json, shaped = null) {
   const data = withDefaults(shaped ? copyJson(shaped) : fromFile(json));
-  const derived = deriveCampaign(data, scenarioRef, classRef);
+  const derived = deriveCampaign(data);
   // Anything the file keeps that's worked out anyway, or out of place.
   data.fileQuestions = fileQuestions(json);
   data.eventState = classRef ? derived : null;
@@ -2836,7 +2957,7 @@ function buildData(json, shaped = null) {
   data.foundItems = derived.record.found;
   data.claims = derived.record.claims;
   data.treasureInfo = derived.record.treasures;
-  data.scenarios = deriveScenarios(data, scenarioRef, derived.unlocks, classRef);
-  data.shop = deriveShop(data, itemsRef, data.ledger);
+  data.scenarios = deriveScenarios(data, derived.unlocks);
+  data.shop = deriveShop(data, data.ledger);
   return data;
 }
