@@ -213,6 +213,20 @@ async function runSmoke() {
       check("phone: milestones, a block per step, none wider than its row",
         miles.length && !over.length && (envA === 5 || envA === undefined),
         `${miles.length} milestones, too wide: ${over.join(", ") || "none"}, Envelope A: ${envA ?? "open"} blocks`);
+      // The event decks: a small card per card in each deck (those removed
+      // apart) as many as the deck's figure, none past its row; a tap tells
+      // that card's story.
+      const decks = [...doc.querySelectorAll("#events .deck")];
+      const counts = decks.map(d => `${d.querySelectorAll(".ev-tile:not(.out)").length}/${d.querySelector(".figure")?.innerText}`);
+      const spill = decks.flatMap(d => [...d.querySelectorAll(".ev-tile")].filter(t => t.getBoundingClientRect().right > d.getBoundingClientRect().right));
+      const tapped = [...(decks[0]?.querySelectorAll('.ev-tile[aria-pressed="false"]') || [])].at(-1);
+      const label = tapped?.getAttribute("aria-label")?.split(",")[0];
+      tapped?.click();
+      await wait(80);
+      const told = doc.querySelector("#events .deck .ev-story strong")?.innerText;
+      check("phone: event decks, a small card per card, and a tap tells its story",
+        decks.length === 2 && counts.every(c => c.split("/")[0] === c.split("/")[1]) && !spill.length && label && told === label && !errors.length,
+        errors.join("; ") || `${counts.join(", ")} cards; ${spill.length} past their row; tapped ${label}, told ${told}`);
       doc.querySelector('.tabs a[data-tab="tonight"]')?.click();
       await wait(150);
     }

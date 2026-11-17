@@ -72,4 +72,59 @@ async function ledgerTests({ same, copy, raw }) {
   same("by hand: The Drake Aided listed as well is asked about",
     [held(aided, "global").find(a => a[0] === "the-drake-aided"), asked(aided)],
     [["the-drake-aided", 1, "#33"], ["Record: The Drake Aided is worked out from #33. Remove it from campaign.json."]]);
+
+  // The event decks. Reputation at +20 or −20 adds two events, the first
+  // time (p. 49): so a deck drawn from since still lacks a card removed.
+  // campaign.json with reputation brought to this.
+  const base = buildData(copy(raw)).reputation;
+  const swing = to => { const f = copy(raw); f.adjustments = [{ reputation: to - base }]; return buildData(f); };
+  const inDecks = (data, ...cards) => cards.map(([deck, n]) => [data.eventState.decks[deck].has(n), data.eventState.added[deck].get(n) || null]);
+  const milestone = (data, id) => milestoneStates(data).find(m => m.id === id).open;
+  same("decks: reputation reaching +20 or −20 adds its two events",
+    [inDecks(swing(19), ["city", 76]), inDecks(swing(25), ["city", 76], ["road", 67]), milestone(swing(25), "events-plus-20"),
+     inDecks(swing(-25), ["city", 77], ["road", 68]), milestone(swing(-25), "events-minus-20"), milestone(swing(-19), "events-minus-20")],
+    [[[false, null]], [[true, "reputation +20"], [true, "reputation +20"]], true, [[true, "reputation −20"], [true, "reputation −20"]], true, false]);
+  // +20 before #14, City 76 drawn and removed before #13 (played after
+  // #14), then reputation down and back up to 20 at the end.
+  const drawnSince = copy(raw);
+  drawnSince.adjustments = [{ reputation: 20 - base, scenario: 14 }, { reputation: -10 }, { reputation: 10 }];
+  drawnSince.events.push({ deck: "city", number: 76, option: "A", card: "removed", scenario: 13 });
+  const drawn76 = buildData(drawnSince);
+  same("decks: the +20 events are added once, so one drawn and removed stays out",
+    [drawn76.eventState.decks.city.has(76), drawn76.eventState.removed.city.has(76)], [false, true]);
+  const twiceAdded = copy(raw);
+  twiceAdded.adjustments = [{ reputation: 20 - base }];
+  twiceAdded.eventDecks = { added: [{ deck: "city", number: 76 }], removed: [] };
+  same("decks: a card added by hand that the page adds anyway is asked about",
+    buildData(twiceAdded).eventState.questions.filter(q => q.includes("City 76")),
+    [`Record: City 76 is in the deck already (reputation +20). Remove it from "eventDecks" in campaign.json.`]);
+  // One drawn and removed can be put back by hand; one of the box's own,
+  // still in, is asked about. One taken out by hand says so.
+  const putBack = copy(raw);
+  putBack.events.push({ deck: "city", number: 2, option: "A", card: "removed" });
+  putBack.eventDecks = { added: [{ deck: "city", number: 2 }, { deck: "city", number: 3 }], removed: [{ deck: "road", number: 5 }] };
+  const putBackData = buildData(putBack);
+  same("decks: by hand, a card drawn and removed goes back in; one in the deck is asked about; one taken out says so",
+    [putBackData.eventState.decks.city.has(2), putBackData.eventState.questions.filter(q => /City [23] /.test(q)), drawDoubt(putBackData.eventState, "road", 5)],
+    [true, [`Record: City 3 is in the deck already (a starting card). Remove it from "eventDecks" in campaign.json.`],
+     "Road 5 isn't in the road deck now: it was removed by hand. Check the number."]);
+  // Only a card in the deck goes to its bottom.
+  const stray = copy(raw);
+  stray.events.push({ deck: "road", number: 50, option: "A", card: "removed" }, { deck: "road", number: 50, option: "A", card: "returned" });
+  same("decks: a card not in the deck, drawn and returned, isn't put at its bottom",
+    buildData(stray).eventState.bottom.road, [15, 1]);
+
+  // A returned card goes to the bottom, and a card added shuffles the deck
+  // (p. 39): campaign.json's decks, City 21 having added Road 65 after Road
+  // 9 went back. A card at the bottom isn't the next drawn while others lie
+  // above it; once none do, the bottom's top card is.
+  const state = buildData(copy(raw)).eventState;
+  same("decks: the bottom of each deck, and a draw from under the cards still to come",
+    [state.bottom, drawDoubt(state, "road", 9), drawDoubt(state, "road", 1), drawDoubt(state, "city", 13), drawDoubt(state, "city", 2),
+     drawDoubt({ decks: { city: new Set([1, 2]) }, bottom: { city: [1, 2] } }, "city", 1),
+     drawDoubt({ decks: { city: new Set([1, 2]) }, bottom: { city: [1, 2] } }, "city", 2)],
+    [{ city: [1, 13], road: [15, 1] }, null,
+     "Road 1 went to the bottom of the deck when it was drawn before, under 29 cards still to come. Check the number.",
+     "City 13 went to the bottom of the deck when it was drawn before, under 26 cards still to come. Check the number.", null, null,
+     "City 2 went to the bottom of the deck when it was drawn before, under 1 card still to come. Check the number."]);
 }

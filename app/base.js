@@ -87,6 +87,15 @@ function sectionHead(title, aside) {
   return h("div", { class: "section-head" }, h("h2", {}, title), aside ? h("span", { class: "aside" }, aside) : null);
 }
 
+// Say something to a screen reader, through the page's one live region
+// (index.html's #said, which no redraw replaces): what a tap showed.
+function announce(text) {
+  const out = document.getElementById("said");
+  if (!out) return;
+  out.textContent = "";
+  setTimeout(() => { out.textContent = text; }, 50);
+}
+
 // Something the party should look at: a perk to choose, a question to answer.
 function nudge(iconName, title, body, extra = "") {
   return h("div", { class: `nudge ${extra}`.trim() }, icon(iconName),
@@ -187,6 +196,9 @@ let showReplays = false;
 let openSheetId = null;
 let recorderOpen = false;
 let pendingScenario = null;
+// Which card each event deck tells the story of ({ city: 13 }): picked
+// there, or from an event under Sessions.
+let eventPick = {};
 // Whose shopping the Shop shows (until someone is picked, this phone's
 // character; then a name, or "" for no one), and whether it shows
 // everything or only what they can buy ("all", "can").

@@ -180,8 +180,8 @@ function recorderContext(data) {
     const n = num(e.number);
     if (!n) return "";
     const label = eventLabel(e.deck, n);
-    if (!classRef?.events?.[e.deck]?.[String(n)]) return `${label} isn't in the event data.`;
-    if (data.eventState?.decks?.[e.deck] && !data.eventState.decks[e.deck].has(n)) return `${label} isn't in the ${e.deck} deck now. Check the number.`;
+    const doubt = drawDoubt(data.eventState, e.deck, n);
+    if (doubt) return doubt;
     if (!e.option) return `${label}: pick the option you chose.`;
     const entry = derived?.history?.findLast(x => x.deck === e.deck && x.number === n);
     const said = [...(entry?.effects || []), entry?.fate ? `card ${entry.fate}` : null].filter(Boolean);

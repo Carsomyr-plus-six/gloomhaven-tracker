@@ -252,6 +252,9 @@ const ACHIEVEMENT_GROUPS = ["city-rule-", "artifact-"];
 // (rulebook p. 40): another of a party achievement, or of a typed one,
 // changes nothing.
 const achievementStacks = (kind, id) => kind === "global" && !ACHIEVEMENT_GROUPS.some(g => String(id).startsWith(g));
+// Reputation reaching +20 or −20 adds two events to the decks, once
+// (rulebook p. 49).
+const REPUTATION_EVENTS = [{ at: 20, events: [["city", 76], ["road", 67]] }, { at: -20, events: [["city", 77], ["road", 68]] }];
 // A party holding both of these gains The Drake Aided, and City 75 and
 // Road 66 go into the decks (rulebook p. 49).
 const DRAKE_AIDED = { needs: ["the-drakes-command", "the-drakes-treasure"], gains: "the-drake-aided",

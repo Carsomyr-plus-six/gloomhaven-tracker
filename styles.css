@@ -945,23 +945,46 @@ button.deck-stack { cursor: pointer; }
 .haul .results .num { width: 76px; }
 
 /* --- Event decks ---------------------------------------------------------- */
-.decks { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: 16px; align-items: stretch; }
-.deck { display: flex; flex-direction: column; gap: 6px; }
+/* Each deck: its cards as small cards, in rows of ten as the box holds them,
+   then the story of the one picked. */
+.decks { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px; align-items: start; }
+.deck { display: flex; flex-direction: column; gap: 14px; }
 .deck-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .deck-top .figure { font-size: var(--d-lg); line-height: 1; }
-.deck summary { font-size: var(--t-sm); color: var(--fg-3); cursor: pointer; padding: 4px 0; }
-.deck li { font-size: var(--t-sm); padding: 3px 0; }
-/* Label, card and fate line up with the first line of the text, not its middle. */
-.drawn > li { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line-soft); font-size: var(--t-md); }
-.drawn strong { flex: none; width: 104px; display: flex; align-items: center; justify-content: space-between; font-weight: 600; }
-/* What was recorded in full colour; notes and gaps (.small.muted) beneath it, quiet. */
-.drawn > li > span:nth-child(2) { flex: 1; min-width: 0; color: var(--fg); }
-.drawn .small.muted { margin-top: 1px; }
+.ev-tiles { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; max-width: 420px; }
+.ev-gap { grid-column: 1 / -1; height: 4px; }
+.ev-tile { position: relative; aspect-ratio: 3 / 4; min-height: 32px; display: grid; place-items: center; padding: 0;
+  border: 1px solid var(--line-strong); border-radius: 4px; background: var(--surface-2); color: var(--fg-3);
+  font: inherit; font-size: var(--t-xs); font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer; }
+.ev-tile:hover { border-color: var(--fg-3); }
+.ev-tile:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+.ev-tile[aria-pressed="true"] { outline: 2px solid var(--fg); outline-offset: 1px; }
+/* Drawn at least once: a dot under the number. */
+.ev-tile.seen::after { content: ""; position: absolute; left: 50%; bottom: 4px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: currentColor; }
+/* Removed: out of the deck, struck through. */
+.ev-tile.out { background: transparent; border-style: dashed; color: var(--faded); }
+.ev-tile.out b { text-decoration: line-through; }
+/* At the bottom: green, with its place there (1 comes back up first). */
+.ev-tile.low { border-color: var(--verdigris); color: var(--verdigris); }
+.ev-tile .place { position: absolute; top: 2px; left: 3px; font-size: 9px; line-height: 1; color: var(--verdigris); }
+/* A draw with a question to answer: brass, with a "?". */
+.ev-tile.ask { border-color: var(--brass); color: var(--brass); }
+.ev-tile .mark { position: absolute; top: 2px; right: 3px; font-size: 9px; line-height: 1; }
+.ev-story { display: grid; gap: 8px; padding: 12px 14px; border-radius: var(--r-md); background: var(--surface-2); }
+.ev-story-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; }
+.ev-story-head span { font-size: var(--t-sm); color: var(--fg-3); }
+.ev-draws { list-style: none; margin: 0; padding: 0; display: grid; }
+/* Option, what it did and the card's fate, on the first line of the text. */
+.ev-draws > li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 8px 0 2px;
+  border-top: 1px solid var(--line); font-size: var(--t-md); }
+.ev-draws .opt { margin: 0; }
+.ev-draws .when { font-size: var(--t-sm); color: var(--muted); }
+.ev-draws .small.muted { margin-top: 2px; }
 .fate { flex: none; display: inline-flex; align-items: center; font-size: var(--t-sm); font-weight: 600; color: var(--muted); }
-.drawn .fate { height: calc(var(--t-md) * 1.45); }
-/* A question about that event, asked on its row. */
-.drawn .ask { display: flex; align-items: flex-start; gap: 6px; margin-top: 3px; font-size: var(--t-sm); font-weight: 600; color: var(--brass); }
-.drawn .ask .icon { margin-top: 2px; font-size: var(--t-md); stroke-width: 2; }
+.ev-draws .fate { height: 20px; }
+/* A question about that draw, asked in its story. */
+.ev-story .ask { display: flex; align-items: flex-start; gap: 6px; margin-top: 3px; font-size: var(--t-sm); font-weight: 600; color: var(--brass); }
+.ev-story .ask .icon { margin-top: 2px; font-size: var(--t-md); stroke-width: 2; }
 .fate .gicon { width: 1.6em; height: 1.6em; margin-right: 6px; }
 .fate-word { font-size: var(--t-xs); }
 .fate.removed { color: var(--fg); }
@@ -1237,7 +1260,7 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .rec-pin { top: 0; }
   /* Under the boxes rather than beside them: no need to match their height. */
   .rec-gain { min-height: 0; }
-  .ledger summary, .deck summary { padding-block: 13px; margin-block: -9px; }
+  .ledger summary { padding-block: 13px; margin-block: -9px; }
   .panel { gap: 16px; scroll-margin-top: 16px; }
   /* Only the current tab's sections, and its parts of the Overview. */
   main [data-tab].off { display: none; }
@@ -1663,13 +1686,7 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .legend, .map { display: none; }
   .tree-rows { display: flex; flex-direction: column; align-items: stretch; }
 
-  .decks { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-  /* Event rows: the label and what became of the card on one line, the
-     text under them at full width rather than squeezed between. */
-  .drawn > li { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "label fate" "text text"; gap: 2px 12px; }
-  .drawn strong { grid-area: label; width: auto; justify-content: flex-start; }
-  .drawn > li > span:nth-child(2) { grid-area: text; }
-  .drawn .fate { grid-area: fate; }
+  .decks { gap: 12px; }
   .deck-top .figure { font-size: var(--d-md); }
   .record { gap: 12px; }
   .enhancer { grid-template-columns: minmax(0, 1fr); }

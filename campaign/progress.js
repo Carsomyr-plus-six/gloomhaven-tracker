@@ -147,11 +147,9 @@ const MILESTONES = [
     have: m => -m.low, open: m => m.unlocked.has("eclipse"), says: m => reputationSays(m, m.low, -10),
     todo: m => [`Reputation has reached ${signed(m.low)}: open the box with the ${classIconName("eclipse")} icon.`, "#record"] },
   { id: "events-plus-20", name: "City 76, Road 67", need: 20, what: "highest reputation", shown: m => m.peak >= 10,
-    have: m => m.peak, open: m => m.inDecks("city", 76) && m.inDecks("road", 67), says: m => reputationSays(m, m.peak, 20),
-    todo: () => ["Reputation has reached 20: add City 76 and Road 67 to the event decks.", "#events"] },
+    have: m => m.peak, open: m => m.peak >= 20, says: m => reputationSays(m, m.peak, 20) },
   { id: "events-minus-20", name: "City 77, Road 68", need: 20, what: "lowest reputation", shown: m => m.low <= -10,
-    have: m => -m.low, open: m => m.inDecks("city", 77) && m.inDecks("road", 68), says: m => reputationSays(m, m.low, -20),
-    todo: () => ["Reputation has reached −20: add City 77 and Road 68 to the event decks.", "#events"] },
+    have: m => -m.low, open: m => m.low <= -20, says: m => reputationSays(m, m.low, -20) },
   // The ledger opens it the moment the party holds both of the Drake's
   // achievements; listed only once open, as its count would spoil them.
   { id: "drake", name: "City 75, Road 66", need: DRAKE_AIDED.needs.length, shown: m => m.cityHas.has(DRAKE_AIDED.gains),
@@ -180,7 +178,6 @@ function milestoneStates(data) {
     unlocked: new Set(data.classes.map(u => u.id)),
     cityHas: new Map(data.achievements.global.map(a => [a.id, a.count || 1])),
     drakes: DRAKE_AIDED.needs.filter(id => partyHas.has(id)).length,
-    inDecks: (deck, n) => Boolean(data.eventState?.decks?.[deck]?.has(n) || data.eventState?.removed?.[deck]?.has(n)),
   };
   return MILESTONES.map(x => {
     const have = x.have(m);
