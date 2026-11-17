@@ -806,7 +806,7 @@ function todoItems(data) {
   ];
   const fromEvents = items.length;
   for (const e of waiting) {
-    const oc = chosenOutcome(data, classRef, e.deck, e.number, e.option, e.names, e.paid);
+    const oc = chosenOutcome(data, e.deck, e.number, e.option, e.names, e.paid);
     for (const fx of (oc?.effects || []).filter(fx => fx.type === "nextScenario")) add(`${eventLabel(e.deck, e.number)}, option ${e.option}: ${nextScenarioText(fx)}.`, "#sessions");
   }
   whose(fromEvents, "table");
@@ -1232,7 +1232,7 @@ function achievementRows(data, kind) {
       if (alt) {
         // What else that scenario needs alongside it.
         const others = Object.entries(alt).flatMap(([k, vs]) => vs.filter(v => !(k === kind && v.split(":")[0] === id))
-          .map(v => [v.startsWith("!"), achievementName(scenarioRef, k, v.replace(/^!/, "").split(":")[0])]));
+          .map(v => [v.startsWith("!"), achievementName(k, v.replace(/^!/, "").split(":")[0])]));
         const said = (not, word) => others.filter(([n]) => n === not).map(([, name]) => name).join(" and ").replace(/^(.)/, `${word} $1`);
         out.push([s.status === "completed" ? "opened " : "opens ", link,
           [said(false, "with"), said(true, "without")].filter(Boolean).map(x => ` ${x}`).join(" and")]);
@@ -1261,10 +1261,10 @@ function classBoxes(data, ids) {
     const u = opened.get(id);
     const starting = classRef.classEvents[id]?.starting;
     const how = u && !starting && /^#|event|retire/i.test(u.where || "") ? u.where : null;
-    const said = u ? `${className(classRef, id)}${starting ? ", a starting class" : how ? `, unlocked by ${how}` : ", unlocked"}` : `The ${classIconName(id)} box, still closed`;
+    const said = u ? `${className(id)}${starting ? ", a starting class" : how ? `, unlocked by ${how}` : ", unlocked"}` : `The ${classIconName(id)} box, still closed`;
     return h("li", { class: u ? (starting ? "starting" : "unlocked") : "locked", title: said, role: "img", "aria-label": said },
       gameIcon(`class-${id}`),
-      u ? h("span", { class: "box-name", "aria-hidden": "true" }, className(classRef, id)) : null,
+      u ? h("span", { class: "box-name", "aria-hidden": "true" }, className(id)) : null,
       how ? h("span", { class: "box-how", "aria-hidden": "true" }, how) : null);
   }));
 }
@@ -3044,11 +3044,15 @@ function dropDraft() {
   draft = null;
   try { localStorage.removeItem(DRAFT_KEY); } catch {}
 }
+// The level a scenario in the draft is recorded at when its row has none
+// (an older draft): tonight's, as picked on the Overview.
+const draftFallback = data => tonight(data)?.level;
+
 // Does the draft change anything yet? An opened form, or a row added and left
 // empty, doesn't: no draft is kept for it, and nothing says one is waiting.
 function draftChanges(d, data) {
   if (!d || !rawCampaign) return false;
-  const res = applyDraft(rawCampaign, d, data);
+  const res = applyDraft(rawCampaign, d, data, { level: draftFallback(data) });
   return res.evening || res.log.length > 0;
 }
 
@@ -3084,6 +3088,9 @@ const newEvent = () => ({ deck: "city", number: "", option: "", scenario: "", pa
 
 function renderRecorder(data) {
   const d = draft;
+  // Read once a render: the form is rebuilt when tonight's party or
+  // difficulty changes.
+  const fallbackLevel = draftFallback(data);
   d.donations ||= [];
   d.enhancements ||= [];
   d.quests ||= {};
@@ -3159,7 +3166,7 @@ function renderRecorder(data) {
   // What the campaign would look like with this draft saved: the events'
   // outcomes come from the same rules the Event decks list uses.
   const after = res => d.events.some(e => num(e.number) && e.option)
-    ? deriveCampaign(withDefaults(JSON.parse(JSON.stringify(res.out))), scenarioRef, classRef) : null;
+    ? deriveCampaign(withDefaults(JSON.parse(JSON.stringify(res.out)))) : null;
   // Under an event's row: whether that card can be drawn, and once an option
   // is picked, what it did (only that option, so the other isn't spoiled).
   const eventNote = (e, i, derived) => {
@@ -3180,7 +3187,7 @@ function renderRecorder(data) {
     if (!n) return "";
     const info = scenarioRef?.scenarios?.[String(n)];
     if (!info) return "Not a scenario number.";
-    const rewards = describeRewards(scenarioRef, info.rewards, classRef);
+    const rewards = describeRewards(info.rewards);
     const casual = isCasual(s, data);
     if (casual) return `${info.name} · casual mode: XP, gold, loot, battle goals and quest progress, but no rewards or unlocks`;
     return `${info.name}${s.result === "success" && rewards.length ? ` · rewards: ${rewards.join(", ")}` : ""}`;
@@ -3196,7 +3203,7 @@ function renderRecorder(data) {
 
   // What a character's row adds up to, kept current as the boxes are typed in.
   const gainText = (s, r) => {
-    const g = scenarioGain(s, r, data);
+    const g = scenarioGain(s, r, fallbackLevel);
     return `= ${xpText(g.xp)}, ${goldText(g.gold)}`;
   };
   const reward = n => scenarioRef?.scenarios?.[String(n)]?.rewards;
@@ -3206,11 +3213,11 @@ function renderRecorder(data) {
   };
   const scenarioBlock = (s, i) => {
     const n = num(s.number);
-    s.level ??= String(draftLevel(s, data));
+    s.level ??= String(draftLevel(s, fallbackLevel));
     const known = data.scenarios.find(x => x.number === n);
     const casualOk = Boolean(known);
     const casual = isCasual(s, data);
-    const st = scenarioStats(draftLevel(s, data));
+    const st = scenarioStats(draftLevel(s, fallbackLevel));
     return h("fieldset", { class: "card rec-block" },
       h("legend", {}, `Scenario ${i + 1}`),
       h("div", { class: "rec-row" },
@@ -3286,7 +3293,7 @@ function renderRecorder(data) {
         s.treasures.map((t, j) => h("div", { class: "rec-row" },
           field("Number", text(`sc-${i}-t${j}-n`, t, "number", { inputmode: "numeric", placeholder: "07", "aria-label": "Treasure number" }, true), "short"),
           field("Looted by", select(`sc-${i}-t${j}-c`, t, "character", partyOptions)),
-          t.number ? h("span", { class: "small muted rec-note" }, treasureParts(scenarioRef, t.number).map(describeTreasurePart).join(", ") || "Not in the treasure index") : null,
+          t.number ? h("span", { class: "small muted rec-note" }, treasureParts(t.number).map(describeTreasurePart).join(", ") || "Not in the treasure index") : null,
           remove(s.treasures, j, "treasure", `add-treasure-${i}`))),
         // The scenario's own tiles, not yet looted or entered: tap one to add it.
         tilesLeft(s, n).length ? h("div", { class: "rec-picks", role: "group", "aria-label": "Treasure tiles in this scenario" },
@@ -3332,7 +3339,7 @@ function renderRecorder(data) {
   };
   // Gold the event gives the party to share, or makes it pay: how it was split.
   const shareRow = (e, i) => {
-    const oc = chosenOutcome(data, classRef, e.deck, num(e.number), e.option, party.map(c => c.name),
+    const oc = chosenOutcome(data, e.deck, num(e.number), e.option, party.map(c => c.name),
                              e.paid === "yes" ? true : e.paid === "no" ? false : undefined);
     const fx = oc?.effects.find(x => x.type === "collectiveGold");
     if (!fx || !party.length) return null;
@@ -3403,7 +3410,7 @@ function renderRecorder(data) {
   d.advances ||= [];
   const behind = active.filter(c => characterStats(c).level < prosperity);
   const classOptions = [...new Set([...data.city.unlockedClasses.map(u => u.name),
-    ...d.retirements.filter(x => x.unlocks).map(x => className(classRef, x.unlocks))])].sort();
+    ...d.retirements.filter(x => x.unlocks).map(x => className(x.unlocks))])].sort();
   const newBlock = (x, i) => {
     const level = Math.max(1, Math.min(prosperity, num(x.level) || 1));
     return h("div", { class: "rec-row" },
@@ -3477,7 +3484,7 @@ function renderRecorder(data) {
     h("button", { type: "button", class: "btn quiet", onclick: () => document.querySelector(".rec-summary")?.scrollIntoView({ block: "start" }) },
       "See what changes"));
   const refreshSummary = () => {
-    const res = applyDraft(rawCampaign, d, data);
+    const res = applyDraft(rawCampaign, d, data, { level: fallbackLevel });
     for (const el of document.querySelectorAll("[data-sc-name]")) {
       const s = d.scenarios[num(el.dataset.scName)];
       if (s) el.textContent = scenarioNameText(s);
@@ -3505,7 +3512,7 @@ function renderRecorder(data) {
     const next = topBar(res).firstChild;
     if (status && status.textContent !== next.textContent) { status.className = next.className; status.replaceChildren(...next.childNodes); }
   };
-  const first = applyDraft(rawCampaign, d, data);
+  const first = applyDraft(rawCampaign, d, data, { level: fallbackLevel });
   const firstAfter = after(first);
 
   // Every part of the form is a heading over its fields, the same way.
