@@ -15,9 +15,9 @@ function campaignSnapshot(data) {
     reputation: range(data.ledger.reputation),
     prosperity: { ...range(data.ledger.prosperity), level: stepFor(data.ledger.prosperity.value, CHECKMARKS_FOR_PROSPERITY) },
     donations: data.city.donations || 0,
-    achievements: { party: achievements(data.party.achievements), global: achievements(data.city.globalAchievements) },
-    designs: data.city.itemDesigns.map(d => ({ name: d.name, where: d.where })).sort((a, b) => byText(a.name, b.name)),
-    classes: data.city.unlockedClasses.map(c => ({ id: c.id, where: c.where })).sort((a, b) => byText(a.id, b.id)),
+    achievements: { party: achievements(data.achievements.party), global: achievements(data.achievements.global) },
+    designs: data.itemDesigns.map(d => ({ name: d.name, where: d.where })).sort((a, b) => byText(a.name, b.name)),
+    classes: data.classes.map(c => ({ id: c.id, where: c.where })).sort((a, b) => byText(a.id, b.id)),
     decks: ev ? {
       city: [...ev.decks.city].sort(byNumber), road: [...ev.decks.road].sort(byNumber),
       removed: { city: [...ev.removed.city.keys()].sort(byNumber), road: [...ev.removed.road.keys()].sort(byNumber) },

@@ -115,7 +115,7 @@ function renderRecord(data) {
       card("Party achievements", achievementRows(data, "party"), "record-wide"),
       card("Global achievements", achievementRows(data, "global"), "record-wide"),
       classes.length ? card("Classes", classBoxes(data, classes), "record-classes",
-        `${classes.filter(id => data.city.unlockedClasses.some(u => u.id === id)).length} of ${classes.length}`) : null,
+        `${classes.filter(id => data.classes.some(u => u.id === id)).length} of ${classes.length}`) : null,
       card("In the shop for good", designRows(data)),
       card("Retired", retiredRows(data))),
     party.notes ? h("div", { class: "party-notes" }, h("h3", { class: "label" }, "Party notes"), notes(party.notes)) : null,
@@ -130,8 +130,8 @@ function recordStats(data) {
     ["Completed", [String(done), h("small", {}, ` of ${data.scenarios.length}`)]],
     ["Sessions", data.sessions.length],
     ["Retired", data.characters.filter(c => c.retired).length],
-    ["Prosperity", stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY)],
-    ["Reputation", signed(data.party.reputation)],
+    ["Prosperity", stepFor(data.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY)],
+    ["Reputation", signed(data.reputation)],
   ];
   return h("div", { class: "level-stats record-stats" },
     stats.map(([label, value]) => h("div", {}, h("span", { class: "label" }, label), h("span", { class: "num" }, value))));
@@ -172,7 +172,7 @@ function milestones(data) {
 // it opened or opens, which it blocks (none not yet found, which would
 // spoil them). Lost and replaced ones follow, struck through.
 function achievementRows(data, kind) {
-  const list = kind === "party" ? data.party.achievements : data.city.globalAchievements;
+  const list = data.achievements[kind];
   const lost = (data.lostAchievements || []).filter(a => a.kind === kind);
   if (!list.length && !lost.length) return h("p", { class: "small muted" }, "None yet.");
   const counts = achievementCounts(data)[kind];
@@ -213,7 +213,7 @@ function achievementRows(data, kind) {
 // The class boxes, as on the shelf: the starting six, those opened (with
 // how), and the rest by their icon alone, as the boxes are known until opened.
 function classBoxes(data, ids) {
-  const opened = new Map(data.city.unlockedClasses.map(u => [u.id, u]));
+  const opened = new Map(data.classes.map(u => [u.id, u]));
   return h("ul", { class: "class-boxes" }, ids.map(id => {
     const u = opened.get(id);
     const starting = classRef.classEvents[id]?.starting;
@@ -228,7 +228,7 @@ function classBoxes(data, ids) {
 
 // Item designs: every copy in the shop for good, shown as the Shop shows an item.
 function designRows(data) {
-  const list = data.city.itemDesigns;
+  const list = data.itemDesigns;
   if (!list.length) return h("p", { class: "small muted" }, "None yet.");
   return h("ul", { class: "rows" }, list.map(a => {
     const item = data.shop?.stock.find(i => sameItem(i.name, a.name));

@@ -168,8 +168,8 @@ function reputationSays(m, reached, goal) {
 
 // Each milestone as it stands: { ...the table's entry, have, open, ready, shown, says, todo }.
 function milestoneStates(data) {
-  const rep = data.party.reputation;
-  const partyHas = new Set(data.party.achievements.map(a => a.id));
+  const rep = data.reputation;
+  const partyHas = new Set(data.achievements.party.map(a => a.id));
   const m = {
     city: data.city,
     rep,
@@ -177,8 +177,8 @@ function milestoneStates(data) {
     retired: data.characters.filter(c => c.retired).length,
     peak: Math.max(rep, data.ledger?.reputation?.peak ?? rep),
     low: Math.min(rep, data.ledger?.reputation?.low ?? rep),
-    unlocked: new Set(data.city.unlockedClasses.map(u => u.id)),
-    cityHas: new Map(data.city.globalAchievements.map(a => [a.id, a.count || 1])),
+    unlocked: new Set(data.classes.map(u => u.id)),
+    cityHas: new Map(data.achievements.global.map(a => [a.id, a.count || 1])),
     drakes: ["the-drakes-command", "the-drakes-treasure"].filter(id => partyHas.has(id)).length,
     inDecks: (deck, n) => Boolean(data.eventState?.decks?.[deck]?.has(n) || data.eventState?.removed?.[deck]?.has(n)),
   };

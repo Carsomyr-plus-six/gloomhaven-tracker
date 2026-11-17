@@ -493,14 +493,12 @@ function formatJson(value, indent = "", mode = "auto") {
 
 // Fill in anything missing, so older or partial files still display.
 function withDefaults(raw) {
-  const party = { name: "", location: "", achievements: [], notes: "", ...raw.party, reputation: 0 };
-  const city = { donations: 0, globalAchievements: [], unlockedClasses: [], itemDesigns: [], returnedItems: [], ...raw.city, prosperityCheckmarks: 0 };
+  const party = { name: "", location: "", achievements: [], notes: "", ...raw.party };
+  const city = { donations: 0, globalAchievements: [], unlockedClasses: [], itemDesigns: [], returnedItems: [], ...raw.city };
   return {
     ...raw,
     party,
     city,
-    // Reputation and prosperity are worked out; older files kept them by hand.
-    stored: { reputation: raw.party?.reputation, prosperityCheckmarks: raw.city?.prosperityCheckmarks },
     adjustments: raw.adjustments || [],
     scenarios: raw.scenarios || [],
     characters: (raw.characters || []).map(c => ({ xp: 0, gold: 0, checkmarks: 0, perks: [], items: [], ...c })),
@@ -531,17 +529,25 @@ function buildData(json, shaped = null) {
   data.fileQuestions = fileQuestions(json);
   data.eventState = classRef ? derived : null;
   data.ledger = derived.totals;
-  data.party.reputation = derived.totals.reputation.value;
-  data.city.prosperityCheckmarks = derived.totals.prosperity.value;
-  data.party.achievements = derived.record.party;
-  data.city.globalAchievements = derived.record.global;
-  data.city.itemDesigns = derived.record.designs;
-  data.city.unlockedClasses = derived.record.classes;
+  // What's worked out goes under names of its own: data.party and data.city
+  // stay as the file has them (the lists it keeps by hand), so a field means
+  // one thing wherever it's read. Reputation and prosperity an older file
+  // kept by hand are compared with the sums above (the ledger's questions)
+  // and then dropped, so no one reads a stale number for the live one.
+  delete data.party.reputation;
+  delete data.city.prosperityCheckmarks;
+  data.reputation = derived.totals.reputation.value;
+  data.prosperityCheckmarks = derived.totals.prosperity.value;
+  data.achievements = { party: derived.record.party, global: derived.record.global };
+  data.itemDesigns = derived.record.designs;
+  data.classes = derived.record.classes;
   data.lostAchievements = derived.record.lost;
   data.draws = derived.record.draws;
   data.foundItems = derived.record.found;
   data.claims = derived.record.claims;
   data.treasureInfo = derived.record.treasures;
+  // The one key replaced: the file's scenario entries become every scenario
+  // found, each with its status and why (the file's fields kept on its own).
   data.scenarios = deriveScenarios(data, derived.unlocks);
   data.shop = deriveShop(data, data.ledger);
   return data;

@@ -198,7 +198,7 @@ function freeRoom({ used, limits }) {
 const enhancing = { sticker: "attack", level: "1", multi: false, previous: "0", hexes: "3", classCards: "0", already: false };
 
 function enhancer(data) {
-  if (!data.city.globalAchievements.some(a => a.id === "the-power-of-enhancement")) return null;
+  if (!data.achievements.global.some(a => a.id === "the-power-of-enhancement")) return null;
   const set = key => e => { enhancing[key] = e.target.type === "checkbox" ? e.target.checked : e.target.value; render(data, "shop"); };
   const field = (label, control) => h("label", { class: "field" }, h("span", {}, label), control);
   const select = (key, options) => h("select", { "data-key": `enh-${key}`, onchange: set(key) },
@@ -231,8 +231,8 @@ function enhancer(data) {
           h("label", { class: "rec-check" },
             h("input", { type: "checkbox", "data-key": "enh-already", checked: Boolean(enhancing.already), onchange: set("already") }),
             "This card is one of them")),
-        !enhancing.already && num(enhancing.classCards) >= stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY)
-          ? nudge("question", "Over the limit", `A class can have only as many enhanced cards as the prosperity level (${stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY)}), counting every character of the class, retired ones too.`)
+        !enhancing.already && num(enhancing.classCards) >= stepFor(data.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY)
+          ? nudge("question", "Over the limit", `A class can have only as many enhanced cards as the prosperity level (${stepFor(data.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY)}), counting every character of the class, retired ones too.`)
           : null,
       ),
       h("div", { class: "enhancer-cost" },

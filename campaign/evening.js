@@ -154,7 +154,7 @@ function eveningContext(raw, d, data, fallbackLevel) {
     ev.add(name, { [key]: c[key] - was });
   };
   const retiring = new Set((d.retirements || []).map(x => x.character).filter(name => who(name) && !who(name).retired));
-  const prosperityTonight = stepFor(data.city.prosperityCheckmarks + retiring.size, CHECKMARKS_FOR_PROSPERITY);
+  const prosperityTonight = stepFor(data.prosperityCheckmarks + retiring.size, CHECKMARKS_FOR_PROSPERITY);
   const joinLog = [];   // what retirements do, said after the gains
   const joined = [];    // newcomers playing tonight
   return { out, d, data, raw, fallbackLevel, log, warnings, who, giveItem, noCopyLeft, gainFor, gain, when, line, happening, credit,
@@ -593,7 +593,7 @@ function eveningRetirements(ctx) {
     }
     // A box already opened gives a random item design and a random side
     // scenario instead (rulebook p. 48): the Campaign record asks for both.
-    if (data.city.unlockedClasses.some(u => u.id === x.unlocks)
+    if (data.classes.some(u => u.id === x.unlocks)
         || (out.city?.unlockedClasses || []).includes(className(x.unlocks))) {
       c.questDraws = { itemDesign: null, scenario: null };
       joinLog.push(`${c.name}'s personal quest opens the box with the ${classIconName(x.unlocks)} icon, which is already open: instead, draw a random item design and a random side scenario`);

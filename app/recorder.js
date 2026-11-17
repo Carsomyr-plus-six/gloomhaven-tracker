@@ -140,7 +140,7 @@ function renderRecorder(data) {
   const active = characterOrder(data).filter(c => !c.retired);
   // Newcomers in this draft count as characters here: they can play tonight,
   // loot, shop and take perks. They play unless marked as sitting it out.
-  const prosperityLevel = stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
+  const prosperityLevel = stepFor(data.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
   const newcomers = d.newCharacters.filter(x => String(x.name || "").trim()).map(x => {
     const level = Math.max(1, Math.min(prosperityLevel, num(x.level) || 1));
     return { name: x.name.trim(), class: x.class, xp: XP_FOR_LEVEL[level - 1], gold: startingGold(level), checkmarks: 0,
@@ -359,7 +359,7 @@ function renderRecorder(data) {
   // quest done is no secret, so a device that doesn't know the card asks for
   // it here. A box already open, or opened by a retirement above, gives a
   // random item design and a random side scenario instead (rulebook p. 48).
-  const unlocked = new Set(data.city.unlockedClasses.map(u => u.id));
+  const unlocked = new Set(data.classes.map(u => u.id));
   const boxLabel = opens => opens === "envelope-x" ? "Envelope X"
     : [gameIcon(`class-${opens}`, `${classIconName(opens)} icon`), `The box with the ${classIconName(opens)} icon`];
   const questOpens = (x, i) => {
@@ -398,10 +398,10 @@ function renderRecorder(data) {
     const playerOf = c => String(d.retirements.find(x => x.character === c.name)?.player || c.player || "").trim();
     return data.characters.filter(c => playerOf(c) === name && (c.retired || d.retirements.some(x => x.character === c.name))).length;
   };
-  const prosperity = stepFor(data.city.prosperityCheckmarks + retiringTonight, CHECKMARKS_FOR_PROSPERITY);
+  const prosperity = stepFor(data.prosperityCheckmarks + retiringTonight, CHECKMARKS_FOR_PROSPERITY);
   d.advances ||= [];
   const behind = active.filter(c => characterStats(c).level < prosperity);
-  const classOptions = [...new Set([...data.city.unlockedClasses.map(u => u.name),
+  const classOptions = [...new Set([...data.classes.map(u => u.name),
     ...d.retirements.filter(x => x.unlocks).map(x => className(x.unlocks))])].sort();
   const newBlock = (x, i) => {
     const level = Math.max(1, Math.min(prosperity, num(x.level) || 1));

@@ -128,7 +128,7 @@ function chosenOutcome(data, deck, number, option, names, paid) {
   const options = classRef?.events?.[deck]?.[String(number)];
   if (!options || !option) return null;
   const ctx = { ...eventParty(data, { characters: names }),
-                reputation: data.ledger?.reputation?.range || exact(data.party.reputation || 0), paid };
+                reputation: data.ledger?.reputation?.range || exact(data.reputation || 0), paid };
   const found = possibleOutcomes(options, option, ctx, null);
   if (found.length !== 1 || found[0].doubts.length) return null;
   const effects = [];
@@ -150,7 +150,7 @@ function chosenOutcome(data, deck, number, option, names, paid) {
 // make it: { condition, could } (could is null when the price can't be told).
 function eventPayment(data, deck, number, option, characters) {
   const condition = (classRef?.events?.[deck]?.[String(number)]?.[option] || []).find(o => o.condition?.type?.startsWith("pay"))?.condition;
-  const could = condition ? couldPay(condition, characters, data.ledger?.reputation?.range || exact(data.party.reputation || 0)) : null;
+  const could = condition ? couldPay(condition, characters, data.ledger?.reputation?.range || exact(data.reputation || 0)) : null;
   return { condition, could };
 }
 
@@ -579,8 +579,8 @@ function deriveCampaign(data) {
   for (const r of data.eventDecks.removed) removeCard(r.deck, r.number, r.notes || "removed by hand");
 
   // Older files kept the totals by hand. Say so if they disagree.
-  for (const [key, stored, name] of [["reputation", data.stored.reputation, "reputation"],
-                                     ["prosperity", data.stored.prosperityCheckmarks, "prosperity checkmarks"]]) {
+  for (const [key, stored, name] of [["reputation", data.party.reputation, "reputation"],
+                                     ["prosperity", data.city.prosperityCheckmarks, "prosperity checkmarks"]]) {
     if (typeof stored === "number" && stored !== totals[key].value) {
       questions.push(`Ledger: ${name} in campaign.json says ${stored}, but the scenarios and events add up to ${totals[key].value}. The page uses ${totals[key].value}; remove the number, or add an adjustment for the difference.`);
     }
@@ -700,11 +700,11 @@ const SLOTS = [["head", "Head"], ["body", "Body"], ["legs", "Legs"], ["onehand",
 
 function deriveShop(data, ledger) {
   if (!itemsRef) return null;
-  const level = stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
-  const modifier = shopModifier(data.party.reputation);
+  const level = stepFor(data.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
+  const modifier = shopModifier(data.reputation);
   const all = Object.entries(itemsRef.items).map(([id, item]) => ({ id: Number(id), ...item }));
   const byName = new Map(all.map(item => [item.name, item]));
-  const designs = new Set(data.city.itemDesigns.map(d => d.name));
+  const designs = new Set(data.itemDesigns.map(d => d.name));
   const inShop = item => (item.prosperity && item.prosperity <= level) || designs.has(item.name);
   const questions = [];
 
