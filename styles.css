@@ -783,6 +783,7 @@ button.deck-stack { cursor: pointer; }
 .ink-completed { color: var(--verdigris); }
 .ink-available { color: var(--brass); }
 .ink-blocked { color: var(--ember); }
+.ink-waiting { color: var(--fg-3); }
 .ink-failed { font-weight: 600; color: var(--ember); }
 .ink-replay { font-weight: 600; color: var(--verdigris); }
 

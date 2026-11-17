@@ -216,4 +216,20 @@ async function eveningTests({ load, same, copy, written, raw, draft, apply, res,
   same("treasure: a tile with two items gives both, by name",
     [treasureParts(62).map(describeTreasurePart), looted.characters.find(c => c.name === "Azorica").log.at(-1), fileQuestions(looted)],
     [[itemName(110), itemName(115)], { date: "2026-11-20", for: "treasure", treasure: "62", gained: [itemName(110), itemName(115)] }, []]);
+
+  // Tonight's earlier scenarios count for the later ones: #23 opens #26 and
+  // gives what it needs, so #26 is played in campaign mode with nothing to
+  // check; #11 blocks #12, so #12 is played in casual mode.
+  const found = copy(raw);
+  found.scenarios.push({ number: 23 }, { number: 11 }, { number: 12 });
+  const row = number => ({ number: String(number), level: "2", result: "success", treasures: [], results: {} });
+  const tonight = (...numbers) => {
+    const res = applyDraft(fromFile(copy(found)), { ...copy(draft), party, scenarios: numbers.map(row), events: [], buys: [], sells: [], perks: [],
+      donations: [], enhancements: [], claims: {}, quests: {}, newCharacters: [], retirements: [] }, buildData(copy(found)));
+    return [toFile(res.out).sessions.at(-1).scenarios.map(p => [p.number, Boolean(p.casual)]),
+      res.warnings.filter(w => /blocked|unlocked|casual/i.test(w))];
+  };
+  same("scenarios: tonight's earlier ones open, and block, the later ones",
+    [tonight(23, 26), tonight(11, 12)],
+    [[[[23, false], [26, false]], []], [[[11, false], [12, true]], []]]);
 }

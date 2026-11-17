@@ -158,6 +158,8 @@ const TREE_STEP = 14;
 function scenarioRow(data, s, depth = 0, lines = []) {
   const open = scenarioOpen === s.number;
   const blockedWhy = s.status === "blocked" && s.reasons.length ? s.reasons.join(" · ") : null;
+  // Not yet (an achievement still to gain) reads quieter than blocked.
+  const ink = s.waiting ? "ink-waiting" : "ink-blocked";
   const tried = attemptsText(data, s.number);
   const took = open ? completionResults(data, s.number) : [];
   const meta = s.status === "completed"
@@ -190,7 +192,7 @@ function scenarioRow(data, s, depth = 0, lines = []) {
         // The hexagon's look says completed or available; only a block, which
         // needs its reason, is written out. Screen readers get the word.
         h("span", { class: "row-meta" },
-          s.status === "blocked" ? h("b", { class: "ink-blocked" }, blockedWhy || STATUS_LABELS.blocked)
+          s.status === "blocked" ? h("b", { class: ink }, blockedWhy || STATUS_LABELS.blocked)
             : h("span", { class: "sr-only" }, `${STATUS_LABELS[s.status] || s.status}${meta ? ", " : ""}`),
           s.status === "blocked" && meta ? ` · ${meta}` : meta)),
       icon("chevron")),
@@ -239,7 +241,8 @@ function unlockMap(data, all, layout) {
       hex(s.number, HEX_KIND[s.status]),
       h("span", {}, s.name || "Untitled"),
       s.status === "completed" ? h("span", { class: "ink-completed" }, icon("check", "Completed")) : null,
-      s.status === "blocked" ? h("span", { class: "ink-blocked" }, icon("lock", "Blocked")) : null);
+      s.status === "blocked" ? (s.waiting ? h("span", { class: "ink-waiting" }, icon("hourglass", "Not yet"))
+        : h("span", { class: "ink-blocked" }, icon("lock", "Blocked"))) : null);
     Object.assign(node.style, { left: `${x(s.number)}px`, top: `${y(s.number)}px` });
     return node;
   });
@@ -260,7 +263,7 @@ function unlockMap(data, all, layout) {
           hex(s.number, HEX_KIND[s.status]),
           h("div", {},
             h("h3", {}, s.name || "Untitled"),
-            h("p", {}, h("b", { class: `ink-${s.status}` }, STATUS_LABELS[s.status] || s.status),
+            h("p", {}, h("b", { class: s.waiting ? "ink-waiting" : `ink-${s.status}` }, s.waiting ? "Not yet" : STATUS_LABELS[s.status] || s.status),
               s.status === "available" ? " · ready to play" : null))),
         s.reasons.length ? h("div", { class: "reasons" }, s.reasons.map(r => h("span", {}, r))) : null,
         scenarioFacts(data, s), scenarioAction(data, s)),
@@ -275,6 +278,7 @@ function renderScenarios(data) {
 
   const counts = { all: all.length };
   for (const s of all) counts[s.status] = (counts[s.status] || 0) + 1;
+  const waiting = all.filter(s => s.waiting).length;
 
   const head = h("div", { class: "section-head" },
     h("h2", {}, "Scenarios"),
@@ -294,7 +298,8 @@ function renderScenarios(data) {
       h("div", { class: "legend" },
         counts.available ? h("span", {}, h("i", { "aria-hidden": "true" }), `${counts.available} available`) : null,
         counts.completed ? h("span", {}, h("span", { class: "ink-completed" }, icon("check")), `${counts.completed} completed`) : null,
-        counts.blocked ? h("span", {}, h("span", { class: "ink-blocked" }, icon("lock")), `${counts.blocked} blocked`) : null),
+        waiting ? h("span", {}, h("span", { class: "ink-waiting" }, icon("hourglass")), `${waiting} not yet`) : null,
+        counts.blocked > waiting ? h("span", {}, h("span", { class: "ink-blocked" }, icon("lock")), `${counts.blocked - waiting} blocked`) : null),
       unlockMap(data, all, layout),
       h("div", { class: "scenario-list tree-rows" }, layout.flat.map(({ s, depth, lines }) => scenarioRow(data, s, depth, lines))),
     ];
