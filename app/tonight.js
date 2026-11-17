@@ -268,7 +268,7 @@ function todoItems(data) {
       add(`${c.name}'s personal quest count differs from the record: see their sheet.`, "#characters", go, null, sheet);
     }
     // Below the prosperity level: they may advance to it (rulebook p. 48).
-    const prosperity = stepFor(data.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
+    const prosperity = stepFor(data.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
     if (st.level < prosperity && !draft?.advances?.includes(c.name)) {
       add(`Prosperity is ${prosperity}: ${c.name} may advance from level ${st.level} to ${prosperity}.`, "#characters", go,
         rawCampaign ? { label: "Record it", run: () => recordAdvance(data, c.name) } : null, sheet);

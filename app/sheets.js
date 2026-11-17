@@ -144,7 +144,7 @@ function renderOverview(data) {
       // Phones show Ready to play, then the tiles, then the list (styles.css).
       // Phones split the Overview: setting up tonight on the Tonight tab,
       // reputation, prosperity and the party on the Campaign tab (data-tab).
-      h("div", { class: "tiles" }, levelTile(data), reputationTile(party, data.ledger), prosperityTile(city, data.ledger)),
+      h("div", { class: "tiles" }, levelTile(data), reputationTile(data.ledger), prosperityTile(city, data.ledger)),
       // Phones: the scenario picked for tonight, to set up by.
       scenarioCard(data),
       // Phones: the battle goal this phone's player kept, hidden until asked.

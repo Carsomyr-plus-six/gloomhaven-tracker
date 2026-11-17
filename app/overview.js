@@ -65,8 +65,8 @@ function stepTrack({ zones, at, maybe, step, ends, said }) {
 
 // Reputation's stretches share a shop price (the price changes every 4
 // points past ±3), drawn to scale.
-function reputationTile(party, ledger) {
-  const rep = party.reputation;
+function reputationTile(ledger) {
+  const rep = ledger.reputation.value;
   const modifier = shopModifier(rep);
   const next = nextShopStep(rep);
   // 41 places, −20 to +20: a value sits in the middle of its place, and a
@@ -113,7 +113,7 @@ function sanctuaryMeter(city) {
 // scale, level 1's 4 checkmarks would be a sliver beside level 8's 14. The
 // hexagon moves through the current level as its checkmarks are ticked.
 function prosperityTile(city, ledger) {
-  const marks = city.prosperityCheckmarks;
+  const marks = ledger.prosperity.value;
   const level = stepFor(marks, CHECKMARKS_FOR_PROSPERITY);
   const toNext = progressFor(marks, CHECKMARKS_FOR_PROSPERITY);
   const from = CHECKMARKS_FOR_PROSPERITY[level - 1];

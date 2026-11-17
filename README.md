@@ -44,7 +44,7 @@ Both folders are plain scripts sharing one scope, loaded in the order `index.htm
 - `evening.js`: writing an evening: `applyDraft` runs the steps in `EVENING_STEPS` in order (newcomers, who played, events, scenarios, quests, retirements, gains, then town business and checks), each a function on one shared context.
 - `history.js`: what each play gave, who played, level-ups, blessings waiting, treasure looters, personal quest progress.
 - `progress.js`: perks and the attack modifier deck, item slots, the milestones.
-- `file.js`: reading and writing `campaign.json` (and moving an older layout over), the questions a file raises, and building the page's data. The reference data is read from its globals (`setReference`), never passed in.
+- `file.js`: reading and writing `campaign.json` (and moving an older layout over), the questions a file raises, and building the page's data. The built data keeps `party` and `city` as the file has them; what's worked out has names of its own: `reputation`, `prosperityCheckmarks`, `achievements` (`party`, `global`), `itemDesigns`, `classes`, `ledger` and the `shop`. A reputation or prosperity an older file kept by hand is compared with the sums (the ledger asks about a difference), then dropped. The one key replaced is `scenarios`: the file's entries become every scenario found, each with its status. The reference data is read from its globals (`setReference`), never passed in.
 
 `app/`, the page, a file a part:
 - `base.js`: making elements and icons, and what this browser keeps.

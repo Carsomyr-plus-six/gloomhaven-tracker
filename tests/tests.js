@@ -188,8 +188,8 @@ async function runTests(load, loadText) {
   const before = buildData(copy(raw));
   const cls = before.characters.find(c => c.name === "Azorica").class;
   const stickers = before.characters.filter(c => c.class === cls).reduce((n, c) => n + (c.enhanced || 0), 0);
-  const prosperity = stepFor(before.city.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
-  const raised = stepFor(before.city.prosperityCheckmarks + 5, CHECKMARKS_FOR_PROSPERITY);   // #51's reward: +5
+  const prosperity = stepFor(before.prosperityCheckmarks, CHECKMARKS_FOR_PROSPERITY);
+  const raised = stepFor(before.prosperityCheckmarks + 5, CHECKMARKS_FOR_PROSPERITY);   // #51's reward: +5
   const enhance = n => Array.from({ length: n }, () => ({ character: "Azorica", what: "Move", cost: "0" }));
   const won51 = [{ number: "51", level: "2", result: "success", treasures: [], results: { Azorica: { xp: "1" }, Craig: { xp: "1" }, "Flik Flak": { xp: "1" } } }];
   same("enhancements: no more enhanced cards than the prosperity level, after the evening",
@@ -207,6 +207,22 @@ async function runTests(load, loadText) {
       donations: [], enhancements: [], claims: {}, quests: {}, newCharacters: [], retirements: [] }, buildData(copy(raw)), level === undefined ? undefined : { level });
     return res.out.sessions.find(s => s.date === draft.date)?.scenarios[0]?.level;
   };
+  // The built data keeps party and city as the file has them; what's
+  // worked out has its own names. A reputation or prosperity the file kept
+  // by hand is asked about when it disagrees with the sums, then dropped.
+  const asFiled = withDefaults(fromFile(copy(raw)));
+  const built = buildData(copy(raw));
+  const keptByHand = copy(raw);
+  keptByHand.party.reputation = 99;
+  keptByHand.city.prosperityCheckmarks = 1;
+  const handBuilt = buildData(copy(keptByHand));
+  same("built data: party and city as the file has them; a number kept by hand asked about, then dropped",
+    [built.party, built.city, typeof built.reputation, typeof built.prosperityCheckmarks,
+     handBuilt.eventState.questions.filter(q => q.startsWith("Ledger:")).map(q => q.split(",")[0]),
+     ["reputation" in handBuilt.party, "prosperityCheckmarks" in handBuilt.city, handBuilt.reputation]],
+    [asFiled.party, asFiled.city, "number", "number",
+     ["Ledger: reputation in campaign.json says 99", "Ledger: prosperity checkmarks in campaign.json says 1"],
+     [false, false, built.reputation]]);
   same("evening: a scenario with no level takes the fallback level given, else 0",
     [recorded(3), recorded(undefined), draftLevel({ level: "" }, 5), draftLevel({ level: "2" }, 5), scenarioGain({ level: "", result: "success" }, { xp: "1" }, 3).xp],
     [3, 0, 5, 2, 1 + scenarioStats(3).xp]);
@@ -453,7 +469,7 @@ async function runTests(load, loadText) {
   rules.sessions.push({ date: "2026-12-01", scenarios: [{ number: 11, result: "success" }, { number: 50, result: "success" }] });
   const rulesData = buildData(copy(rules));
   same("achievements: a new City Rule replaces the old, by id",
-    [rulesData.city.globalAchievements.map(a => a.id).filter(id => id.startsWith("city-rule-")), rulesData.lostAchievements.map(a => [a.id, a.how])],
+    [rulesData.achievements.global.map(a => a.id).filter(id => id.startsWith("city-rule-")), rulesData.lostAchievements.map(a => [a.id, a.how])],
     [["city-rule-militaristic"], [["city-rule-economic", "replaced by City Rule: Militaristic"]]]);
 
   // Numbers are whole numbers or nothing; treasure numbers as printed.

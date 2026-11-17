@@ -308,7 +308,7 @@ function achievementCounts(data) {
     }
     return counts;
   };
-  return { global: count(data.city.globalAchievements), party: count(data.party.achievements) };
+  return { global: count(data.achievements.global), party: count(data.achievements.party) };
 }
 
 // Requirements are alternatives (any one will do); each lists achievements
