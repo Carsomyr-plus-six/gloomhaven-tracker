@@ -78,7 +78,26 @@ function newScenario(data, party = []) {
 }
 const newEvent = () => ({ deck: "city", number: "", option: "", scenario: "", paid: "" });
 
+// The form: the context its parts share (recorderContext), then each
+// section in order (RECORDER_SECTIONS), with the bar pinned above them
+// (recorderTopBar) and what the draft changes below (recorderSummary).
 function renderRecorder(data) {
+  const f = recorderContext(data);
+  const { first, available } = f;
+
+  // Every part of the form is a heading over its fields, the same way.
+  return h("div", { class: "recorder" },
+    // On a strip of page background, so nothing scrolling under it shows round it.
+    h("div", { class: "rec-pin" }, recorderTopBar(first)),
+    h("datalist", { id: "rec-available" }, available.map(s => h("option", { value: s.number }, `#${s.number} ${s.name || ""}`))),
+    RECORDER_SECTIONS.map(section => section(f)),
+    recorderSummary(f, first));
+}
+
+// What the form's sections share: the draft and its campaign, the ways a
+// field is made and changed, who's playing, and what the draft does, kept
+// current in the summary as you type.
+function recorderContext(data) {
   const d = draft;
   // Read once a render: the form is rebuilt when tonight's party or
   // difficulty changes.
@@ -184,6 +203,140 @@ function renderRecorder(data) {
     if (casual) return `${info.name} · casual mode: XP, gold, loot, battle goals and quest progress, but no rewards or unlocks`;
     return `${info.name}${s.result === "success" && rewards.length ? ` · rewards: ${rewards.join(", ")}` : ""}`;
   };
+
+  // What a character's row adds up to, kept current as the boxes are typed in.
+  const gainText = (s, r) => {
+    const g = scenarioGain(s, r, fallbackLevel);
+    return `= ${xpText(g.xp)}, ${goldText(g.gold)}`;
+  };
+
+  const playedTonight = d.scenarios.filter(s => num(s.number));
+  const firstPlayed = num(playedTonight[0]?.number);
+  const lastPlayed = num(playedTonight.at(-1)?.number);
+  d.advances ||= [];
+
+  const refreshSummary = () => {
+    const res = applyDraft(rawCampaign, d, data, { level: fallbackLevel });
+    for (const el of document.querySelectorAll("[data-sc-name]")) {
+      const s = d.scenarios[num(el.dataset.scName)];
+      if (s) el.textContent = scenarioNameText(s);
+    }
+    const derived = after(res);
+    for (const el of document.querySelectorAll("[data-ev-note]")) {
+      const e = d.events[num(el.dataset.evNote)];
+      if (e) el.textContent = eventNote(e, num(el.dataset.evNote), derived);
+    }
+    for (const el of document.querySelectorAll("[data-sc-picks]")) {
+      el.hidden = filled(d.scenarios[num(el.dataset.scPicks)]?.number);
+    }
+    for (const el of document.querySelectorAll("[data-gain]")) {
+      const [i, name] = el.dataset.gain.split("|");
+      const s = d.scenarios[num(i)];
+      if (s) el.textContent = gainText(s, s.results[name] || {});
+    }
+    // The button above the form says whether closing it keeps a draft.
+    const close = document.querySelector('[data-key="rec-toggle"]');
+    if (close) close.textContent = res.evening || res.log.length ? "Close the form (keep the draft)" : "Close the form";
+    document.querySelector(".rec-summary")?.replaceWith(recorderSummary(f, res));
+    // Only the count changes, in place, so it's announced once, not at
+    // every keystroke.
+    const status = document.querySelector(".rec-top [role=status]");
+    const next = recorderTopBar(res).firstChild;
+    if (status && status.textContent !== next.textContent) { status.className = next.className; status.replaceChildren(...next.childNodes); }
+  };
+  const first = applyDraft(rawCampaign, d, data, { level: fallbackLevel });
+  const firstAfter = after(first);
+  // What the parts take (relayout and refreshSummary stay with the boxes
+  // that use them; refreshSummary reads this object when it runs).
+  const f = { data, d, fallbackLevel, rerender, set, field, text, select, focusOn, remove, addButton, active, newcomers, party, partyOptions,
+              activeOptions, mine, available, after, eventNote, scenarioNameText, gainText, playedTonight, firstPlayed, lastPlayed, first, firstAfter };
+  return f;
+}
+
+// What the draft changes, with the download: at the foot of the form, and
+// rebuilt on its own as you type (refreshSummary).
+function recorderSummary(f, res) {
+  const { data, d } = f;
+  const { out, log, warnings, evening, party: played } = res;
+  // Written in the file's layout: what happened, each thing once (campaign/file.js).
+  const json = formatJson(toFile(out)) + "\n";
+  const edit = githubEditUrl(dataUrl());
+  const download = () => {
+    const url = URL.createObjectURL(new Blob([json], { type: "application/json" }));
+    const a = h("a", { href: url, download: "campaign.json" });
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  const copy = async e => {
+    const button = e.currentTarget;
+    try { await navigator.clipboard.writeText(json); button.textContent = "Copied"; }
+    catch { button.textContent = "Couldn't copy"; }
+  };
+  if (!evening && !log.length) return h("div", { class: "card rec-block rec-summary" },
+    h("h3", { class: "subtitle" }, "What changes"),
+    warnings.map(w => nudge("question", "Check", w)),
+    h("p", { class: "small muted" }, "Nothing recorded yet. What you enter above shows up here, ready to save."));
+  return h("div", { class: "card rec-block rec-summary" },
+    h("h3", { class: "subtitle" }, "What changes"),
+    warnings.map(w => nudge("question", "Check", w)),
+    h("ul", {}, [evening ? `A session on ${formatDate(d.date) || "an undated evening"} with ${played.join(", ") || "no one"}`
+                         : "Between sessions: nothing is added to the session log", ...log].map(line => h("li", {}, line))),
+    h("p", { class: "small muted" }, edit
+      ? "Copy and edit on GitHub copies the new campaign.json and opens the file on GitHub, phones included: select everything there, paste, and commit. Or download it and put it in place of the old one."
+      : "Download the new campaign.json and put it in place of the old one in the repository.",
+      " Nothing is saved anywhere else; the draft stays in this browser until you discard it, or until the page finds it in campaign.json."),
+    h("div", { class: "rec-buttons" },
+      h("button", { type: "button", class: "btn primary", onclick: download }, "Download campaign.json"),
+      edit ? h("a", { class: "btn", href: edit, target: "_blank", rel: "noopener",
+                      onclick: () => { navigator.clipboard?.writeText(json).catch(() => {}); } }, "Copy and edit on GitHub") : null,
+      h("button", { type: "button", class: "btn", onclick: copy }, "Copy to clipboard"),
+      h("button", { type: "button", class: "btn quiet", onclick: () => { if (confirm("Discard this draft?")) { dropDraft(); render(data); } } }, "Discard draft")));
+}
+
+// A slim bar pinned above the form: how many checks are waiting, and a way
+// down to them, so they're seen while filling it in, not only at the end.
+// The count is a status: a screen reader hears it when it changes.
+function recorderTopBar(res) {
+  return h("div", { class: "rec-top" },
+    res.warnings.length
+      ? h("span", { class: "rec-checks", role: "status" }, icon("question"), `${plural(res.warnings.length, "thing")} to check`)
+      : h("span", { class: "muted", role: "status" }, "Nothing to check"),
+    h("button", { type: "button", class: "btn quiet", onclick: () => document.querySelector(".rec-summary")?.scrollIntoView({ block: "start" }) },
+      "See what changes"));
+}
+
+
+// The evening: its date and title, the party's name for a new campaign, and
+// who played.
+function recorderEvening(f) {
+  const { data, d, rerender, field, text, active, newcomers } = f;
+  return h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "The evening"),
+      h("div", { class: "card rec-block" },
+        h("div", { class: "rec-row" },
+          field("Date", text("rec-date", d, "date", { type: "date" })),
+          field("Title (optional)", text("rec-title", d, "title", { placeholder: "Under the date, or instead of it" }), "wide")),
+        // A party without a name gets it here (a new campaign).
+        !data.party.name || d.partyName ? field("Party name", text("rec-party-name", d, "partyName", { placeholder: "What the party calls itself" })) : null,
+        h("div", { class: "field" },
+          h("span", { id: "rec-who-label" }, "Who played"),
+          h("div", { class: "filters", role: "group", "aria-labelledby": "rec-who-label" }, active.filter(c => !hiddenAway(c, d.party.includes(c.name))).map(c =>
+            h("button", { type: "button", "data-key": `rec-who-${c.name}`, "aria-pressed": String(d.party.includes(c.name)),
+                          onclick: () => { d.party = d.party.includes(c.name) ? d.party.filter(n => n !== c.name) : [...d.party, c.name]; rerender(); } },
+              // Someone sitting out can still be marked: it brings them back.
+              c.name, c.inactive ? h("span", {}, "inactive") : null)),
+            newcomers.map((c, i) =>
+              h("button", { type: "button", "data-key": `rec-who-new-${i}`, "aria-pressed": String(c.draft.playing !== false),
+                            onclick: () => { c.draft.playing = c.draft.playing === false; rerender(); } },
+                c.name, h("span", {}, "new"))),
+            inactiveToggle(data, active.filter(c => hiddenAway(c, d.party.includes(c.name))).length, "rec-who-inactive")))));
+}
+
+// Scenarios played, each with its level, result, what each character took,
+// treasure and rewards; and one a personal quest opens.
+function recorderScenarios(f) {
+  const { data, d, fallbackLevel, rerender, set, field, text, select, focusOn, remove, addButton, party, partyOptions, available, scenarioNameText, gainText } = f;
   // Playable scenarios not already in this draft.
   const pickable = i => available.filter(sc => !d.scenarios.some((x, j) => j !== i && num(x.number) === sc.number));
   // A scenario's treasure tiles not looted before or already in this row.
@@ -192,12 +345,6 @@ function renderRecorder(data) {
     .filter(tile => !lootedTiles.has(tile) && !s.treasures.some(t => String(Number(t.number)) === tile));
   // Completed ones, to replay casually: shown on asking.
   const replayable = data.scenarios.filter(sc => sc.status === "completed").sort((a, b) => a.number - b.number);
-
-  // What a character's row adds up to, kept current as the boxes are typed in.
-  const gainText = (s, r) => {
-    const g = scenarioGain(s, r, fallbackLevel);
-    return `= ${xpText(g.xp)}, ${goldText(g.gold)}`;
-  };
   const reward = n => scenarioRef?.scenarios?.[String(n)]?.rewards;
   const tracked = name => {
     const t = tableState(name);
@@ -300,10 +447,23 @@ function renderRecorder(data) {
           () => `sc-${i}-t${s.treasures.length - 1}-n`)),
       remove(d.scenarios, i, "scenario", "add-scenario"));
   };
+  return h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Scenarios"),
+      d.scenarios.map(scenarioBlock),
+      // A scenario a personal quest opens, ready to play next time.
+      // Whose quest isn't asked: it would give the quest away.
+      d.opened.length ? h("div", { class: "card rec-block" }, d.opened.map((o, i) => h("div", { class: "rec-row" },
+        field("Opened by a quest: #", text(`open-${i}-n`, o, "number", { type: "number", min: 1, max: 95, inputmode: "numeric", "aria-label": "Scenario a personal quest opens" }, true), "short"),
+        h("span", { class: "small muted rec-note" }, scenarioRef?.scenarios?.[String(num(o.number))]?.name || ""),
+        remove(d.opened, i, "scenario", "add-opened")))) : null,
+      h("div", { class: "rec-buttons" },
+        addButton("add-scenario", "Add a scenario", () => d.scenarios.push(newScenario(data, party)), () => `sc-${d.scenarios.length - 1}-n`),
+        // Rare: a few times a campaign, so quiet.
+        addButton("add-opened", "A personal quest opens one", () => d.opened.push({ number: "" }), () => `open-${d.opened.length - 1}-n`, true)));
+}
 
-  const playedTonight = d.scenarios.filter(s => num(s.number));
-  const firstPlayed = num(playedTonight[0]?.number);
-  const lastPlayed = num(playedTonight.at(-1)?.number);
+// Events drawn, each with its option, whether the party paid, and gold shared.
+function recorderEvents(f) {
+  const { data, d, field, text, select, remove, addButton, party, eventNote, firstPlayed, lastPlayed, first, firstAfter } = f;
   // Paying for an event isn't a choice: the party pays if it has the gold.
   const payDefault = e => {
     const { could } = eventPayment(data, e.deck, num(e.number), e.option, party);
@@ -341,18 +501,15 @@ function renderRecorder(data) {
       party.map(c => field(c.name, text(`ev-${i}-share-${c.name}`, e.shares, c.name,
         { type: "number", min: 0, inputmode: "numeric", placeholder: "0", "aria-label": `${c.name}'s share` }), "short")));
   };
+  return h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Events drawn"),
+      d.events.length ? h("div", { class: "card rec-block" }, d.events.map(eventBlock)) : null,
+      addButton("add-event", "Add an event", () => d.events.push(newEvent()), () => `ev-${d.events.length - 1}-d`));
+}
 
-  const buyBlock = (b, i) => h("div", { class: "rec-row" },
-    // Anyone in town can shop, playing tonight or not; newcomers too.
-    field("Who", select(`buy-${i}-c`, b, "character", activeOptions)),
-    field("Item", select(`buy-${i}-i`, b, "item", [["", "Pick an item"],
-      ...(data.shop?.stock || []).filter(x => x.left > 0).map(x => [x.name, `${x.name} · ${goldText(x.price)}`])], false)),
-    remove(d.buys, i, "purchase", "add-buy"));
-  const sellBlock = (b, i) => h("div", { class: "rec-row" },
-    field("Who", select(`sell-${i}-c`, b, "character", activeOptions)),
-    field("Item", select(`sell-${i}-i`, b, "item", [["", "Pick an item"],
-      ...(data.characters.find(c => c.name === b.character)?.items || []).map(x => [x, x])], false)),
-    remove(d.sells, i, "sale", "add-sell"));
+// Retiring and joining: who retires and what their quest opens, new
+// characters, personal quest progress, and advancing to the prosperity level.
+function recorderRetiring(f) {
+  const { data, d, rerender, field, text, select, focusOn, remove, addButton, active, activeOptions } = f;
   // Retiring: who, and what their personal quest opens, which their quest
   // card decides (syncRetirements, above): a class box (shown by its icon, as
   // the box's name would be a spoiler until it's opened) or Envelope X. A
@@ -399,7 +556,6 @@ function renderRecorder(data) {
     return data.characters.filter(c => playerOf(c) === name && (c.retired || d.retirements.some(x => x.character === c.name))).length;
   };
   const prosperity = stepFor(data.prosperityCheckmarks + retiringTonight, CHECKMARKS_FOR_PROSPERITY);
-  d.advances ||= [];
   const behind = active.filter(c => characterStats(c).level < prosperity);
   const classOptions = [...new Set([...data.classes.map(u => u.name),
     ...d.retirements.filter(x => x.unlocks).map(x => className(x.unlocks))])].sort();
@@ -418,135 +574,7 @@ function renderRecorder(data) {
       h("span", { class: "small muted rec-note" }, `Starts at level ${level} with ${xpText(XP_FOR_LEVEL[level - 1])} and ${goldText(startingGold(level))}`),
       remove(d.newCharacters, i, "new character", "add-new"));
   };
-
-  const perkBlock = (p, i) => {
-    const c = data.characters.find(x => x.name === p.character) || newcomers.find(x => x.name === p.character);
-    return h("div", { class: "rec-row" },
-      field("Who", select(`perk-${i}-c`, p, "character", activeOptions)),
-      field("Perk", select(`perk-${i}-p`, p, "perk", [["", "Pick a perk"], ...(c ? perkCheck(c).open.map(x => [x.text, x.text]) : [])]), "wide"),
-      remove(d.perks, i, "perk", "add-perk"));
-  };
-
-  // What the draft changes, with the download. Rebuilt on its own as you type.
-  const summary = res => {
-    const { out, log, warnings, evening, party: played } = res;
-    // Written in the file's layout: what happened, each thing once (campaign/file.js).
-    const json = formatJson(toFile(out)) + "\n";
-    const edit = githubEditUrl(dataUrl());
-    const download = () => {
-      const url = URL.createObjectURL(new Blob([json], { type: "application/json" }));
-      const a = h("a", { href: url, download: "campaign.json" });
-      document.body.append(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    };
-    const copy = async e => {
-      const button = e.currentTarget;
-      try { await navigator.clipboard.writeText(json); button.textContent = "Copied"; }
-      catch { button.textContent = "Couldn't copy"; }
-    };
-    if (!evening && !log.length) return h("div", { class: "card rec-block rec-summary" },
-      h("h3", { class: "subtitle" }, "What changes"),
-      warnings.map(w => nudge("question", "Check", w)),
-      h("p", { class: "small muted" }, "Nothing recorded yet. What you enter above shows up here, ready to save."));
-    return h("div", { class: "card rec-block rec-summary" },
-      h("h3", { class: "subtitle" }, "What changes"),
-      warnings.map(w => nudge("question", "Check", w)),
-      h("ul", {}, [evening ? `A session on ${formatDate(d.date) || "an undated evening"} with ${played.join(", ") || "no one"}`
-                           : "Between sessions: nothing is added to the session log", ...log].map(line => h("li", {}, line))),
-      h("p", { class: "small muted" }, edit
-        ? "Copy and edit on GitHub copies the new campaign.json and opens the file on GitHub, phones included: select everything there, paste, and commit. Or download it and put it in place of the old one."
-        : "Download the new campaign.json and put it in place of the old one in the repository.",
-        " Nothing is saved anywhere else; the draft stays in this browser until you discard it, or until the page finds it in campaign.json."),
-      h("div", { class: "rec-buttons" },
-        h("button", { type: "button", class: "btn primary", onclick: download }, "Download campaign.json"),
-        edit ? h("a", { class: "btn", href: edit, target: "_blank", rel: "noopener",
-                        onclick: () => { navigator.clipboard?.writeText(json).catch(() => {}); } }, "Copy and edit on GitHub") : null,
-        h("button", { type: "button", class: "btn", onclick: copy }, "Copy to clipboard"),
-        h("button", { type: "button", class: "btn quiet", onclick: () => { if (confirm("Discard this draft?")) { dropDraft(); render(data); } } }, "Discard draft")));
-  };
-  // A slim bar pinned above the form: how many checks are waiting, and a way
-  // down to them, so they're seen while filling it in, not only at the end.
-  // The count is a status: a screen reader hears it when it changes.
-  const topBar = res => h("div", { class: "rec-top" },
-    res.warnings.length
-      ? h("span", { class: "rec-checks", role: "status" }, icon("question"), `${plural(res.warnings.length, "thing")} to check`)
-      : h("span", { class: "muted", role: "status" }, "Nothing to check"),
-    h("button", { type: "button", class: "btn quiet", onclick: () => document.querySelector(".rec-summary")?.scrollIntoView({ block: "start" }) },
-      "See what changes"));
-  const refreshSummary = () => {
-    const res = applyDraft(rawCampaign, d, data, { level: fallbackLevel });
-    for (const el of document.querySelectorAll("[data-sc-name]")) {
-      const s = d.scenarios[num(el.dataset.scName)];
-      if (s) el.textContent = scenarioNameText(s);
-    }
-    const derived = after(res);
-    for (const el of document.querySelectorAll("[data-ev-note]")) {
-      const e = d.events[num(el.dataset.evNote)];
-      if (e) el.textContent = eventNote(e, num(el.dataset.evNote), derived);
-    }
-    for (const el of document.querySelectorAll("[data-sc-picks]")) {
-      el.hidden = filled(d.scenarios[num(el.dataset.scPicks)]?.number);
-    }
-    for (const el of document.querySelectorAll("[data-gain]")) {
-      const [i, name] = el.dataset.gain.split("|");
-      const s = d.scenarios[num(i)];
-      if (s) el.textContent = gainText(s, s.results[name] || {});
-    }
-    // The button above the form says whether closing it keeps a draft.
-    const close = document.querySelector('[data-key="rec-toggle"]');
-    if (close) close.textContent = res.evening || res.log.length ? "Close the form (keep the draft)" : "Close the form";
-    document.querySelector(".rec-summary")?.replaceWith(summary(res));
-    // Only the count changes, in place, so it's announced once, not at
-    // every keystroke.
-    const status = document.querySelector(".rec-top [role=status]");
-    const next = topBar(res).firstChild;
-    if (status && status.textContent !== next.textContent) { status.className = next.className; status.replaceChildren(...next.childNodes); }
-  };
-  const first = applyDraft(rawCampaign, d, data, { level: fallbackLevel });
-  const firstAfter = after(first);
-
-  // Every part of the form is a heading over its fields, the same way.
-  return h("div", { class: "recorder" },
-    // On a strip of page background, so nothing scrolling under it shows round it.
-    h("div", { class: "rec-pin" }, topBar(first)),
-    h("datalist", { id: "rec-available" }, available.map(s => h("option", { value: s.number }, `#${s.number} ${s.name || ""}`))),
-    h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "The evening"),
-      h("div", { class: "card rec-block" },
-        h("div", { class: "rec-row" },
-          field("Date", text("rec-date", d, "date", { type: "date" })),
-          field("Title (optional)", text("rec-title", d, "title", { placeholder: "Under the date, or instead of it" }), "wide")),
-        // A party without a name gets it here (a new campaign).
-        !data.party.name || d.partyName ? field("Party name", text("rec-party-name", d, "partyName", { placeholder: "What the party calls itself" })) : null,
-        h("div", { class: "field" },
-          h("span", { id: "rec-who-label" }, "Who played"),
-          h("div", { class: "filters", role: "group", "aria-labelledby": "rec-who-label" }, active.filter(c => !hiddenAway(c, d.party.includes(c.name))).map(c =>
-            h("button", { type: "button", "data-key": `rec-who-${c.name}`, "aria-pressed": String(d.party.includes(c.name)),
-                          onclick: () => { d.party = d.party.includes(c.name) ? d.party.filter(n => n !== c.name) : [...d.party, c.name]; rerender(); } },
-              // Someone sitting out can still be marked: it brings them back.
-              c.name, c.inactive ? h("span", {}, "inactive") : null)),
-            newcomers.map((c, i) =>
-              h("button", { type: "button", "data-key": `rec-who-new-${i}`, "aria-pressed": String(c.draft.playing !== false),
-                            onclick: () => { c.draft.playing = c.draft.playing === false; rerender(); } },
-                c.name, h("span", {}, "new"))),
-            inactiveToggle(data, active.filter(c => hiddenAway(c, d.party.includes(c.name))).length, "rec-who-inactive"))))),
-    h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Scenarios"),
-      d.scenarios.map(scenarioBlock),
-      // A scenario a personal quest opens, ready to play next time.
-      // Whose quest isn't asked: it would give the quest away.
-      d.opened.length ? h("div", { class: "card rec-block" }, d.opened.map((o, i) => h("div", { class: "rec-row" },
-        field("Opened by a quest: #", text(`open-${i}-n`, o, "number", { type: "number", min: 1, max: 95, inputmode: "numeric", "aria-label": "Scenario a personal quest opens" }, true), "short"),
-        h("span", { class: "small muted rec-note" }, scenarioRef?.scenarios?.[String(num(o.number))]?.name || ""),
-        remove(d.opened, i, "scenario", "add-opened")))) : null,
-      h("div", { class: "rec-buttons" },
-        addButton("add-scenario", "Add a scenario", () => d.scenarios.push(newScenario(data, party)), () => `sc-${d.scenarios.length - 1}-n`),
-        // Rare: a few times a campaign, so quiet.
-        addButton("add-opened", "A personal quest opens one", () => d.opened.push({ number: "" }), () => `open-${d.opened.length - 1}-n`, true))),
-    h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Events drawn"),
-      d.events.length ? h("div", { class: "card rec-block" }, d.events.map(eventBlock)) : null,
-      addButton("add-event", "Add an event", () => d.events.push(newEvent()), () => `ev-${d.events.length - 1}-d`)),
-    h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Retiring and joining"),
+  return h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Retiring and joining"),
       d.retirements.length ? h("div", { class: "card rec-block" }, d.retirements.map(retireBlock)) : null,
       d.newCharacters.length ? h("div", { class: "card rec-block" }, d.newCharacters.map(newBlock)) : null,
       // Personal quest progress: each step, set with a tap (questInputs), from
@@ -577,8 +605,34 @@ function renderRecorder(data) {
             c.name, h("span", {}, characterStats(c).level))))) : null,
       h("div", { class: "rec-buttons" },
         active.length ? addButton("add-retire", "Retire a character", () => d.retirements.push({ character: "", unlocks: "" }), () => `ret-${d.retirements.length - 1}-c`) : null,
-        addButton("add-new", "Add a new character", () => d.newCharacters.push({ name: "", class: "", level: "1", playing: true }), () => `new-${d.newCharacters.length - 1}-n`))),
-    h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Shop, perks and the Sanctuary"),
+        addButton("add-new", "Add a new character", () => d.newCharacters.push({ name: "", class: "", level: "1", playing: true }), () => `new-${d.newCharacters.length - 1}-n`)));
+}
+
+// Shop, perks and the Sanctuary: buying, selling, perks taken, donations,
+// enhancements, and opening Envelope B.
+function recorderTown(f) {
+  const { data, d, set, field, select, remove, addButton, newcomers, party, partyOptions, activeOptions, mine, playedTonight, firstPlayed, first } = f;
+
+  const buyBlock = (b, i) => h("div", { class: "rec-row" },
+    // Anyone in town can shop, playing tonight or not; newcomers too.
+    field("Who", select(`buy-${i}-c`, b, "character", activeOptions)),
+    field("Item", select(`buy-${i}-i`, b, "item", [["", "Pick an item"],
+      ...(data.shop?.stock || []).filter(x => x.left > 0).map(x => [x.name, `${x.name} · ${goldText(x.price)}`])], false)),
+    remove(d.buys, i, "purchase", "add-buy"));
+  const sellBlock = (b, i) => h("div", { class: "rec-row" },
+    field("Who", select(`sell-${i}-c`, b, "character", activeOptions)),
+    field("Item", select(`sell-${i}-i`, b, "item", [["", "Pick an item"],
+      ...(data.characters.find(c => c.name === b.character)?.items || []).map(x => [x, x])], false)),
+    remove(d.sells, i, "sale", "add-sell"));
+
+  const perkBlock = (p, i) => {
+    const c = data.characters.find(x => x.name === p.character) || newcomers.find(x => x.name === p.character);
+    return h("div", { class: "rec-row" },
+      field("Who", select(`perk-${i}-c`, p, "character", activeOptions)),
+      field("Perk", select(`perk-${i}-p`, p, "perk", [["", "Pick a perk"], ...(c ? perkCheck(c).open.map(x => [x.text, x.text]) : [])]), "wide"),
+      remove(d.perks, i, "perk", "add-perk"));
+  };
+  return h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Shop, perks and the Sanctuary"),
       d.buys.length || d.sells.length || d.perks.length || d.donations.length || d.enhancements.length
         ? h("div", { class: "card rec-block" }, d.buys.map(buyBlock), d.sells.map(sellBlock), d.perks.map(perkBlock),
             d.donations.map((x, i) => h("div", { class: "rec-row" },
@@ -608,10 +662,16 @@ function renderRecorder(data) {
         ? h("label", { class: "rec-check" },
             h("input", { type: "checkbox", "data-key": "rec-envelope-b", checked: Boolean(d.envelopeB), onchange: set(d, "envelopeB", true) }),
             "We opened Envelope B")
-        : null),
-    // Open questions about past treasures, settled here rather than by
-    // editing campaign.json.
-    (data.claims || []).length ? h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Settling the record"),
+        : null);
+}
+
+// Settling the record: open questions about past treasures, answered here
+// rather than by editing campaign.json.
+function recorderClaims(f) {
+  const { data, d, set, field, select } = f;
+  // Open questions about past treasures, settled here rather than by
+  // editing campaign.json.
+  return (data.claims || []).length ? h("div", { class: "rec-section" }, h("h3", { class: "subtitle" }, "Settling the record"),
       h("div", { class: "card rec-block" }, data.claims.map((c, i) => {
         const x = d.claims[`${c.where}:${c.treasure}`] ||= { character: "", kept: true };
         return h("div", { class: "rec-row" },
@@ -620,9 +680,16 @@ function renderRecorder(data) {
           x.character ? h("label", { class: "rec-check" },
             h("input", { type: "checkbox", "data-key": `claim-${i}-k`, checked: x.kept !== false, onchange: set(x, "kept", true) }),
             `${x.character} still has it`) : null);
-      }))) : null,
-    h("div", { class: "rec-section" }, h("h3", { class: "subtitle", id: "rec-notes-label" }, "Notes"),
-      h("div", { class: "card rec-block" },
-        h("textarea", { "data-key": "rec-notes", rows: 3, "aria-labelledby": "rec-notes-label", oninput: set(d, "notes") }, d.notes))),
-    summary(first));
+      }))) : null;
 }
+
+// Notes on the evening.
+function recorderNotes(f) {
+  const { d, set } = f;
+  return h("div", { class: "rec-section" }, h("h3", { class: "subtitle", id: "rec-notes-label" }, "Notes"),
+      h("div", { class: "card rec-block" },
+        h("textarea", { "data-key": "rec-notes", rows: 3, "aria-labelledby": "rec-notes-label", oninput: set(d, "notes") }, d.notes)));
+}
+
+// The form's sections, in order.
+const RECORDER_SECTIONS = [recorderEvening, recorderScenarios, recorderEvents, recorderRetiring, recorderTown, recorderClaims, recorderNotes];

@@ -104,6 +104,31 @@ async function runSmoke() {
     frame.remove();
   }
 
+  // The form's named fields for the test evening, in order, as
+  // tests/golden/form.json lists them: a field lost, added or moved by a
+  // change to the form shows here. (Names only: the text around them
+  // depends on the browser's language.) The draft goes in the copy's
+  // storage first, and everything kept is cleared after.
+  {
+    const path = "tests/fixtures/campaign-v1.json";
+    const kept = `:${new URL(`../${path}`, location.href).pathname}`;
+    const golden = await (await fetch("golden/form.json", { cache: "no-cache" })).json();
+    const evening = await (await fetch("drafts/evening.json", { cache: "no-cache" })).json();
+    localStorage.setItem(`sessionDraft${kept}`, JSON.stringify({ ...evening, id: "golden" }));
+    const frame = await open(`../index.html?data=${path}`, 1200);
+    await ready(frame);
+    const doc = frame.contentDocument;
+    [...doc.querySelectorAll("button")].find(b => /Go on recording|Record the evening/.test(b.innerText))?.click();
+    await wait(200);
+    const keys = [...doc.querySelectorAll(".recorder [data-key]")].map(e => `${e.tagName.toLowerCase()}:${e.dataset.key}`);
+    const at = keys.findIndex((k, i) => k !== golden.evening[i]);
+    check("form: the test evening's fields, in order, as tests/golden/form.json lists them",
+      JSON.stringify(keys) === JSON.stringify(golden.evening),
+      at < 0 && keys.length === golden.evening.length ? "the same" : `first difference at ${at < 0 ? keys.length : at}: ${keys[at] ?? "(none)"} where the list has ${golden.evening[at] ?? "(none)"}; now: ${JSON.stringify(keys)}`);
+    for (const k of Object.keys(localStorage)) if (k.endsWith(kept)) localStorage.removeItem(k);
+    frame.remove();
+  }
+
   // A phone draws only the tab on screen (the others when shown), so: every
   // tab has something drawn once opened, and a sheet drawn in another tab's
   // section still opens over this one (the form, from Tonight). On a copy of
