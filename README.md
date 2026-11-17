@@ -53,7 +53,7 @@ Both folders are plain scripts sharing one scope, loaded in the order `index.htm
 - `record.js`: the event decks and the campaign record.
 - `scenarios.js`, `characters.js`: the scenario list and map, and the character sheets.
 - `table.js`: at the table, after the scenario, and in town.
-- `shop.js`, `recorder.js`, `sessions.js`: the Shop and Enhancer, the form that records a session, and the sessions.
+- `shop.js`, `recorder.js`, `sessions.js`: the Shop and Enhancer, the form that records a session (what its sections share in `recorderContext`, then each section in `RECORDER_SECTIONS`, in order), and the sessions.
 - `main.js`: the tabs, loading the campaign and reference data, and starting the page.
 
 ## Recording a session

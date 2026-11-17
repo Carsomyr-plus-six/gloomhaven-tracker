@@ -1,0 +1,26 @@
+{
+ "about": "The session form's named fields for tests/drafts/evening.json on tests/fixtures/campaign-v1.json, in order (tests/smoke.js). A change to the form that's meant: replace the list with the one the failing check shows.",
+ "evening": [
+  "input:rec-date", "input:rec-title",
+  "button:rec-who-Azorica", "button:rec-who-Craig", "button:rec-who-Flik Flak", "button:rec-who-new-0", "button:rec-who-inactive",
+  "input:sc-0-n", "select:sc-0-l", "select:sc-0-r", "input:sc-0-casual",
+  "input:sc-0-Azorica-xp", "input:sc-0-Azorica-coins", "input:sc-0-Azorica-cm",
+  "input:sc-0-Craig-xp", "input:sc-0-Craig-coins", "input:sc-0-Craig-cm",
+  "input:sc-0-Flik Flak-xp", "input:sc-0-Flik Flak-coins", "input:sc-0-Flik Flak-cm",
+  "input:sc-0-t0-n", "select:sc-0-t0-c", "button:sc-0-tile-28", "button:add-treasure-0",
+  "input:sc-1-n", "select:sc-1-l", "select:sc-1-r", "input:sc-1-casual",
+  "input:sc-1-Azorica-xp", "input:sc-1-Azorica-coins", "input:sc-1-Craig-xp", "input:sc-1-Craig-coins",
+  "input:sc-1-Flik Flak-xp", "input:sc-1-Flik Flak-coins",
+  "button:sc-1-tile-50", "button:add-treasure-1", "button:add-scenario", "button:add-opened",
+  "select:ev-0-d", "input:ev-0-n", "select:ev-0-o", "select:ev-0-s",
+  "select:ev-1-d", "input:ev-1-n", "select:ev-1-o", "select:ev-1-s", "button:add-event",
+  "input:new-0-n", "select:new-0-c", "input:new-0-p", "input:new-0-b",
+  "div:pq-Azorica", "button:pq-now-Azorica", "div:pq-Craig", "button:pq-now-Craig",
+  "div:pq-Flik Flak", "button:pq-now-Flik Flak", "div:pq-Kaktus", "button:pq-now-Kaktus",
+  "button:add-retire", "button:add-new",
+  "select:buy-0-c", "select:buy-0-i", "select:sell-0-c", "select:sell-0-i", "select:perk-0-c", "select:perk-0-p",
+  "select:don-0-c", "select:don-0-w", "select:enr-0-c",
+  "button:add-buy", "button:add-sell", "button:add-perk", "button:add-donation",
+  "textarea:rec-notes"
+ ]
+}
