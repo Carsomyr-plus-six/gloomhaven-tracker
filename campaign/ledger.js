@@ -261,7 +261,25 @@ function tally(effects, ctx) {
 // The part of a range that is certain: the smallest change it could be.
 const settledPart = r => r.lo > 0 ? r.lo : r.hi < 0 ? r.hi : 0;
 
+// The ledger: every event, scenario and adjustment replayed in the order
+// they happened, then what's kept apart from that order, on one context
+// (ledgerContext), in LEDGER_STEPS's order. Returns the event decks, the
+// history, the questions to ask, the unlocks, the reputation and
+// prosperity totals, and the campaign record.
 function deriveCampaign(data) {
+  const ledger = ledgerContext(data);
+  for (const step of LEDGER_STEPS) step(ledger);
+  const { decks, added, removed, history, questions, unlocks, totals, record } = ledger;
+  const list = map => [...map.values()].map(a => ({ ...a, where: a.where.join(", ") }));
+  return { decks, added, removed, history, questions, unlocks, totals,
+           record: { party: list(record.party), global: list(record.global), designs: list(record.designs),
+                     classes: list(record.classes), draws: record.draws, treasures: record.treasures,
+                     found: record.found, claims: record.claims, lost: record.lost } };
+}
+
+// What the ledger's steps share: the decks, the totals, the record and
+// the questions as they build up, and the ways each changes.
+function ledgerContext(data) {
   const decks = {};
   const added = {};
   const removed = {};
@@ -328,8 +346,6 @@ function deriveCampaign(data) {
       if (!removed[deck].has(n)) addCard(deck, n, `${className(id)} unlocked`);
     }
   };
-  for (const [id, info] of Object.entries(classRef?.classEvents || {})) if (info.starting) unlockClass(id, "starting class");
-
   const addCard = (deck, number, source) => {
     decks[deck]?.add(number);
     added[deck]?.set(number, source);
@@ -358,7 +374,165 @@ function deriveCampaign(data) {
     t.entries.push({ label, range });
     if (!isExact(range)) (forGood ? t.unknown : t.unsure).push(label);
   };
+  // Who looted each treasure tile, by the line for it in their log.
+  const looters = treasureLooters(data.characters);
+  // What the steps take (note and isNumber stay with the helpers that use them).
+  return { data, decks, added, removed, history, questions, unlocks, totals, record, gainAchievement, loseAchievement,
+           addDesign, classInfo, classIdOf, unlockClass, addCard, removeCard, gain, looters };
+}
 
+// An event drawn: what every outcome it could have had agrees on happened,
+// and what's still open is asked.
+function ledgerEvent(ledger, e) {
+  const { data, history, questions, unlocks, totals, record, gainAchievement, addDesign, addCard, removeCard, gain } = ledger;
+  const label = eventLabel(e.deck, e.number);
+  const options = classRef?.events?.[e.deck]?.[String(e.number)] || {};
+  const party = eventParty(data, e);
+  const ctx = { ...party, reputation: totals.reputation.range, paid: e.paid };
+  const letters = e.option ? [e.option] : Object.keys(options);
+  const found = letters.flatMap(l => possibleOutcomes(options, l, ctx, e.option ? e.outcome : null))
+    .map(o => ({ ...o, ...tally(o.effects, ctx) }));
+
+  // Everything that every possible outcome agrees on happened.
+  const key = o => JSON.stringify([o.card, o.reputation, o.prosperity, o.adds, o.unlocks, o.mayAdd, o.mayUnlock, o.gains]);
+  const agreed = found.length > 0 && new Set(found.map(key)).size === 1;
+  const fates = new Set(found.map(o => o.card));
+  const fate = e.card || (fates.size === 1 ? [...fates][0] : null);
+  if (fate === "removed") removeCard(e.deck, e.number, e.option ? `${label}, option ${e.option}` : label);
+
+  const inAll = list => found.length ? found[0][list].filter(x => found.every(o => o[list].some(y => JSON.stringify(y) === JSON.stringify(x)))) : [];
+  const adds = inAll("adds");
+  for (const [deck, number] of adds) addCard(deck, number, `from ${label}`);
+  const sure = inAll("unlocks");
+  for (const n of sure) unlocks.push({ number: n, source: `${label} event` });
+  for (const g of inAll("gains")) {
+    if (g.kind === "design") addDesign(g.item, label);
+    else if (g.kind === "found") record.found.push({ item: itemName(g.item), from: label });
+    else if (g.kind === "randomDesign") {
+      if (e.drew) addDesign(e.drew, label);
+      else if (e.drawn !== false) record.draws.push({ what: "a random item design", from: label,
+        how: `add \`"drew": "Item name"\` to ${label} in the \`"events"\` list` });
+    } else gainAchievement(g.kind, g.id, label);
+  }
+
+  for (const k of ["reputation", "prosperity"]) {
+    if (found.length) gain(k, found.map(o => o[k]).reduce(either), label, Boolean(e.unknown && !e.option));
+  }
+
+  // What to ask, if anything is still open.
+  const one = found.length === 1 ? found[0] : null;
+  if (!found.length) {
+    questions.push(`${label}: check the option. The event data has no option ${e.option || ""} for this card.`.replace(" .", "."));
+  } else if (e.unknown && !e.option) {
+    // "unknown": true says the option can't be known any more: the range
+    // stays, the questions go.
+  } else if (!agreed && !e.option) {
+    const who = found.some(o => o.doubts.some(c => c?.type === "character")) ? ", and who was there" : "";
+    questions.push(`${label}: which option did you choose${who}? It decides ${describeStakes(found)}.`);
+  } else if (!agreed || (one && one.effectDoubts.length)) {
+    const doubt = found.flatMap(o => [...o.doubts, ...o.effectDoubts])[0];
+    questions.push(`${label}, option ${e.option}: ${askAbout(doubt, ctx)}`);
+  }
+  if (!fate && agreed) questions.push(`${label}: check whether the card was removed or returned to the deck.`);
+  const sureAdds = new Set(adds.map(a => JSON.stringify(a)));
+  const mayAdds = new Set(found.flatMap(o => [...o.mayAdd, ...o.adds]).map(a => JSON.stringify(a)).filter(a => !sureAdds.has(a)));
+  for (const [deck, number] of e.unknown && !e.option ? [] : [...mayAdds].map(a => JSON.parse(a))) {
+    questions.push(`${label}: ${eventLabel(deck, number)} may have been added, depending on ${one ? "who was there" : "the outcome"}.`);
+  }
+
+  history.push({ ...e, label, fate, adds, option: e.option, outcome: one?.number, effects: one ? one.text : [] });
+}
+
+// A scenario completed: its rewards, then its treasures.
+function ledgerScenario(ledger, s) {
+  const { record, gainAchievement, loseAchievement, addDesign, unlockClass, addCard, gain } = ledger;
+  const r = scenarioRef?.scenarios?.[String(s.number)]?.rewards || {};
+  const label = `#${s.number}${s.name ? ` ${s.name}` : ""}`;
+  const where = `#${s.number}`;
+  if (r.reputation) gain("reputation", exact(r.reputation), label);
+  if (r.prosperity) gain("prosperity", exact(r.prosperity), label);
+  for (const id of r.globalAchievements || []) gainAchievement("global", id, where);
+  for (const id of r.partyAchievements || []) gainAchievement("party", id, where);
+  for (const id of r.lostPartyAchievements || []) loseAchievement("party", id, where);
+  // A design puts every copy in the shop; an item is one copy, given to one
+  // of the characters there (rulebook p. 49). Items may be written "27:2"
+  // (item 27, two copies).
+  for (const id of r.itemDesigns || []) addDesign(String(id).split(":")[0], where);
+  for (const id of r.items || []) {
+    const [n, copies] = String(id).split(":");
+    for (let k = 0; k < (Number(copies) || 1); k++) record.found.push({ item: itemName(n), from: where });
+  }
+  for (const ev of r.events || []) { const [deck, n] = ev.split(":"); addCard(deck, Number(n), `from ${where}`); }
+  if (r.unlockCharacter) unlockClass(r.unlockCharacter, where);
+
+  ledgerTreasures(ledger, s, where);
+}
+
+// What a scenario's treasures gave. Looted on a success, a failure or a
+// casual replay alike: a treasure is gained the moment it's looted (p. 27).
+// Who looted it: the character whose log has its line, else as the
+// scenario's treasure names them (loot from before the logs, or a tile
+// that changed no sheet).
+function ledgerTreasures(ledger, s, where) {
+  const { data, unlocks, record, addDesign, looters } = ledger;
+  // Treasures: "07", or { "number": "07", "character": "Craig", "drew": 52 }.
+  const found = [];
+  for (const t of s.treasures || []) {
+    // "drawn": false says a random draw was never made, and won't be.
+    const { number, character: named, drew, drawn: never } = typeof t === "object" ? { ...t, drawn: t.drawn === false } : { number: t };
+    const character = looters.get(String(Number(number))) || named;
+    const from = `treasure ${number}`;
+    const parts = treasureParts(number);
+    for (const part of parts) {
+      // A design puts every copy in the shop; a named item goes to whoever
+      // looted it, one copy (rulebook p. 14). If no one is written down as
+      // looting it, and no sheet has it, ask.
+      if (part.type === "itemDesign") addDesign(part.value, `${from} in ${where}`);
+      if (part.type === "item") {
+        const item = itemName(part.value);
+        record.found.push({ item, from, character });
+        if (!character && !data.characters.some(c => (c.items || []).some(i => sameItem(i, item)))) {
+          record.claims.push({ item, treasure: number, where,
+            how: `in scenario ${where}'s \`"treasures"\`, write \`"${number}"\` as \`{ "number": "${number}", "character": "Name" }\`, and add ${item} to their \`items\` unless they've since sold it` });
+        }
+      }
+      if (part.type === "scenario") unlocks.push({ number: Number(part.value), source: from });
+      if (part.type === "randomScenario") {
+        if (drew != null) unlocks.push({ number: Number(drew), source: from });
+        else if (!never) record.draws.push({ what: "a random side scenario", from: `${from}, looted in ${where}`,
+          how: `in scenario ${where}'s \`"treasures"\`, write \`"${number}"\` as \`{ "number": "${number}", "drew": 52 }\`, putting the number of the scenario you drew in place of 52` });
+      }
+      if (part.type === "randomItemDesign") {
+        if (drew != null) addDesign(drew, from);
+        else if (!never) record.draws.push({ what: "a random item design", from: `${from}, looted in ${where}`,
+          how: `in scenario ${where}'s \`"treasures"\`, write \`"${number}"\` as \`{ "number": "${number}", "drew": "Item name" }\`` });
+      }
+    }
+    const gives = parts.map(describeTreasurePart).join(", ") || "not in the treasure index";
+    const scenarioDraw = parts.some(part => part.type === "randomScenario");
+    const drawn = drew != null ? ` (drew ${scenarioDraw ? `#${drew}` : drew})` : never ? " (never drawn)" : "";
+    found.push(`${number}: ${gives}${drawn}${character ? `, to ${character}` : ""}`);
+  }
+  if (found.length) record.treasures.set(s.number, found);
+}
+
+// An adjustment: reputation or prosperity set right by hand.
+function ledgerAdjustment(ledger, a) {
+  const { gain } = ledger;
+  const label = a.notes || "Adjustment";
+  if (a.reputation) gain("reputation", exact(a.reputation), label);
+  if (a.prosperity) gain("prosperity", exact(a.prosperity), label);
+}
+
+// The starting classes: open from the first.
+function ledgerStartingClasses(ledger) {
+  const { unlockClass } = ledger;
+  for (const [id, info] of Object.entries(classRef?.classEvents || {})) if (info.starting) unlockClass(id, "starting class");
+}
+
+// The order things happened.
+function ledgerTimeline(ledger) {
+  const { data } = ledger;
   // The order things happened: completed scenarios as campaign.json lists
   // them. An event with "scenario" comes just before that scenario, one
   // with "after" just after that one; one with neither comes after the
@@ -382,152 +556,31 @@ function deriveCampaign(data) {
     const i = a.scenario != null ? played.findIndex(s => s.number === a.scenario) : -1;
     (i >= 0 ? before[i] : after).push({ adjustment: a });
   }
+  Object.assign(ledger, { played, before, after });
+}
 
-  const doEvent = e => {
-    const label = eventLabel(e.deck, e.number);
-    const options = classRef?.events?.[e.deck]?.[String(e.number)] || {};
-    const party = eventParty(data, e);
-    const ctx = { ...party, reputation: totals.reputation.range, paid: e.paid };
-    const letters = e.option ? [e.option] : Object.keys(options);
-    const found = letters.flatMap(l => possibleOutcomes(options, l, ctx, e.option ? e.outcome : null))
-      .map(o => ({ ...o, ...tally(o.effects, ctx) }));
-
-    // Everything that every possible outcome agrees on happened.
-    const key = o => JSON.stringify([o.card, o.reputation, o.prosperity, o.adds, o.unlocks, o.mayAdd, o.mayUnlock, o.gains]);
-    const agreed = found.length > 0 && new Set(found.map(key)).size === 1;
-    const fates = new Set(found.map(o => o.card));
-    const fate = e.card || (fates.size === 1 ? [...fates][0] : null);
-    if (fate === "removed") removeCard(e.deck, e.number, e.option ? `${label}, option ${e.option}` : label);
-
-    const inAll = list => found.length ? found[0][list].filter(x => found.every(o => o[list].some(y => JSON.stringify(y) === JSON.stringify(x)))) : [];
-    const adds = inAll("adds");
-    for (const [deck, number] of adds) addCard(deck, number, `from ${label}`);
-    const sure = inAll("unlocks");
-    for (const n of sure) unlocks.push({ number: n, source: `${label} event` });
-    for (const g of inAll("gains")) {
-      if (g.kind === "design") addDesign(g.item, label);
-      else if (g.kind === "found") record.found.push({ item: itemName(g.item), from: label });
-      else if (g.kind === "randomDesign") {
-        if (e.drew) addDesign(e.drew, label);
-        else if (e.drawn !== false) record.draws.push({ what: "a random item design", from: label,
-          how: `add \`"drew": "Item name"\` to ${label} in the \`"events"\` list` });
-      } else gainAchievement(g.kind, g.id, label);
-    }
-
-    for (const k of ["reputation", "prosperity"]) {
-      if (found.length) gain(k, found.map(o => o[k]).reduce(either), label, Boolean(e.unknown && !e.option));
-    }
-
-    // What to ask, if anything is still open.
-    const one = found.length === 1 ? found[0] : null;
-    if (!found.length) {
-      questions.push(`${label}: check the option. The event data has no option ${e.option || ""} for this card.`.replace(" .", "."));
-    } else if (e.unknown && !e.option) {
-      // "unknown": true says the option can't be known any more: the range
-      // stays, the questions go.
-    } else if (!agreed && !e.option) {
-      const who = found.some(o => o.doubts.some(c => c?.type === "character")) ? ", and who was there" : "";
-      questions.push(`${label}: which option did you choose${who}? It decides ${describeStakes(found)}.`);
-    } else if (!agreed || (one && one.effectDoubts.length)) {
-      const doubt = found.flatMap(o => [...o.doubts, ...o.effectDoubts])[0];
-      questions.push(`${label}, option ${e.option}: ${askAbout(doubt, ctx)}`);
-    }
-    if (!fate && agreed) questions.push(`${label}: check whether the card was removed or returned to the deck.`);
-    const sureAdds = new Set(adds.map(a => JSON.stringify(a)));
-    const mayAdds = new Set(found.flatMap(o => [...o.mayAdd, ...o.adds]).map(a => JSON.stringify(a)).filter(a => !sureAdds.has(a)));
-    for (const [deck, number] of e.unknown && !e.option ? [] : [...mayAdds].map(a => JSON.parse(a))) {
-      questions.push(`${label}: ${eventLabel(deck, number)} may have been added, depending on ${one ? "who was there" : "the outcome"}.`);
-    }
-
-    history.push({ ...e, label, fate, adds, option: e.option, outcome: one?.number, effects: one ? one.text : [] });
-  };
-
-  const doScenario = s => {
-    const r = scenarioRef?.scenarios?.[String(s.number)]?.rewards || {};
-    const label = `#${s.number}${s.name ? ` ${s.name}` : ""}`;
-    const where = `#${s.number}`;
-    if (r.reputation) gain("reputation", exact(r.reputation), label);
-    if (r.prosperity) gain("prosperity", exact(r.prosperity), label);
-    for (const id of r.globalAchievements || []) gainAchievement("global", id, where);
-    for (const id of r.partyAchievements || []) gainAchievement("party", id, where);
-    for (const id of r.lostPartyAchievements || []) loseAchievement("party", id, where);
-    // A design puts every copy in the shop; an item is one copy, given to one
-    // of the characters there (rulebook p. 49). Items may be written "27:2"
-    // (item 27, two copies).
-    for (const id of r.itemDesigns || []) addDesign(String(id).split(":")[0], where);
-    for (const id of r.items || []) {
-      const [n, copies] = String(id).split(":");
-      for (let k = 0; k < (Number(copies) || 1); k++) record.found.push({ item: itemName(n), from: where });
-    }
-    for (const ev of r.events || []) { const [deck, n] = ev.split(":"); addCard(deck, Number(n), `from ${where}`); }
-    if (r.unlockCharacter) unlockClass(r.unlockCharacter, where);
-
-    doTreasures(s, where);
-  };
-
-  // What a scenario's treasures gave. Looted on a success, a failure or a
-  // casual replay alike: a treasure is gained the moment it's looted (p. 27).
-  // Who looted it: the character whose log has its line, else as the
-  // scenario's treasure names them (loot from before the logs, or a tile
-  // that changed no sheet).
-  const looters = treasureLooters(data.characters);
-  const doTreasures = (s, where) => {
-    // Treasures: "07", or { "number": "07", "character": "Craig", "drew": 52 }.
-    const found = [];
-    for (const t of s.treasures || []) {
-      // "drawn": false says a random draw was never made, and won't be.
-      const { number, character: named, drew, drawn: never } = typeof t === "object" ? { ...t, drawn: t.drawn === false } : { number: t };
-      const character = looters.get(String(Number(number))) || named;
-      const from = `treasure ${number}`;
-      const parts = treasureParts(number);
-      for (const part of parts) {
-        // A design puts every copy in the shop; a named item goes to whoever
-        // looted it, one copy (rulebook p. 14). If no one is written down as
-        // looting it, and no sheet has it, ask.
-        if (part.type === "itemDesign") addDesign(part.value, `${from} in ${where}`);
-        if (part.type === "item") {
-          const item = itemName(part.value);
-          record.found.push({ item, from, character });
-          if (!character && !data.characters.some(c => (c.items || []).some(i => sameItem(i, item)))) {
-            record.claims.push({ item, treasure: number, where,
-              how: `in scenario ${where}'s \`"treasures"\`, write \`"${number}"\` as \`{ "number": "${number}", "character": "Name" }\`, and add ${item} to their \`items\` unless they've since sold it` });
-          }
-        }
-        if (part.type === "scenario") unlocks.push({ number: Number(part.value), source: from });
-        if (part.type === "randomScenario") {
-          if (drew != null) unlocks.push({ number: Number(drew), source: from });
-          else if (!never) record.draws.push({ what: "a random side scenario", from: `${from}, looted in ${where}`,
-            how: `in scenario ${where}'s \`"treasures"\`, write \`"${number}"\` as \`{ "number": "${number}", "drew": 52 }\`, putting the number of the scenario you drew in place of 52` });
-        }
-        if (part.type === "randomItemDesign") {
-          if (drew != null) addDesign(drew, from);
-          else if (!never) record.draws.push({ what: "a random item design", from: `${from}, looted in ${where}`,
-            how: `in scenario ${where}'s \`"treasures"\`, write \`"${number}"\` as \`{ "number": "${number}", "drew": "Item name" }\`` });
-        }
-      }
-      const gives = parts.map(describeTreasurePart).join(", ") || "not in the treasure index";
-      const scenarioDraw = parts.some(part => part.type === "randomScenario");
-      const drawn = drew != null ? ` (drew ${scenarioDraw ? `#${drew}` : drew})` : never ? " (never drawn)" : "";
-      found.push(`${number}: ${gives}${drawn}${character ? `, to ${character}` : ""}`);
-    }
-    if (found.length) record.treasures.set(s.number, found);
-  };
-
-  const doAdjustment = a => {
-    const label = a.notes || "Adjustment";
-    if (a.reputation) gain("reputation", exact(a.reputation), label);
-    if (a.prosperity) gain("prosperity", exact(a.prosperity), label);
-  };
-
-  const step = item => item.event ? doEvent(item.event) : doAdjustment(item.adjustment);
-  played.forEach((s, i) => { before[i].forEach(step); doScenario(s); });
-  for (const s of data.scenarios.filter(x => x.status !== "completed" && x.treasures?.length)) doTreasures(s, `#${s.number}`);
+// Each completed scenario, with the events and adjustments before it; the
+// treasures of the rest; then the events and adjustments after.
+function ledgerReplay(ledger) {
+  const { data, played, before, after } = ledger;
+  const step = item => item.event ? ledgerEvent(ledger, item.event) : ledgerAdjustment(ledger, item.adjustment);
+  played.forEach((s, i) => { before[i].forEach(step); ledgerScenario(ledger, s); });
+  for (const s of data.scenarios.filter(x => x.status !== "completed" && x.treasures?.length)) ledgerTreasures(ledger, s, `#${s.number}`);
   after.forEach(step);
+}
+
+// Envelope B opened, and the donations since.
+function ledgerEnvelopeB(ledger) {
+  const { data, gain } = ledger;
   if (data.city.envelopeB) {
     gain("prosperity", exact(1), "Envelope B opened");
     gain("prosperity", exact(donationCheckmarks(data.city.donations)), "Sanctuary donations");
   }
+}
 
+// Retirements.
+function ledgerRetirements(ledger) {
+  const { data, removed, unlocks, record, addDesign, classInfo, classIdOf, addCard, gain } = ledger;
   // Every retirement adds a checkmark to prosperity, and the class's
   // retirement events to the decks (unless one was since drawn and removed).
   for (const c of data.characters.filter(c => c.retired)) {
@@ -546,7 +599,11 @@ function deriveCampaign(data) {
         how: `in ${c.name}'s entry in \`"characters"\`, set \`"questDraws"\`' \`"scenario"\` to its number` });
     }
   }
+}
 
+// What the file lists by hand.
+function ledgerByHand(ledger) {
+  const { data, questions, record, classIdOf, unlockClass } = ledger;
   // What campaign.json lists by hand: things nothing above accounts for.
   const byHand = (list, entries, kind) => {
     for (const a of entries) {
@@ -574,10 +631,18 @@ function deriveCampaign(data) {
   byHand(record.global, data.city.globalAchievements, "global");
   byHand(record.designs, data.city.itemDesigns, "designs");
   byHand(record.classes, data.city.unlockedClasses, "classes");
+}
 
+// Cards added to or taken from the event decks by hand.
+function ledgerDecksByHand(ledger) {
+  const { data, addCard, removeCard } = ledger;
   for (const a of data.eventDecks.added) addCard(a.deck, a.number, a.notes || "added by hand");
   for (const r of data.eventDecks.removed) removeCard(r.deck, r.number, r.notes || "removed by hand");
+}
 
+// Reputation and prosperity an older file kept by hand.
+function ledgerStoredTotals(ledger) {
+  const { data, questions, totals } = ledger;
   // Older files kept the totals by hand. Say so if they disagree.
   for (const [key, stored, name] of [["reputation", data.party.reputation, "reputation"],
                                      ["prosperity", data.city.prosperityCheckmarks, "prosperity checkmarks"]]) {
@@ -585,13 +650,19 @@ function deriveCampaign(data) {
       questions.push(`Ledger: ${name} in campaign.json says ${stored}, but the scenarios and events add up to ${totals[key].value}. The page uses ${totals[key].value}; remove the number, or add an adjustment for the difference.`);
     }
   }
-
-  const list = map => [...map.values()].map(a => ({ ...a, where: a.where.join(", ") }));
-  return { decks, added, removed, history, questions, unlocks, totals,
-           record: { party: list(record.party), global: list(record.global), designs: list(record.designs),
-                     classes: list(record.classes), draws: record.draws, treasures: record.treasures,
-                     found: record.found, claims: record.claims, lost: record.lost } };
 }
+
+// The steps, in order.
+const LEDGER_STEPS = [
+  ledgerStartingClasses,  // the six classes open from the start
+  ledgerTimeline,         // the order things happened
+  ledgerReplay,           // scenarios, events and adjustments, in that order
+  ledgerEnvelopeB,        // Envelope B and the donations it counts
+  ledgerRetirements,      // retirements: prosperity, events, quest draws
+  ledgerByHand,           // achievements, designs and classes listed by hand
+  ledgerDecksByHand,      // event cards added or removed by hand
+  ledgerStoredTotals,     // an older file's own totals, compared
+];
 
 // What hangs on the choice of option: its effect on the deck and the numbers.
 function describeStakes(found) {
