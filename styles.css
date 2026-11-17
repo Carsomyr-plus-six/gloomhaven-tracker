@@ -421,30 +421,38 @@ code { padding: 1px 5px; border-radius: var(--r-xs); background: var(--surface-3
    The one secondary button: an outlined brass pill (.btn.primary is the main one). */
 .todo-do { padding: 6px 12px; border: 1px solid var(--brass-edge); border-radius: var(--r-pill); background: var(--brass-bg); color: var(--brass); font-size: var(--t-sm); font-weight: 600; cursor: pointer; }
 .todo-do:hover { border-color: var(--brass); }
-/* Who is playing: an even grid, four across when the tile has room for
-   names that long, two otherwise, so a chip never sits alone. */
-.filters.party-pick { display: grid; grid-template-columns: repeat(var(--narrow, 2), minmax(0, 1fr)); gap: 6px; }
-@container level (min-width: 360px) { .filters.party-pick { grid-template-columns: repeat(var(--wide, 4), minmax(0, 1fr)); } }
-/* Someone inactive, there to be picked for a night: quieter until picked. */
-.filters.party-pick button.away:not([aria-pressed="true"]) { border-style: dashed; opacity: 0.7; }
-.filters.party-pick button { min-width: 0; justify-content: center; gap: 6px; padding: 0 8px; font-size: var(--t-sm); }
-.party-pick .pick-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; opacity: 1; }
-/* The difficulty, across the tile in equal parts. */
-.level-tile .segmented { align-self: stretch; }
-.level-tile .segmented button { flex: 1 1 0; min-width: 0; padding: 0 4px; font-size: var(--t-sm); }
-/* Tonight's level, the tile's figure, with how it was reached beside it;
-   what it means at the table underneath. */
+/* Tonight's level, the tile's figure, beside who is playing: each a class
+   icon with their level under it, lit when counted. */
 .level-now { display: flex; align-items: center; gap: 14px; }
 .level-now .hex { --w: 56px; }
-.level-why { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: var(--t-sm); color: var(--fg-3); }
-.sum-how .eq, .level-why .eq { display: inline-flex; align-items: baseline; gap: 4px; padding: 1px 9px; border: 1px solid var(--line-strong); border-radius: var(--r-pill);
+.party-pick { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.party-pick .pick { display: grid; justify-items: center; gap: 2px; width: 46px; padding: 7px 0 4px; border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm); background: transparent; color: var(--faded); font: inherit; cursor: pointer; }
+.party-pick .pick .gicon { width: 22px; height: 22px; margin: 0; }
+.gicon-letter { display: grid; place-items: center; width: 22px; height: 22px; font-weight: 700; font-size: var(--t-base); line-height: 1; }
+.party-pick .pick b { font-size: var(--t-xs); font-variant-numeric: tabular-nums; }
+.party-pick .pick:hover { border-color: var(--fg-3); }
+.party-pick .pick[aria-pressed="true"] { border-color: var(--fg-3); background: var(--surface-3); color: var(--fg); }
+/* Someone inactive, there to be picked for a night: dashed until picked. */
+.party-pick .pick.away:not([aria-pressed="true"]) { border-style: dashed; }
+.party-pick .inactive-toggle { align-self: center; padding-inline: 8px; }
+/* Each difficulty, the level it gives above its name; tonight's in brass. */
+.level-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+.level-steps button { display: grid; align-content: center; justify-items: center; gap: 0; min-height: 44px; padding: 4px 2px; border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: transparent; color: var(--muted); font: inherit; font-size: var(--t-xs); line-height: 1.2; cursor: pointer; }
+.level-steps button b { font-size: var(--t-base); color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.level-steps button:hover { border-color: var(--line-strong); }
+.level-steps button[aria-pressed="true"] { border-color: var(--brass-edge); background: var(--brass-bg); color: var(--fg); }
+.level-steps button[aria-pressed="true"] b { color: var(--brass); }
+/* How the level was reached, quiet, beside the card's label. */
+.level-how { font-size: var(--t-xs); font-weight: 600; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* What the level means at the table, in a line. */
+.level-numbers { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0; font-size: var(--t-sm); color: var(--muted); }
+.level-numbers b { margin-right: 2px; font-size: var(--t-lg); color: var(--fg); font-variant-numeric: tabular-nums; }
+.sum-how .eq { display: inline-flex; align-items: baseline; gap: 4px; padding: 1px 9px; border: 1px solid var(--line-strong); border-radius: var(--r-pill);
   font-weight: 700; color: var(--fg); font-variant-numeric: lining-nums tabular-nums; }
-.sum-how .eq small, .level-why .eq small { font-size: var(--t-xs); font-weight: 600; color: var(--muted); }
-.sum-how .op, .level-why .op { font-size: var(--t-xs); font-weight: 600; color: var(--muted); white-space: nowrap; }
-/* Each difficulty with the level it gives. */
-.level-tile .segmented button { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; line-height: 1.15; }
-.seg-level { font-size: var(--t-xs); font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
-.level-tile .segmented button[aria-pressed="true"] .seg-level { color: var(--brass); }
+.sum-how .eq small { font-size: var(--t-xs); font-weight: 600; color: var(--muted); }
+.sum-how .op { font-size: var(--t-xs); font-weight: 600; color: var(--muted); white-space: nowrap; }
 /* "+ 1 inactive": quiet, under what it adds to. */
 .inactive-toggle { align-self: flex-start; min-height: 32px; padding: 3px 12px; font-size: var(--t-xs); font-weight: 600; }
 .party-head .inactive-toggle, .section-head .inactive-toggle { min-height: 28px; margin-left: 8px; }
@@ -1335,7 +1343,7 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .sheet.open .sheet-body > * { align-self: stretch; }
   /* Titles the sheet's head already says. */
   .sheet.open .sheet-body > .section-head h2, .sheet.open .enhancer-wrap > .subtitle,
-  .sheet.open .level-tile > h2.label, .sheet.open .ready-head h2 { display: none; }
+  .sheet.open .level-tile .tile-top h2.label, .sheet.open .ready-head h2 { display: none; }
   .sheet.open .rec-pin { top: 60px; }
   .sheet.open .ready-list { flex-direction: column; overflow: visible; margin: 0; padding: 0; }
   .sheet.open .ready-card { width: auto; min-height: 0; flex-direction: row; align-items: center; }
@@ -1348,7 +1356,9 @@ input[type="number"][list] { -moz-appearance: textfield; appearance: textfield; 
   .level-line .hex { --w: 40px; }
   .level-line-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
   .level-line-text strong { font-size: var(--t-lg); }
-  .level-line-text span { font-size: var(--t-sm); color: var(--muted); }
+  .level-line-diff { font-size: var(--t-sm); color: var(--muted); }
+  .level-line-text .level-line-icons { display: flex; gap: 8px; color: var(--fg); }
+  .level-line-icons .gicon { width: 22px; height: 22px; margin: 0; }
   .level-line > .icon { transform: rotate(-90deg); color: var(--fg-3); }
 
   /* Town: each job a row, the Shop and enhancing opening as sheets. */

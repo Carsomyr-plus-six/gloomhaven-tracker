@@ -180,51 +180,60 @@ function levelTile(data) {
     if (levelParty.has(name)) levelParty.delete(name); else levelParty.add(name);
     render(data);
   };
-  const stat = (label, value) => h("div", {}, h("span", { class: "label" }, label), h("span", { class: "num" }, value));
   const average = levels.length ? (levels.reduce((a, b) => a + b, 0) / levels.length).toFixed(1).replace(/\.0$/, "") : null;
   const diffLabel = DIFFICULTIES.find(([key]) => key === difficulty)[1].toLowerCase();
   const levelAt = d => Math.max(0, Math.min(7, recommended + d));
 
-  // Tonight's level, the tile's figure, beside what it means at the table;
-  // under it, how it was reached. The other levels worth seeing are the
-  // ones a difficulty gives, so each difficulty says its own.
-  // Phones: one line, opening the tile as a sheet.
-  const line = h("button", { type: "button", class: "level-line", "data-tab": "tonight", "data-key": "level-line", onclick: () => openSheet("level") },
+  // A character as their class's icon (the name on hover and for screen
+  // readers); a class the data doesn't know, as the name's first letter.
+  const classIcon = c => {
+    const id = classId(c.class);
+    return id ? gameIcon(`class-${id}`) : h("span", { class: "gicon-letter", "aria-hidden": "true" }, c.name[0]);
+  };
+  // How the level was reached, said rather than shown: the average of the
+  // levels picked, halved and rounded up, and the difficulty's step.
+  const how = `Scenario level ${level}: average character level ${average}, halved and rounded up${shift ? `, ${recommended}, ${signed(shift)} on ${diffLabel}` : ""}`;
+
+  // Tonight's level, the tile's figure, beside the party as class icons;
+  // under them each difficulty with the level it gives, then what the
+  // level means at the table, in a line. Monster level is the level itself.
+  // Phones: one line, the level and who's playing, opening the tile as a sheet.
+  const line = h("button", { type: "button", class: "level-line", "data-tab": "tonight", "data-key": "level-line", onclick: () => openSheet("level"),
+                 "aria-label": playing.length ? `${how}. ${capitalize(diffLabel)}, ${plural(playing.length, "player")}: ${playing.map(c => c.name).join(", ")}` : "Pick who is playing" },
     playing.length ? hex(level, "now") : null,
-    h("span", { class: "level-line-text" },
-      h("strong", {}, playing.length ? `Level ${level}` : "Pick who is playing"),
-      playing.length ? h("span", {}, `${diffLabel} · ${plural(playing.length, "player")}`) : null),
+    h("span", { class: "level-line-text", "aria-hidden": "true" },
+      playing.length ? h("span", { class: "level-line-icons" }, playing.map(classIcon)) : h("strong", {}, "Pick who is playing"),
+      playing.length ? h("span", { class: "level-line-diff" }, capitalize(diffLabel)) : null),
     icon("chevron"));
   const tile = h("div", { class: "card tile level-tile", "data-tab": "tonight" },
-    h("h2", { class: "label" }, "Scenario level"),
+    h("div", { class: "tile-top" },
+      h("h2", { class: "label" }, "Scenario level"),
+      playing.length ? h("span", { class: "level-how", "aria-hidden": "true", title: "The average character level, halved and rounded up" },
+        `avg ${average} ÷ 2 ↑${shift ? ` ${signed(shift)}` : ""}`) : null),
+    h("div", { class: "level-now" },
+      playing.length ? h("span", { role: "img", "aria-label": how, title: how }, hex(level, "now")) : null,
+      h("div", { class: "party-pick", role: "group", "aria-label": "Who is playing" }, active.map(c => {
+        const own = characterStats(c).level;
+        const said = `${c.name}, ${c.class}, level ${own}${c.inactive ? ", inactive: pick them to count them tonight" : ""}`;
+        return h("button", { type: "button", "data-key": `playing-${c.name}`, "aria-pressed": String(levelParty.has(c.name)),
+                             class: c.inactive ? "pick away" : "pick", title: said, "aria-label": said, onclick: () => toggle(c.name) },
+          classIcon(c), h("b", {}, own));
+      }),
+      // Those inactive, asked for beside the rest.
+      inactiveToggle(data, away, "level-inactive"))),
+    playing.length ? null : h("p", { class: "small muted" }, "Pick who is playing."),
     playing.length
-      ? [h("div", { class: "level-now" },
-          h("span", { role: "img", "aria-label": `Scenario level ${level}` }, hex(level, "now")),
-          // How it was reached, as a sum: the average of the levels picked
-          // below, halved and rounded up, and the difficulty's step.
-          h("p", { class: "level-why", role: "img",
-                   "aria-label": `Average character level ${average}, halved and rounded up${shift ? `: ${recommended}, ${signed(shift)} on ${diffLabel}` : ""}` },
-            h("span", { class: "eq" }, h("small", {}, "avg"), average),
-            h("span", { class: "op", title: "Halved, rounded up" }, "÷ 2 ↑ ="),
-            h("span", { class: "eq" }, recommended),
-            shift ? [h("span", { class: "op" }, `${signed(shift)} ${diffLabel} =`), h("span", { class: "eq" }, level)] : null)),
-        // Monster level is the scenario level, which the hex shows.
-        h("div", { class: "level-stats" }, stat("Gold per coin", st.gold), stat("Trap damage", st.trap), stat("Bonus XP", st.xp))]
-      : h("p", { class: "small muted" }, "Pick who is playing."),
-    h("div", { class: "filters party-pick", role: "group", "aria-label": "Who is playing",
-               style: `--wide: ${Math.min(active.length, 4)}; --narrow: ${active.length === 3 ? 3 : Math.min(active.length, 2)}` }, active.map(c =>
-      h("button", { type: "button", "data-key": `playing-${c.name}`, "aria-pressed": String(levelParty.has(c.name)),
-                    class: c.inactive ? "away" : null, title: c.inactive ? `${c.name} is inactive: pick them to count them tonight` : null,
-                    "aria-label": `${c.name}, level ${characterStats(c).level}${c.inactive ? ", inactive" : ""}`,
-                    onclick: () => toggle(c.name) },
-        h("span", { class: "pick-name" }, c.name), h("span", {}, characterStats(c).level)))),
-    inactiveToggle(data, away, "level-inactive"),
-    playing.length
-      ? h("div", { class: "segmented", role: "group", "aria-label": "Difficulty" }, DIFFICULTIES.map(([key, label, d]) =>
+      ? h("div", { class: "level-steps", role: "group", "aria-label": "Difficulty" }, DIFFICULTIES.map(([key, label, d]) =>
           h("button", { type: "button", "data-key": `difficulty-${key}`, "aria-pressed": String(difficulty === key),
                         "aria-label": `${label}: level ${levelAt(d)}`,
                         onclick: () => { difficulty = key; render(data); } },
-            h("span", {}, label), h("span", { class: "seg-level" }, levelAt(d)))))
+            h("b", {}, levelAt(d)), h("span", {}, label))))
+      : null,
+    playing.length
+      ? h("p", { class: "level-numbers" },
+          h("span", {}, h("b", {}, goldText(st.gold)), " a coin"),
+          h("span", {}, h("b", {}, st.trap), " trap damage"),
+          h("span", {}, h("b", {}, `+${st.xp}`), " bonus XP"))
       : null);
   return [line, sheet("level", "Scenario level", tile)];
 }
