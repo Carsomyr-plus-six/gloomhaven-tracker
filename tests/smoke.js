@@ -1,5 +1,5 @@
 // The page itself, opened in a frame as a person would open it: what the
-// tests of campaign.js can't see (app.js, index.html, styles.css). Browser
+// tests of campaign/ can't see (app/, index.html, styles.css). Browser
 // only: tests/index.html runs it after the others, and GitHub runs that
 // page in headless Chrome. Each check says what it found when it fails.
 async function runSmoke() {

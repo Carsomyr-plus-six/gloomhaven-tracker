@@ -51,6 +51,13 @@ async function runTests(load, loadText) {
     same(`${name}: the old layout moves over to ${file}`, written(migrate(copy(v1))), await loadText(file));
   }
 
+  // The rules' files load in one order, index.html's: the test page loads
+  // the same ones in the same order (tests/run.mjs reads index.html's list).
+  const rulesIn = (html, prefix) => [...html.matchAll(/<script src="([^"]+)"/g)].map(m => m[1].replace(prefix, "")).filter(src => src.startsWith("campaign/"));
+  const pageRules = rulesIn(await loadText("index.html"), "");
+  same("the test page loads the rules' files the page does, in its order",
+    [rulesIn(await loadText("tests/index.html"), "../"), pageRules.length > 0], [pageRules, true]);
+
   // The session writer: a draft with every part of the form, applied to
   // campaign.json; the file it writes, worked out again.
   const raw = await load("campaign.json");
