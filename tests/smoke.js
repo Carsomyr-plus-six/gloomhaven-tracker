@@ -229,6 +229,20 @@ async function runSmoke() {
         errors.join("; ") || `${counts.join(", ")} cards; ${spill.length} past their row; tapped ${label}, told ${told}`);
       doc.querySelector('.tabs a[data-tab="tonight"]')?.click();
       await wait(150);
+      // The scenario level: on Tonight's line, a class icon per character
+      // playing; in the card, a difficulty tapped puts its level in the hex.
+      const icons = doc.querySelectorAll(".level-line .level-line-icons > *").length;
+      const counted = doc.querySelectorAll('.level-tile .pick[aria-pressed="true"]').length;
+      const hard = doc.querySelector('[data-key="difficulty-hard"]');
+      const gives = hard?.querySelector("b")?.innerText;
+      hard?.click();
+      await wait(80);
+      const shows = doc.querySelector(".level-tile .level-now .hex")?.innerText.replace(/\D/g, "");
+      doc.querySelector('[data-key="difficulty-normal"]')?.click();
+      await wait(80);
+      check("phone: the scenario level, a class icon per character playing, and the hex a difficulty's level",
+        icons > 0 && icons === counted && gives && shows === gives && !errors.length,
+        errors.join("; ") || `${icons} icons for ${counted} playing; Hard gives ${gives}, the hex shows ${shows}`);
     }
     [...doc.querySelectorAll("button")].find(b => b.innerText.trim().startsWith("Record the evening"))?.click();
     await wait(200);
